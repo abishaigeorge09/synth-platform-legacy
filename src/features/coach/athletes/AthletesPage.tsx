@@ -49,9 +49,9 @@ export function AthletesPage() {
         subtitle={`${SEED_ATHLETES.length} athletes · latest erg 2026-03-16 · sorted by ${sort}`}
       />
 
-      <div className="flex flex-wrap items-center gap-3 px-10 pb-5">
+      <div className="flex flex-wrap items-center gap-3 px-5 sm:px-10 pb-5">
         <div
-          className="flex items-center gap-2 rounded-lg border px-3 py-2"
+          className="flex w-full items-center gap-2 rounded-lg border px-3 py-2 sm:w-auto"
           style={{ background: THEME.white, borderColor: THEME.border }}
         >
           <span className="text-[11px] uppercase tracking-[0.16em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
@@ -61,7 +61,7 @@ export function AthletesPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a name…"
-            className="w-48 bg-transparent text-[13px] outline-none"
+            className="w-full bg-transparent text-[13px] outline-none sm:w-48"
             style={{ color: THEME.textPrimary }}
           />
         </div>
@@ -97,7 +97,7 @@ export function AthletesPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.35 }}
-        className="grid gap-3 px-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        className="grid gap-3 px-5 sm:px-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {visible.map(({ athlete, erg, rank }) => (
           <AthleteCard key={athlete.id} athlete={athlete} erg={erg} rank={rank} />

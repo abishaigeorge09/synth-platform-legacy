@@ -1,10 +1,28 @@
 @import "tailwindcss";
 
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
 html,
 body,
 #root {
   min-height: 100%;
   min-height: 100dvh;
+}
+
+/* In PWA standalone mode, iOS doesn't give us a status-bar space by default.
+   Pad the body top so the mobile top bar / athlete header doesn't sit under
+   the notch. Only applies when the app is actually installed. */
+@media (display-mode: standalone) {
+  body {
+    padding-top: var(--safe-top);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
 }
 
 body {

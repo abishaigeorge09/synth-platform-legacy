@@ -68,7 +68,7 @@ export function AthleteProfilePage() {
 
   return (
     <div className="flex min-h-full w-full flex-col pb-12">
-      <div className="flex items-center justify-between px-10 pt-8">
+      <div className="flex items-center justify-between px-5 sm:px-10 pt-8">
         <Link
           to="/coach/athletes"
           className="text-[11px] font-semibold uppercase tracking-wider transition-colors hover:underline"
@@ -93,17 +93,17 @@ export function AthleteProfilePage() {
       <StatRow erg={erg} yoy={yoy} />
 
       {yoy && (
-        <div className="mt-6 px-10">
+        <div className="mt-6 px-5 sm:px-10">
           <YoyChart yoy={yoy} athleteName={athlete.name} />
         </div>
       )}
 
-      <div className="mt-6 grid gap-4 px-10 xl:grid-cols-2">
+      <div className="mt-6 grid gap-4 px-5 sm:px-10 xl:grid-cols-2">
         <SessionsCard />
         <LineupHistoryCard />
       </div>
 
-      <div className="mt-6 px-10">
+      <div className="mt-6 px-5 sm:px-10">
         <WellnessStub />
       </div>
     </div>
@@ -116,7 +116,7 @@ function ergOrDefault(d?: string) {
 
 function ProfileHeader({ name, subtitle, athleteId }: { name: string; subtitle: string; athleteId: string }) {
   return (
-    <div className="flex flex-col gap-6 px-10 pb-4 pt-6 xl:flex-row xl:items-end xl:justify-between">
+    <div className="flex flex-col gap-6 px-5 sm:px-10 pb-4 pt-6 xl:flex-row xl:items-end xl:justify-between">
       <div className="flex items-center gap-5">
         <div
           className="flex h-20 w-20 items-center justify-center rounded-2xl border text-[26px] font-semibold"
@@ -220,7 +220,7 @@ function StatRow({
     },
   ]
   return (
-    <div className="grid grid-cols-2 gap-3 px-10 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 px-5 sm:px-10 lg:grid-cols-4">
       {tiles.map((t, i) => (
         <motion.div
           key={t.kicker}

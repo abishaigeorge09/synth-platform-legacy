@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react'
-import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
 import { motion } from 'framer-motion'
 import { PageHeader } from '../../dashboard/components/PageHeader'
 import { RosterPanel } from './components/RosterPanel'
@@ -20,7 +27,10 @@ export function LineupsPage() {
   const [published, setPublished] = useState(false)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Desktop — start dragging after a tiny movement
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    // Touch — require a short hold so vertical page scrolling still works
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
   )
 
   const athleteById = useMemo(() => {
@@ -130,7 +140,7 @@ export function LineupsPage() {
         subtitle={`${boats.length} boats · ${filledSeats} / ${totalSeats} seats filled · drag athletes from the roster`}
       />
 
-      <div className="flex flex-wrap items-center gap-2 px-10 pb-4">
+      <div className="flex flex-wrap items-center gap-2 px-5 sm:px-10 pb-4">
         <button
           type="button"
           onClick={addBoat}
@@ -176,7 +186,7 @@ export function LineupsPage() {
       </div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="grid gap-4 px-10 xl:grid-cols-[300px_1fr]">
+        <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[300px_1fr]">
           <RosterPanel
             athletes={SEED_ATHLETES}
             ergByAthleteId={ergByAthleteId}
@@ -198,7 +208,7 @@ export function LineupsPage() {
         </div>
       </DndContext>
 
-      <div className="mt-8 px-10">
+      <div className="mt-8 px-5 sm:px-10">
         <div
           className="rounded-2xl border p-5"
           style={{ background: THEME.white, borderColor: THEME.border }}

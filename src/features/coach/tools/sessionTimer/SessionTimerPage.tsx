@@ -35,7 +35,7 @@ export function SessionTimerPage() {
         subtitle={`${boats.length} boats ready · tap Split to record piece times · video markers on each tap`}
       />
 
-      <div className="flex flex-wrap items-center gap-3 px-10 pb-4">
+      <div className="flex flex-wrap items-center gap-3 px-5 sm:px-10 pb-4">
         <button
           type="button"
           onClick={() => setRecording((v) => !v)}
@@ -80,14 +80,14 @@ export function SessionTimerPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="grid gap-4 px-10 lg:grid-cols-2"
+        className="grid gap-4 px-5 sm:px-10 lg:grid-cols-2"
       >
         {boats.map((boat) => (
           <BoatTimerCard key={boat.id} boatName={boat.name} athletes={boat.athleteNames} />
         ))}
       </motion.div>
 
-      <div className="mt-6 px-10">
+      <div className="mt-6 px-5 sm:px-10">
         <div
           className="rounded-2xl border border-dashed p-5"
           style={{ background: THEME.white, borderColor: THEME.border }}

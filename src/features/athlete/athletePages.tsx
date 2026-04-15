@@ -58,7 +58,7 @@ function AthletePageShell({
       transition={{ duration: 0.3 }}
       className="flex min-h-full w-full flex-col pb-12"
     >
-      <header className="px-10 pb-5 pt-8">
+      <header className="px-5 sm:px-10 pb-5 pt-8">
         <div
           className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
           style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
@@ -89,7 +89,7 @@ export function MyDashboardPage() {
       title={`Welcome back, ${DEMO_ATHLETE.name.split(' ')[0]}`}
       subtitle={`${DEMO_TEAM.name} · ${DEMO_ATHLETE_TEAMMATES.length + 1} on roster · coach ${DEMO_COACH.name.split(' ')[0]}`}
     >
-      <div className="grid gap-4 px-10 xl:grid-cols-[1fr_1fr]">
+      <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[1fr_1fr]">
         <div
           className="rounded-2xl border p-6"
           style={{
@@ -177,7 +177,7 @@ export function MyDashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 px-10 xl:grid-cols-3">
+      <div className="mt-6 grid gap-4 px-5 sm:px-10 xl:grid-cols-3">
         <QuickTile
           kicker="Latest 2K"
           value={fmt2k(DEMO_ATHLETE_ERG?.timeSeconds)}
@@ -198,7 +198,7 @@ export function MyDashboardPage() {
         />
       </div>
 
-      <div className="mt-6 px-10">
+      <div className="mt-6 px-5 sm:px-10">
         <Link
           to="/athlete/stats"
           className="inline-block rounded-full border px-5 py-2.5 text-[12px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
@@ -264,7 +264,7 @@ export function MyStatsPage() {
       title="Personal performance"
       subtitle={`Scoped to ${DEMO_ATHLETE.name}'s data only · ${DEMO_ATHLETE_YOY ? '1 YoY test pair' : 'no prior tests'}`}
     >
-      <div className="grid gap-4 px-10 xl:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[1.4fr_1fr]">
         {DEMO_ATHLETE_YOY ? (
           <div className="rounded-2xl border p-5" style={{ background: THEME.white, borderColor: THEME.border }}>
             <div
@@ -388,7 +388,7 @@ export function MySessionsPage() {
       title="My session history"
       subtitle={`${DEMO_ATHLETE_SESSIONS.length} recent sessions · splits and videos your coach shared`}
     >
-      <div className="px-10">
+      <div className="px-5 sm:px-10">
         <ul className="flex flex-col gap-3">
           {DEMO_ATHLETE_SESSIONS.map((s) => (
             <li
@@ -445,7 +445,7 @@ export function MyLineupsPage() {
       title="My boat history"
       subtitle={`${DEMO_ATHLETE_LINEUPS.length} published lineups · boats and seats across the season`}
     >
-      <div className="px-10">
+      <div className="px-5 sm:px-10">
         <ul className="flex flex-col gap-2">
           {DEMO_ATHLETE_LINEUPS.map((l) => (
             <li
@@ -498,7 +498,7 @@ export function MySourcesPage() {
       title="Connect your own apps"
       subtitle="Personal data sources — separate from the team feed, only visible to you"
     >
-      <div className="grid gap-3 px-10 md:grid-cols-2">
+      <div className="grid gap-3 px-5 sm:px-10 md:grid-cols-2">
         {DEMO_ATHLETE_PERSONAL_SOURCES.map((s) => (
           <div
             key={s.id}
@@ -585,7 +585,7 @@ export function AthleteSettingsPage() {
       title="Visibility & notifications"
       subtitle="Control what the team and coach can see about you"
     >
-      <div className="px-10">
+      <div className="px-5 sm:px-10">
         <div
           className="max-w-[640px] rounded-2xl border"
           style={{ background: THEME.white, borderColor: THEME.border }}

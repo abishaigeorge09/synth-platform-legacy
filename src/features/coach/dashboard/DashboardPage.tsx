@@ -24,21 +24,21 @@ export function DashboardPage() {
         <ConnectorChipRow />
       </div>
 
-      <div className="mt-6 grid gap-4 px-10 xl:grid-cols-2">
+      <div className="mt-6 grid gap-4 px-5 sm:px-10 xl:grid-cols-2">
         <TeamSessionsChart />
         <TeamComplianceChart />
       </div>
 
-      <div className="mt-6 px-10">
+      <div className="mt-6 px-5 sm:px-10">
         <RosterPreviewTable />
       </div>
 
-      <div className="mt-6 grid gap-4 px-10 xl:grid-cols-2">
+      <div className="mt-6 grid gap-4 px-5 sm:px-10 xl:grid-cols-2">
         <AlertsPanel />
         <ActivityFeed />
       </div>
 
-      <div className="mt-6 px-10">
+      <div className="mt-6 px-5 sm:px-10">
         <AiInsightBlock />
       </div>
     </div>

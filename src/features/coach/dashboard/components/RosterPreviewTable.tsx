@@ -56,17 +56,16 @@ export function RosterPreviewTable() {
         </Link>
       </header>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-[12px]" style={{ fontFamily: THEME.fontMono }}>
+        <table className="w-full text-[12px]" style={{ fontFamily: THEME.fontMono }}>
           <thead>
             <tr style={{ color: THEME.textMuted, borderTop: `1px solid ${THEME.border}` }}>
-              {['#', 'Athlete', '2K', 'Split', 'SPM', 'Watts', 'Status'].map((h) => (
-                <th
-                  key={h}
-                  className="px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em]"
-                >
-                  {h}
-                </th>
-              ))}
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">#</th>
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">Athlete</th>
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">2K</th>
+              <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:table-cell">Split</th>
+              <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] md:table-cell">SPM</th>
+              <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] md:table-cell">Watts</th>
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -78,28 +77,28 @@ export function RosterPreviewTable() {
                   className="transition-colors hover:bg-zinc-50"
                   style={{ borderTop: `1px solid ${THEME.border}` }}
                 >
-                  <td className="px-5 py-3" style={{ color: THEME.textMuted }}>
+                  <td className="px-3 py-3 sm:px-5" style={{ color: THEME.textMuted }}>
                     {String(i + 1).padStart(2, '0')}
                   </td>
                   <td
-                    className="px-5 py-3 font-semibold"
+                    className="px-3 py-3 font-semibold sm:px-5"
                     style={{ color: THEME.textPrimary, fontFamily: THEME.fontSans }}
                   >
                     {athlete?.name ?? score.athleteId}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textPrimary }}>
+                  <td className="px-3 py-3 sm:px-5" style={{ color: THEME.textPrimary }}>
                     {fmt2k(score.timeSeconds)}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textSecondary }}>
+                  <td className="hidden px-5 py-3 sm:table-cell" style={{ color: THEME.textSecondary }}>
                     {score.splitSeconds ? fmt2k(score.splitSeconds) : '—'}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textSecondary }}>
+                  <td className="hidden px-5 py-3 md:table-cell" style={{ color: THEME.textSecondary }}>
                     {score.spm ?? '—'}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textSecondary }}>
+                  <td className="hidden px-5 py-3 md:table-cell" style={{ color: THEME.textSecondary }}>
                     {score.watts ?? '—'}
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-3 py-3 sm:px-5">
                     <span
                       className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
                       style={{

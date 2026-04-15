@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import type { ComponentType, ReactNode } from 'react'
 import { THEME } from '../../lib/theme'
 import { useUiStore } from '../store/useUiStore'
 import { useTeamStore } from '../store/useTeamStore'
@@ -13,7 +14,6 @@ import {
   SynthAiIllustration,
   SettingsIllustration,
 } from '../illustrations/sidebarIllustrations'
-import type { ComponentType } from 'react'
 
 type NavItem = {
   to: string
@@ -32,24 +32,62 @@ const TOOLS_NAV: NavItem[] = [
   { to: '/coach/tools/session-timer', label: 'Session Timer', Glyph: SessionTimerIllustration },
 ]
 
+/**
+ * Desktop-only wrapper around SidebarContent. Hidden below 768 px; on mobile
+ * the same SidebarContent is rendered inside MobileSidebarDrawer.
+ */
 export function Sidebar() {
-  const navigate = useNavigate()
-  const openAgent = useUiStore((s) => s.openAgentModal)
-  const team = useTeamStore((s) => s.activeTeam)
-
   return (
     <aside
-      className="flex h-full w-[260px] shrink-0 flex-col border-r"
+      className="hidden h-full w-[260px] shrink-0 flex-col border-r md:flex"
       style={{
         background: THEME.white,
         borderColor: THEME.border,
         fontFamily: THEME.fontSans,
       }}
     >
+      <SidebarContent variant="desktop" />
+    </aside>
+  )
+}
+
+/**
+ * The actual navigation content — shared between desktop Sidebar and the
+ * mobile drawer. `variant` is only used to namespace the active-indicator
+ * layoutId so Framer Motion doesn't see duplicate IDs when both surfaces
+ * are mounted at once.
+ */
+export function SidebarContent({
+  variant,
+  onNavigate,
+}: {
+  variant: 'desktop' | 'drawer'
+  onNavigate?: () => void
+}) {
+  const navigate = useNavigate()
+  const openAgent = useUiStore((s) => s.openAgentModal)
+  const closeMobileDrawer = useUiStore((s) => s.closeMobileDrawer)
+  const team = useTeamStore((s) => s.activeTeam)
+
+  const afterNavigate = () => {
+    onNavigate?.()
+    if (variant === 'drawer') closeMobileDrawer()
+  }
+
+  const handleAgent = () => {
+    openAgent()
+    afterNavigate()
+  }
+
+  return (
+    <div className="flex h-full flex-col">
       {/* Logo → landing */}
       <button
         type="button"
-        onClick={() => navigate('/')}
+        onClick={() => {
+          navigate('/')
+          afterNavigate()
+        }}
         className="flex items-center gap-2 px-6 py-5 text-left transition-opacity hover:opacity-80"
       >
         <span
@@ -62,23 +100,39 @@ export function Sidebar() {
       </button>
 
       {/* Team badge */}
-      <div className="mx-4 mb-4 rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: THEME.light }}>
-        <div className="text-[9px] uppercase tracking-[0.16em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+      <div
+        className="mx-4 mb-4 rounded-lg border px-3 py-2"
+        style={{ borderColor: THEME.border, background: THEME.light }}
+      >
+        <div
+          className="text-[9px] uppercase tracking-[0.16em]"
+          style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+        >
           Active team
         </div>
         <div className="mt-0.5 text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
           {team.name}
         </div>
-        <div className="text-[10px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
+        <div
+          className="text-[10px]"
+          style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
+        >
           {team.sport} · {team.inviteCode}
         </div>
       </div>
 
-      <NavGroup label="Overview" items={PRIMARY_NAV} />
+      <NavGroup
+        label="Overview"
+        items={PRIMARY_NAV}
+        variant={variant}
+        afterNavigate={afterNavigate}
+      />
 
       <NavGroup
         label="Custom Tools"
         items={TOOLS_NAV}
+        variant={variant}
+        afterNavigate={afterNavigate}
         footer={
           <button
             type="button"
@@ -97,6 +151,8 @@ export function Sidebar() {
           to="/coach/ai"
           label="synth. AI"
           Glyph={SynthAiIllustration}
+          variant={variant}
+          afterNavigate={afterNavigate}
           accent
         />
       </div>
@@ -105,7 +161,7 @@ export function Sidebar() {
       <div className="mt-2 px-4">
         <button
           type="button"
-          onClick={openAgent}
+          onClick={handleAgent}
           className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all"
           style={{
             background: THEME.primaryDarker,
@@ -125,14 +181,32 @@ export function Sidebar() {
 
       <div className="mt-auto border-t" style={{ borderColor: THEME.border }}>
         <div className="p-4">
-          <NavRow to="/coach/settings" label="Settings" Glyph={SettingsIllustration} />
+          <NavRow
+            to="/coach/settings"
+            label="Settings"
+            Glyph={SettingsIllustration}
+            variant={variant}
+            afterNavigate={afterNavigate}
+          />
         </div>
       </div>
-    </aside>
+    </div>
   )
 }
 
-function NavGroup({ label, items, footer }: { label: string; items: NavItem[]; footer?: React.ReactNode }) {
+function NavGroup({
+  label,
+  items,
+  footer,
+  variant,
+  afterNavigate,
+}: {
+  label: string
+  items: NavItem[]
+  footer?: ReactNode
+  variant: 'desktop' | 'drawer'
+  afterNavigate: () => void
+}) {
   return (
     <div className="mt-3 px-4">
       <div
@@ -143,7 +217,7 @@ function NavGroup({ label, items, footer }: { label: string; items: NavItem[]; f
       </div>
       <div className="flex flex-col gap-0.5">
         {items.map((item) => (
-          <NavRow key={item.to} {...item} />
+          <NavRow key={item.to} {...item} variant={variant} afterNavigate={afterNavigate} />
         ))}
         {footer}
       </div>
@@ -151,16 +225,27 @@ function NavGroup({ label, items, footer }: { label: string; items: NavItem[]; f
   )
 }
 
-function NavRow({ to, label, Glyph, accent }: NavItem & { accent?: boolean }) {
+function NavRow({
+  to,
+  label,
+  Glyph,
+  accent,
+  variant,
+  afterNavigate,
+}: NavItem & {
+  accent?: boolean
+  variant: 'desktop' | 'drawer'
+  afterNavigate: () => void
+}) {
+  const activeLayoutId = `nav-active-bar-${variant}`
   return (
     <NavLink
       to={to}
+      onClick={afterNavigate}
       className={({ isActive }) =>
         [
           'group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors',
-          isActive
-            ? 'font-semibold'
-            : 'font-medium hover:bg-zinc-100',
+          isActive ? 'font-semibold' : 'font-medium hover:bg-zinc-100',
         ].join(' ')
       }
       style={({ isActive }) => ({
@@ -174,7 +259,7 @@ function NavRow({ to, label, Glyph, accent }: NavItem & { accent?: boolean }) {
           <span>{label}</span>
           {isActive && (
             <motion.span
-              layoutId="nav-active-bar"
+              layoutId={activeLayoutId}
               className="ml-auto h-4 w-0.5 rounded-full"
               style={{ background: THEME.primary }}
               transition={{ type: 'spring', stiffness: 500, damping: 32 }}

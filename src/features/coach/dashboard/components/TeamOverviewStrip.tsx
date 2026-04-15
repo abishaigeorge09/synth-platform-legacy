@@ -40,7 +40,7 @@ export function TeamOverviewStrip() {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 px-10 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 px-5 sm:px-10 lg:grid-cols-4">
       {tiles.map((t, i) => (
         <motion.div
           key={t.kicker}

@@ -34,20 +34,36 @@ export function Hero3D({
     mouseY.set(0.5)
   }
 
+  function handleTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    const touch = e.touches[0]
+    if (!touch) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    mouseX.set((touch.clientX - rect.left) / rect.width)
+    mouseY.set((touch.clientY - rect.top) / rect.height)
+  }
+
+  function handleTouchEnd() {
+    mouseX.set(0.5)
+    mouseY.set(0.5)
+  }
+
   return (
     <section
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className="relative flex min-h-dvh items-center overflow-hidden"
       style={{
         background: `linear-gradient(165deg, ${THEME.primaryDarker} 0%, ${THEME.primary} 45%, ${THEME.primaryLight} 180%)`,
         color: THEME.white,
+        touchAction: 'pan-y',
       }}
     >
       {/* Ambient grid lines */}
       <GridBackdrop />
 
-      <div className="relative z-10 grid w-full gap-12 px-10 pt-28 pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="relative z-10 grid w-full gap-12 px-5 pt-24 pb-16 sm:px-10 sm:pt-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         {/* Left — text column */}
         <motion.div
           initial={{ opacity: 0, y: 28 }}
@@ -117,15 +133,16 @@ export function Hero3D({
 
         {/* Right — 3D card stack */}
         <div
-          className="relative flex min-h-[540px] items-center justify-center"
+          className="relative flex min-h-[420px] items-center justify-center sm:min-h-[540px]"
           style={{ perspective: 1400 }}
         >
           <motion.div
-            className="relative h-[540px] w-full max-w-[640px]"
+            className="relative h-[420px] w-full max-w-[420px] sm:h-[540px] sm:max-w-[640px]"
             style={{
               transformStyle: 'preserve-3d',
               rotateX,
               rotateY,
+              willChange: 'transform',
             }}
           >
             <DashboardCard x={sprX} y={sprY} />

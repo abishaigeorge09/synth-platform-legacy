@@ -63,7 +63,7 @@ export function ChatView({
 
   return (
     <div className="flex min-h-full w-full flex-col pb-12">
-      <header className="flex items-start justify-between px-10 pb-5 pt-8">
+      <header className="flex items-start justify-between px-5 sm:px-10 pb-5 pt-8">
         <div>
           <div
             className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
@@ -96,7 +96,7 @@ export function ChatView({
         )}
       </header>
 
-      <div className="mx-10 flex flex-1 flex-col overflow-hidden rounded-2xl border"
+      <div className="mx-5 flex flex-1 flex-col overflow-hidden rounded-2xl border sm:mx-10"
         style={{ background: THEME.white, borderColor: THEME.border, minHeight: 520 }}
       >
         <div ref={scrollRef} className="synth-scroll flex-1 overflow-y-auto px-6 py-6">

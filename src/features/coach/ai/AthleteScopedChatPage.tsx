@@ -22,7 +22,7 @@ export function AthleteScopedChatPage() {
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="px-10 pt-6">
+      <div className="px-5 sm:px-10 pt-6">
         <Link
           to={`/coach/athletes/${athlete.id}`}
           className="text-[11px] font-semibold uppercase tracking-wider transition-colors hover:underline"

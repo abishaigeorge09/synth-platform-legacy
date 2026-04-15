@@ -24,7 +24,7 @@ function statusLabel(source: Source) {
 
 export function ConnectorChipRow() {
   return (
-    <div className="flex flex-wrap items-center gap-2 px-10">
+    <div className="flex flex-wrap items-center gap-2 px-5 sm:px-10">
       {SEED_SOURCES.map((source, i) => {
         const accent = COLOR_MAP[source.colorKey ?? 'primary']
         return (

@@ -57,7 +57,7 @@ export function SourcesPage() {
         subtitle={`${SEED_SOURCES.length} connectors · ${healthyCount} healthy · ${totalScans} scans logged (72h)`}
       />
 
-      <div className="flex items-center justify-between px-10 pb-4">
+      <div className="flex items-center justify-between px-5 sm:px-10 pb-4">
         <div
           className="text-[11px]"
           style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
@@ -83,7 +83,7 @@ export function SourcesPage() {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="grid gap-3 px-10 md:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-3 px-5 sm:px-10 md:grid-cols-2 xl:grid-cols-4"
       >
         {SEED_SOURCES.map((source) => (
           <SourceCard
@@ -101,7 +101,7 @@ export function SourcesPage() {
         ))}
       </motion.div>
 
-      <div className="mt-8 grid gap-4 px-10 xl:grid-cols-[320px_1fr]">
+      <div className="mt-8 grid gap-4 px-5 sm:px-10 xl:grid-cols-[320px_1fr]">
         <section
           className="rounded-2xl border p-4"
           style={{ background: THEME.white, borderColor: THEME.border }}

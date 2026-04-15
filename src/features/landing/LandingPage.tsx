@@ -106,7 +106,7 @@ export function LandingPage() {
     <div className="flex min-h-dvh w-full flex-col" style={{ background: THEME.white }}>
       {/* Top nav — floats over the 3D hero */}
       <header
-        className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-10 py-5"
+        className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 sm:px-10 py-5"
         style={{ color: THEME.white }}
       >
         <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ export function LandingPage() {
       />
 
       {/* Features grid */}
-      <section id="features" className="px-10 py-20">
+      <section id="features" className="px-5 sm:px-10 py-20">
         <div className="mb-10 max-w-[640px]">
           <div
             className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
@@ -201,7 +201,7 @@ export function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="px-10 py-20" style={{ background: THEME.light }}>
+      <section id="pricing" className="px-5 sm:px-10 py-20" style={{ background: THEME.light }}>
         <div className="mb-10 max-w-[640px]">
           <div
             className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
@@ -284,7 +284,7 @@ export function LandingPage() {
       </section>
 
       {/* Close CTA */}
-      <section className="px-10 py-20" style={{ background: THEME.darkDeep, color: THEME.white }}>
+      <section className="px-5 sm:px-10 py-20" style={{ background: THEME.darkDeep, color: THEME.white }}>
         <div className="max-w-[720px]">
           <div
             className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
@@ -331,7 +331,7 @@ export function LandingPage() {
       </section>
 
       <footer
-        className="px-10 py-8 text-[11px]"
+        className="px-5 sm:px-10 py-8 text-[11px]"
         style={{ background: THEME.darkDeep, color: 'rgba(255,255,255,0.5)', fontFamily: THEME.fontMono }}
       >
         © 2026 synth. — Every data signal. One platform. · synthsports.com

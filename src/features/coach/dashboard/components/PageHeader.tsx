@@ -13,8 +13,8 @@ export function PageHeader({
 }) {
   const openAgent = useUiStore((s) => s.openAgentModal)
   return (
-    <div className="flex items-start justify-between gap-6 px-10 pb-6 pt-10">
-      <div>
+    <div className="flex flex-col items-start gap-4 px-5 pb-5 pt-6 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:px-10 sm:pt-10 sm:pb-6">
+      <div className="min-w-0">
         <div
           className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
           style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
@@ -22,13 +22,13 @@ export function PageHeader({
           {kicker}
         </div>
         <h1
-          className="text-[32px] font-semibold leading-[1.1]"
+          className="text-[26px] font-semibold leading-[1.1] sm:text-[32px]"
           style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}
         >
           {title}
         </h1>
         <div
-          className="mt-2 flex items-center gap-2 text-[12px]"
+          className="mt-2 flex flex-wrap items-center gap-2 text-[12px]"
           style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
         >
           <span>{subtitle}</span>
@@ -44,7 +44,7 @@ export function PageHeader({
       <button
         type="button"
         onClick={openAgent}
-        className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
+        className="shrink-0 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
         style={{
           background: THEME.white,
           color: THEME.primary,

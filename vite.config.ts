@@ -8,7 +8,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logos/synth-icon-green.svg'],
+      includeAssets: [
+        'logos/synth-icon-green.svg',
+        'logos/icon-152.png',
+        'logos/icon-180.png',
+        'logos/icon-192.png',
+        'logos/icon-512.png',
+        'logos/icon-maskable-512.png',
+      ],
       manifest: {
         name: 'synth. — Coach data platform',
         short_name: 'synth.',
@@ -16,15 +23,33 @@ export default defineConfig({
         theme_color: '#059669',
         background_color: '#fafaf9',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         scope: '/',
         start_url: '/',
         icons: [
           {
+            src: '/logos/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/logos/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/logos/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
             src: '/logos/synth-icon-green.svg',
             sizes: 'any',
             type: 'image/svg+xml',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
         ],
       },

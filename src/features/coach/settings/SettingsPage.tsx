@@ -71,7 +71,7 @@ export function SettingsPage() {
         subtitle={`${team.name} · invite ${team.inviteCode} · everything on this page maps to team_settings.*`}
       />
 
-      <div className="flex items-center gap-3 px-10 pb-4">
+      <div className="flex items-center gap-3 px-5 sm:px-10 pb-4">
         <button
           type="button"
           onClick={save}
@@ -97,7 +97,7 @@ export function SettingsPage() {
         )}
       </div>
 
-      <div className="grid gap-4 px-10 xl:grid-cols-2">
+      <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-2">
         <SettingsCard
           kicker="Team"
           title="Identity"
@@ -128,7 +128,7 @@ export function SettingsPage() {
         </SettingsCard>
       </div>
 
-      <div className="mt-4 px-10">
+      <div className="mt-4 px-5 sm:px-10">
         <SettingsCard
           kicker="Athlete visibility"
           title="What athletes can see"
@@ -141,7 +141,7 @@ export function SettingsPage() {
         </SettingsCard>
       </div>
 
-      <div className="mt-4 px-10">
+      <div className="mt-4 px-5 sm:px-10">
         <SettingsCard
           kicker="Notifications"
           title="Alerts & digests"

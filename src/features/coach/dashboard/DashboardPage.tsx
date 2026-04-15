@@ -1,12 +1,46 @@
-import { PlaceholderPage } from '../../../shared/layout/PlaceholderPage'
+import { PageHeader } from './components/PageHeader'
+import { TeamOverviewStrip } from './components/TeamOverviewStrip'
+import { ConnectorChipRow } from './components/ConnectorChipRow'
+import { TeamSessionsChart, TeamComplianceChart } from './components/TeamTrendsChart'
+import { RosterPreviewTable } from './components/RosterPreviewTable'
+import { AlertsPanel } from './components/AlertsPanel'
+import { ActivityFeed } from './components/ActivityFeed'
+import { AiInsightBlock } from './components/AiInsightBlock'
+import { useTeamStore } from '../../../shared/store/useTeamStore'
+import { SEED_TEAM_STATS } from '../../../shared/data/seeds'
 
 export function DashboardPage() {
+  const team = useTeamStore((s) => s.activeTeam)
   return (
-    <PlaceholderPage
-      kicker="Coach · Dashboard"
-      title="Team overview, synthesized."
-      description="Phase 2 will absorb the Cal Women's Rowing mock dashboard (roster, signal charts, connector chips, AI insight) and extend it with the alerts panel, activity feed, and team trend charts from the product spec."
-      phase="Phase 2 · queued"
-    />
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="Coach · Dashboard"
+        title={`${team.name} · team overview`}
+        subtitle={`${SEED_TEAM_STATS.rosterCount} on roster · latest erg ${SEED_TEAM_STATS.latestErgDate}`}
+      />
+      <TeamOverviewStrip />
+
+      <div className="mt-6">
+        <ConnectorChipRow />
+      </div>
+
+      <div className="mt-6 grid gap-4 px-10 xl:grid-cols-2">
+        <TeamSessionsChart />
+        <TeamComplianceChart />
+      </div>
+
+      <div className="mt-6 px-10">
+        <RosterPreviewTable />
+      </div>
+
+      <div className="mt-6 grid gap-4 px-10 xl:grid-cols-2">
+        <AlertsPanel />
+        <ActivityFeed />
+      </div>
+
+      <div className="mt-6 px-10">
+        <AiInsightBlock />
+      </div>
+    </div>
   )
 }

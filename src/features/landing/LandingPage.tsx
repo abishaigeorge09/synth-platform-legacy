@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { THEME } from '../../lib/theme'
 import { useInstallPrompt } from './useInstallPrompt'
+import { Hero3D } from './Hero3D'
 import {
   DashboardIllustration,
   AthletesIllustration,
@@ -103,33 +104,36 @@ export function LandingPage() {
 
   return (
     <div className="flex min-h-dvh w-full flex-col" style={{ background: THEME.white }}>
-      {/* Top nav */}
-      <header className="flex items-center justify-between px-10 py-5">
+      {/* Top nav — floats over the 3D hero */}
+      <header
+        className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-10 py-5"
+        style={{ color: THEME.white }}
+      >
         <div className="flex items-center gap-2">
           <span
             className="text-[22px] font-semibold leading-none"
-            style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
+            style={{ fontFamily: THEME.fontMono, color: THEME.white }}
           >
             synth<span style={{ color: THEME.accent }}>.</span>
           </span>
         </div>
         <nav
           className="flex items-center gap-6 text-[12px]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
+          style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.85)' }}
         >
-          <a href="#features" className="hover:text-black">Features</a>
-          <a href="#pricing" className="hover:text-black">Pricing</a>
-          <Link to="/login" className="hover:text-black">Sign in</Link>
+          <a href="#features" className="hover:text-white">Features</a>
+          <a href="#pricing" className="hover:text-white">Pricing</a>
+          <Link to="/login" className="hover:text-white">Sign in</Link>
           <button
             type="button"
             onClick={handleDownload}
             disabled={installed}
             className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02] disabled:opacity-60"
             style={{
-              background: THEME.primary,
-              color: THEME.white,
+              background: THEME.white,
+              color: THEME.primaryDarker,
               fontFamily: THEME.fontMono,
-              boxShadow: '0 12px 28px -14px rgba(5,150,105,0.5)',
+              boxShadow: '0 12px 28px -14px rgba(4,120,87,0.6)',
             }}
           >
             {installed ? 'Installed ✓' : 'Download'}
@@ -137,70 +141,10 @@ export function LandingPage() {
         </nav>
       </header>
 
-      {/* Hero */}
-      <section
-        className="relative overflow-hidden px-10 pb-24 pt-16"
-        style={{
-          background: `linear-gradient(165deg, ${THEME.primaryDarker} 0%, ${THEME.primary} 45%, ${THEME.primaryLight} 180%)`,
-          color: THEME.white,
-        }}
-      >
-        <motion.div
-          className="max-w-[840px]"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
-        >
-          <div
-            className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-            style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.8)' }}
-          >
-            Coach data · unified
-          </div>
-          <h1
-            className="mb-6 text-[clamp(44px,7vw,88px)] font-semibold leading-[0.95] tracking-[-0.03em]"
-            style={{ fontFamily: THEME.fontMono }}
-          >
-            Every data signal.
-            <br />
-            One platform.
-          </h1>
-          <p
-            className="mb-8 max-w-[580px] text-[18px] leading-relaxed opacity-95"
-            style={{ fontFamily: THEME.fontSerif }}
-          >
-            synth. connects every tool your program already uses, scrapes and synthesizes the data, and hands
-            coaches and athletes one surface to act on.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to="/coach/dashboard"
-              className="rounded-full px-6 py-3 text-[13px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
-              style={{
-                background: THEME.white,
-                color: THEME.primaryDarker,
-                fontFamily: THEME.fontMono,
-              }}
-            >
-              Enter demo dashboard
-            </Link>
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={installed}
-              className="rounded-full border px-6 py-3 text-[13px] font-semibold uppercase tracking-wider transition-opacity hover:opacity-100 disabled:opacity-60"
-              style={{
-                borderColor: 'rgba(255,255,255,0.45)',
-                color: THEME.white,
-                fontFamily: THEME.fontMono,
-                background: 'transparent',
-              }}
-            >
-              {installed ? '✓ Installed' : 'Download app'}
-            </button>
-          </div>
-        </motion.div>
-      </section>
+      <Hero3D
+        onDownload={handleDownload}
+        downloadLabel={installed ? '✓ Installed' : 'Download app'}
+      />
 
       {/* Features grid */}
       <section id="features" className="px-10 py-20">

@@ -1,208 +1,250 @@
-# CLAUDE.md — synth-platform (product prototype)
+# CLAUDE.md — synth-platform (full application)
 
 ## What this is
 
-This repo is the **interactive product prototype** for **synth.** (Synth Sports) — a coach-facing platform that unifies fragmented athletic data (spreadsheets, team ops tools, wearables, calendars, email digests) into a single dashboard with AI insight and an optional browser-extension "Synth agent" for capture beside existing workflows.
+This repo is the **full synth. application** — the product itself. Not a prototype, not a demo slide. A coach/athlete data platform where programs connect every tool they already use, synth. scrapes and synthesizes the data, and both coaches and athletes see a unified view.
 
-> Every data signal. One platform.
+The build is **UI-first**: every surface is shipping as React/TypeScript against hand-rolled seed data. Auth, extensions, and the database come later — but the TypeScript types and folder structure already match `docs/SCHEMA.md`, so when a backend lands we swap `src/shared/data/seeds/*` for query hooks and nothing in the feature layer changes.
 
-The prototype renders a click-through demo on **Cal Women's Rowing (2025–26 season, 52 athletes)**. It uses real erg test data parsed from `rowing_women_*.xlsx` workbooks — not lorem ipsum. Coaches can sign in with a demo account and click through the dashboard, sources, athletes, and lineups views.
+> synth.  — Every data signal. One platform.
+
+**Read these in order before touching code:**
+
+1. `docs/PRODUCT.md` — plain-language product spec. Who it's for, what the five systems are, core user journeys.
+2. `docs/SRS-Synth-Platform.md` — functional requirements (FR-AUTH, FR-DASH, FR-CONN, FR-AGENT, FR-FLOW).
+3. `docs/SCHEMA.md` — canonical database contract. Every seed file and TS type matches this.
+4. `docs/Design-Prototype-Womens-Team-Demo-Data.md` — the Cal Women's Rowing demo data schema.
+5. This file — where the code actually lives.
 
 **Related repos**
 
-- **Pitch deck** — `~/presentations/synth-deck/` (GitHub: `abishaigeorge09/synth-deck`). The 13-slide pitch narrative. Used to live in the same codebase as the prototype; was split out so this repo stays product-only and the deck stays presentation-only.
-- **Presentation engine** — `~/presentations/CLAUDE.md`. The shared a16z-style deck framework. Not imported here, but the design language (theme, fonts, motion presets) is inherited.
+- **Pitch deck** — `~/presentations/synth-deck/` ([abishaigeorge09/synth-deck](https://github.com/abishaigeorge09/synth-deck)). The 13-slide pitch. Shares brand DNA (theme tokens, motion presets) but is a separate codebase.
+- **rowIQ prototypes** — `~/rowIQ/` + `~/rowiq-prototype/`. Reference material only. We port Lineups, Session Timer, and Athlete Profile patterns from there during Phases 5–7.
+
+## Architecture — five systems
+
+synth. is deliberately modular:
+
+1. **Landing page** (`src/features/landing/`) — public marketing + PWA install. Phase 10.
+2. **Coach Dashboard** (`src/features/coach/`) — the coach's home. Dashboard, Athletes, Sources, Custom Tools, synth. AI, Settings, synth. Agent modal portal. Phases 2–9.
+3. **synth. Agent** (`src/shared/layout/AgentModalPortal.tsx` + `src/features/coach/agent/`) — the connector/scraping engine as a modal overlay. Phase 4.
+4. **Custom Tools** (`src/features/coach/tools/`) — sport-specific internal apps. Lineups (Phase 5) + Session Timer (Phase 6) ship for rowing; the ToolRegistry pattern keeps the sidebar extensible.
+5. **Athlete view** (`src/features/athlete/`) — separate experience for athletes who join via invite code. Phase 7.
 
 ## Stack
 
 ```
 React 18 + TypeScript + Vite 5
-Tailwind CSS 4 (with @tailwindcss/postcss)
-Framer Motion 12
+React Router 7                    — SPA routing, nested layouts
+Zustand 5                         — client state (auth, team, UI)
+Tailwind CSS 4 (via @tailwindcss/postcss)
+Framer Motion 12                  — all animation
+@dnd-kit/core + sortable          — Lineups drag/drop
+Recharts 3                        — dashboard charts
+lucide-react                      — secondary icons (primary nav uses custom SVG illustrations)
+vite-plugin-pwa                   — PWA install for landing
 Fonts: JetBrains Mono · Fraunces · Instrument Sans (Google Fonts)
 Deploy: Vercel
 ```
 
-No chart libraries, no UI kits. All components are hand-rolled React + CSS + Framer Motion so the product and the pitch share the same visual DNA.
+No chart libraries beyond Recharts. No UI kit. Every primary nav glyph is a hand-rolled custom SVG illustration in `src/shared/illustrations/sidebarIllustrations.tsx` — see the "Sidebar nav illustrations" section below.
 
 ## Run
 
 ```bash
 npm install
-npm run dev       # vite --port 5174 --strictPort (launched via .claude/launch.json name "synth-platform")
+npm run dev       # vite --port 5174 --strictPort
 npm run build     # tsc -b && vite build
 npm run lint
 ```
 
-Default port **5174** (5173 is used by the rowiq prototype). Preview tool name: `synth-platform`.
+Default port **5174**. Preview tool name: `synth-platform`.
 
-## What the product does (prototype walkthrough)
+## Routes
 
-Entry point: `src/App.tsx` → `src/prototype/ProductPrototypeApp.tsx`. The entire interactive prototype lives under `src/prototype/`.
+React Router 7 configuration in `src/app/routes.tsx`.
 
-### 1. Sign-in (`signin` route)
+| Path | Component | Purpose |
+|---|---|---|
+| `/` | `LandingPage` | Public marketing + PWA install button |
+| `/login` | `LoginPage` | Coach sign-in (demo: one-click → `/coach/dashboard`) |
+| `/join/:code` | `JoinWithInvitePage` | Athlete invite-code entry (demo: → `/athlete/home`) |
+| `/coach` | `CoachLayout` (with sidebar + modal portal slot) | |
+| `/coach/dashboard` | `DashboardPage` | Phase 2 — team overview |
+| `/coach/athletes` | `AthletesPage` | Phase 3 — roster grid |
+| `/coach/athletes/:athleteId` | `AthleteProfilePage` | Phase 3 — profile + athlete-scoped AI |
+| `/coach/sources` | `SourcesPage` | Phase 4 — connectors, sync status, scan logs |
+| `/coach/tools/lineups` | `LineupsPage` | Phase 5 — boat builder |
+| `/coach/tools/session-timer` | `SessionTimerPage` | Phase 6 — Strava-style piece timer |
+| `/coach/ai` | `TeamChatPage` | Phase 8 — team-wide chat |
+| `/coach/settings` | `SettingsPage` | Phase 9 — team + visibility + sync defaults |
+| `/athlete` | `AthleteLayout` (with top nav) | |
+| `/athlete/home` | `MyDashboardPage` | Phase 7 — my team |
+| `/athlete/stats` | `MyStatsPage` | Phase 7 — personal stats |
+| `/athlete/sessions` | `MySessionsPage` | Phase 7 — personal session history |
+| `/athlete/lineups` | `MyLineupsPage` | Phase 7 — personal lineup history |
+| `/athlete/sources` | `MySourcesPage` | Phase 7 — personal source uploads |
+| `/athlete/ai` | `MyChatPage` | Phase 8 — athlete-own chat |
+| `/athlete/settings` | `AthleteSettingsPage` | Phase 9 — athlete preferences |
+| `*` | → `/` | fallback |
 
-Gradient hero (`primaryDarker` → `primary` → `primaryLight`). Shows a "DEMO IDS" block the coach can read and click **Enter demo dashboard** — no typing, session persisted in localStorage under `PROTO_SESSION_KEY = 'synth_proto_session_v1'`. An optional form below lets you edit fields and hit **Sign in**; password is not checked.
+The **synth. Agent** doesn't have a route — it opens as a modal overlay on top of any `/coach/*` page via `useUiStore.openAgentModal()`. The button in the sidebar triggers it.
 
-```ts
-// src/prototype/womensDemoData.ts
-DEMO_LOGIN = {
-  email: 'coach@berkeley.edu',
-  password: 'demo',
-  teamId: 'cal-womens-rowing-demo',
-  orgId: 'demo-org-berkeley-athletics',
-}
-```
-
-### 2. Dashboard (`dashboard` route)
-
-The primary surface. Rendered by `SynthLayerDashboardMockup` (`src/components/SynthLayerDashboardMockup.tsx`). Top-down:
-
-- **Header**: team name, live badge, Synth agent CTA.
-- **Left nav (220px)**: logo · team subtitle (`Cal Women's · 52 on roster · Latest erg: 2026-03-16`) · four nav items · sign-out / back-to-deck.
-- **Connector chips**: per-source status row (synced / Nm ago / live / digests) driven by `WOMENS_CONNECTORS`.
-- **Signal charts**: monthly session bars (`WOMENS_SIGNAL_MONTH_VALUES`) and block/compliance scatter (`WOMENS_SIGNAL_BLOCK_VALUES`).
-- **Athlete table**: 8 columns driven by `WOMENS_TABLE_HEADERS`; roster rows from `WOMENS_ATHLETE_ROWS` (→ `ROWIQ_ATHLETE_ROWS`). At-risk rows highlight amber/red.
-- **AI insight block**: narrative summary of top performers, improvers, and data-quality notes (`WOMENS_AI_INSIGHT`).
-
-### 3. Sources (`sources` route)
-
-Rendered by `ConnectSourcesPanel` (`src/components/ConnectSourcesPanel.tsx`). Lists the four demo connectors with status badges and detail lines:
-
-| Connector | Status | Detail | Color |
-|---|---|---|---|
-| Erg workbooks | synced | `rowing_women_* ERGS-2.xlsx (24–25 + 25–26)` | primary |
-| TeamWorks | 2m ago | Compliance + calendar | cyan |
-| Wearable hub | live | Whoop team rollup | purple |
-| Email digests | digests | Daily roster alerts | amber |
-
-### 4. Athletes (`athletes` route)
-
-Card grid (`src/prototype/athleteCards/SynthAthleteCardsView.tsx`). One card per athlete built from `buildRowiqAthletes.ts` (which joins `ERG_316_2K` + `ERG_317_2K` by name). Each card shows: rank stripe (gold/silver/bronze then primary shades), name, group, YoY delta trend, 2K / avg split / watts, sparkline, form pills. Click to open a profile modal.
-
-### 5. Lineups (`lineups` route)
-
-Boat builder scaffold (`src/components/LineupBoardMockup.tsx`). Shell cards (8+, 4+, 2x) with port/starboard seat slots. Drag-to-assign is visual only — it's a mockup, not a scheduler.
-
-## Demo data contract
-
-Data flows from two ground-truth files into the UI:
+## Folder structure
 
 ```
-rowIQ/rowIQ_women_dashboard/WOMENS_DATA.md       (source of truth, coach-supplied)
-           ↓ parsed → hand-typed
-src/prototype/rowiqWomensData.ts                 (ROWIQ_* constants)
-           ↓ aliased via
-src/prototype/womensDemoData.ts                  (WOMENS_* exports + DEMO_LOGIN + connectors)
-           ↓ imported by
-src/prototype/ProductPrototypeApp.tsx            (renders dashboard + athletes)
+src/
+├── main.tsx                      # React root + StrictMode
+├── App.tsx                       # BrowserRouter → <AppRoutes/>
+├── index.css                     # Tailwind + base body + scrollbar helper
+├── app/
+│   └── routes.tsx                # Route config (single source of truth)
+├── shared/
+│   ├── layout/
+│   │   ├── CoachLayout.tsx       # Sidebar + <Outlet/> + AgentModalPortal
+│   │   ├── Sidebar.tsx           # Fixed left sidebar with illustrations
+│   │   ├── AgentModalPortal.tsx  # Modal portal driven by useUiStore
+│   │   └── PlaceholderPage.tsx   # Kicker + serif headline + phase chip (used by every stub)
+│   ├── store/
+│   │   ├── useUiStore.ts         # sidebarCollapsed, agentModalOpen
+│   │   ├── useAuthStore.ts       # Stubbed, pre-seeded as SEED_COACH
+│   │   └── useTeamStore.ts       # activeTeam (Cal Women's Rowing)
+│   ├── data/
+│   │   ├── types.ts              # TS types matching docs/SCHEMA.md
+│   │   └── seeds/
+│   │       └── index.ts          # All Phase 0 seed exports
+│   ├── illustrations/
+│   │   └── sidebarIllustrations.tsx   # Custom SVG glyphs for every sidebar item
+│   └── components/               # Shared primitives (grows during Phases 2+)
+├── features/
+│   ├── landing/
+│   │   └── LandingPage.tsx
+│   ├── auth/
+│   │   ├── LoginPage.tsx
+│   │   └── JoinWithInvitePage.tsx
+│   ├── coach/
+│   │   ├── dashboard/DashboardPage.tsx
+│   │   ├── athletes/AthletesPage.tsx
+│   │   ├── sources/SourcesPage.tsx
+│   │   ├── tools/
+│   │   │   ├── lineups/LineupsPage.tsx
+│   │   │   └── sessionTimer/SessionTimerPage.tsx
+│   │   ├── ai/TeamChatPage.tsx
+│   │   └── settings/SettingsPage.tsx
+│   └── athlete/
+│       ├── AthleteLayout.tsx
+│       └── athletePages.tsx      # All athlete stubs in one file
+├── prototype/                    # LEGACY — Cal Women's mock dashboard
+│   ├── ProductPrototypeApp.tsx   # Phase 2 absorbs this into the new Dashboard route
+│   ├── RowiqWomensCharts.tsx
+│   ├── rowiqWomensData.ts        # Real erg data (used by seeds)
+│   ├── womensDemoData.ts
+│   └── athleteCards/             # SynthAthleteCard*, SynthAthleteProfile, etc.
+├── components/
+│   ├── SynthLayerDashboardMockup.tsx  # Current dashboard mockup (Phase 2 input)
+│   └── advanceGate.tsx                # AdvanceGateProvider (no-op wrapper)
+└── lib/
+    ├── theme.ts                  # THEME — single source of truth for colors/fonts
+    └── motion.ts                 # TRANSITIONS, STAGGER, VARIANTS
+
+docs/
+├── PRODUCT.md                    # Plain-language product spec
+├── SCHEMA.md                     # Canonical DB contract
+├── SRS-Synth-Platform.md
+└── Design-Prototype-Womens-Team-Demo-Data.md
 ```
 
-Key constants in `rowiqWomensData.ts`:
+## Data flow — UI-first
 
-- `ROWIQ_ROSTER_COUNT_2526 = 52` · `ROWIQ_SESSIONS_2425 = 19` · `ROWIQ_SESSIONS_2526 = 13`
-- `ROWIQ_SHEET_316_DATE = '2026-03-16'` — primary roster snapshot (erg 2K)
-- `ROWIQ_SHEET_317_DATE = '2025-03-17'` — YoY compare (erg 2K)
-- `ERG_316_2K: Erg2k316Row[]` — 51 athletes with `{ lastFirst, time, avgSplit, rate, watts }` (e.g. Wheeler Ella 6:35.6 / 362W, Pember Lily 7:03.8 / 294W)
-- `ROWIQ_ATHLETE_ROWS`, `ROWIQ_AI_INSIGHT`, `ROWIQ_SIGNAL_*`, `ROWIQ_SOURCES_INGEST`, `ROWIQ_TABLE_HEADERS`, `ROWIQ_TEAM_SUBTITLE`
+```
+src/prototype/rowiqWomensData.ts          (real Cal Women's erg data)
+       │
+       ├──→ src/shared/data/seeds/index.ts
+       │          │
+       │          ├─ SEED_TEAM_CAL_WOMENS · SEED_COACH · SEED_ATHLETES
+       │          ├─ SEED_ERG_SCORES · SEED_SOURCES · SEED_ALERTS
+       │          └─ SEED_ACTIVITY · SEED_SESSIONS · SEED_TEAM_STATS
+       │
+       └──→ src/shared/data/types.ts       (TS types matching docs/SCHEMA.md)
+                  │
+                  ▼
+         feature components read from seeds
+                  │
+  (later) ──► swap seeds/* for queries/* (TanStack Query hooks on Supabase)
+```
 
-When adding or editing athletes, edit `rowiqWomensData.ts` — `womensDemoData.ts` is a re-export shim.
+When a backend lands, the **feature layer stays unchanged**. The seeds module becomes query hooks; the TS types are already correct.
 
-## Design system
+## Design language
 
-Single source of truth: `src/lib/theme.ts` (`THEME` const). Do not hardcode colors or fonts in components — always reference `THEME.*`. Animation presets live in `src/lib/motion.ts` (`TRANSITIONS`, `STAGGER`, `VARIANTS`).
+Single source of truth: `src/lib/theme.ts` (`THEME` const). **Every component reads from `THEME.*` — do not hardcode colors or fonts.** Animation presets in `src/lib/motion.ts`.
 
 ### Colors
 
 | Token | Hex | Used for |
 |---|---|---|
-| `primary` | `#059669` | CTA, brand, bars, sparklines |
-| `primaryDark` / `primaryDarker` | `#047857` / `#065F46` | Gradients, hover |
-| `primaryLight` | `#A7F3D0` | Gradient tail, subtle fills |
-| `accent` | `#10B981` | Logo dot, checkmarks, live badge |
+| `primary` | `#059669` | CTA, brand, charts, active nav |
+| `primaryDark` / `primaryDarker` | `#047857` / `#065F46` | Gradients, synth. Agent button, hover |
+| `primaryLight` | `#A7F3D0` | Gradient tail |
+| `accent` | `#10B981` | Logo dot, checkmarks, live badges, pulse |
 | `blue` / `cyan` / `purple` / `amber` / `red` | `#3B82F6` / `#06B6D4` / `#8B5CF6` / `#F59E0B` / `#EF4444` | Connector families + semantic states |
 | `dark` / `darkDeep` / `darkMid` | `#18181B` / `#0C0A09` / `#27272A` | Dark surfaces |
-| `light` / `white` | `#FAFAF9` / `#FFFFFF` | Light surfaces |
-| `textPrimary` / `textSecondary` / `textMuted` / `border` | `#18181B` / `#52525B` / `#A1A1AA` / `#E4E4E7` | Text + borders |
+| `light` / `white` | `#FAFAF9` / `#FFFFFF` | Canvas + cards |
+| text tokens | `#18181B` / `#52525B` / `#A1A1AA` / `#E4E4E7` | Hierarchy |
 
 ### Typography
 
-- `fontMono: 'JetBrains Mono'` — nav, data, headlines, labels
-- `fontSerif: 'Fraunces'` — narrative headlines, taglines
+- `fontMono: 'JetBrains Mono'` — labels, data, nav, logo, stat numbers
+- `fontSerif: 'Fraunces'` — page headlines, narrative
 - `fontSans: 'Instrument Sans'` — body, form inputs
-- Loaded once via `THEME.fontImport` in `index.html` / `index.css`.
 
-### UX principles (from SRS §7)
+### Visual principles (from SRS §7.1)
 
-1. **One surface** — primary action is understanding the team; deep-link to sources only when correction is needed.
-2. **Provenance** — always show *where* a number came from (connector + sync time).
-3. **Coach vs athlete streams** — educate in onboarding/workflow views; collapse to unified table in steady state.
-4. **Calm density** — data-heavy but scannable; mono for metrics, serif for narrative headlines.
+1. **One surface** — the primary action is understanding the team.
+2. **Provenance** — every displayed number carries its source + sync time.
+3. **Coach vs. athlete streams** — collapse to unified table in steady state.
+4. **Calm density** — data-heavy but scannable.
 
-## File map
+## Sidebar nav illustrations
 
-```
-src/
-├── App.tsx                        # renders ProductPrototypeApp inside AdvanceGateProvider
-├── main.tsx
-├── index.css
-├── lib/
-│   ├── theme.ts                   # THEME — single source of truth for colors/fonts
-│   ├── motion.ts                  # TRANSITIONS / STAGGER / VARIANTS
-│   ├── deckTotal.ts               # (legacy from deck — not used by prototype)
-│   └── setupSlideEvents.ts        # (legacy from deck — not used by prototype)
-├── components/
-│   ├── SynthLayerDashboardMockup.tsx   # core dashboard UI + DashboardAthleteRow type
-│   ├── ConnectSourcesPanel.tsx         # Sources route
-│   ├── LineupBoardMockup.tsx           # Lineups route
-│   ├── SynthDemoCursor.tsx             # animated cursor used in demo flows
-│   └── advanceGate.tsx                 # AdvanceGateProvider (no-op for prototype)
-└── prototype/
-    ├── ProductPrototypeApp.tsx    # the entire product — routing, auth, layout
-    ├── womensDemoData.ts          # WOMENS_* exports + DEMO_LOGIN + connectors
-    ├── rowiqWomensData.ts         # ROWIQ_* — ground-truth erg data (52 athletes)
-    ├── RowiqWomensCharts.tsx      # signal charts
-    └── athleteCards/
-        ├── SynthAthleteCardsView.tsx    # grid layout for Athletes route
-        ├── SynthAthleteCard.tsx         # individual card
-        ├── SynthAthleteProfile.tsx      # click-through modal
-        ├── SynthAthleteRoster.tsx
-        ├── SynthAthleteSparkline.tsx
-        ├── SynthLineChart.tsx
-        ├── SynthQuickCompare.tsx
-        ├── SynthScatterChart.tsx
-        ├── buildRowiqAthletes.ts        # ERG_316 + ERG_317 → Athlete[]
-        ├── calculations.ts
-        ├── formatters.ts
-        └── model.ts
-```
+All sidebar glyphs are **hand-rolled custom SVGs** in `src/shared/illustrations/sidebarIllustrations.tsx`. Each is 24×24, stroked with `THEME.primary` (active) or `THEME.textMuted` (inactive), with emerald accents on key nodes. They're intentionally simple so they read at small sizes and match synth's monospace/architectural aesthetic rather than a generic icon set.
 
-Files under `src/slides/`, `src/appendix/`, `src/components/SlideShell.tsx`, `TopNav.tsx`, `DeckBlurLock.tsx`, `PixelArt.tsx`, etc. are **legacy deck code** left in place from the split. They aren't imported by the prototype and can be deleted when the repo is pruned.
+| Nav item | Illustration |
+|---|---|
+| Dashboard | 4-tile grid with a small trend line |
+| Athletes | Two athlete silhouettes (staggered) |
+| Sources | 3 nodes on the left converging to 1 node on the right |
+| Lineups | Top-down boat hull with 6 seat dots |
+| Session Timer | Stopwatch face with hands |
+| Add tool | Dashed rounded rectangle with a plus |
+| synth. AI | Speech/brain blob with synapse sparkle |
+| Settings | Gear + dashed orbit |
 
-## Functional requirements reference
-
-Authoritative spec: `docs/SRS-Synth-Platform.md`. Key requirements the prototype demonstrates (or should, as features are built):
-
-- **FR-AUTH-1/2** — coach profile bound to a team; team scope shown in header.
-- **FR-DASH-1..6** — team overview with connector chips, signal charts, athlete table, AI insight, and nav placeholders.
-- **FR-CONN-1..4** — configurable connectors with last-sync status and onboarding via CSV + email list.
-- **FR-AGENT-1..3** — Synth agent (browser extension) deployed from the dashboard, operates in coach's browser context.
-- **FR-FLOW-1/2** — conceptually separate athlete-layer and coach-layer streams; merge into the same UI model.
-
-See `docs/Design-Prototype-Womens-Team-Demo-Data.md` for the demo-data schema (columns, athlete roster, metric definitions).
+**When adding a new Custom Tool:** add a matching illustration to `sidebarIllustrations.tsx` and register it in the tool list.
 
 ## Working conventions
 
-- **No hardcoded colors or fonts in components** — always reference `THEME.*`. If you need a new color, add it to `theme.ts`.
-- **No chart libraries** — continue the hand-rolled Framer Motion chart pattern (`RowiqWomensCharts`, `SynthLineChart`, `SynthScatterChart`).
-- **Demo data stays parse-shaped** — if the shape of `ERG_316_2K` changes, update `buildRowiqAthletes.ts` and `SynthLayerDashboardMockup`'s `DashboardAthleteRow` type together.
-- **Mocked auth** — the prototype has no backend. `PROTO_SESSION_KEY` in localStorage is the only state. Don't introduce real auth here; it belongs in the production app.
-- **Product ≠ deck** — if a change is purely narrative/pitch-facing, it belongs in `~/presentations/synth-deck/`, not here.
+- **Theme is fixed.** Do not change `THEME` or swap to a dark-default layout. New tools, modals, and pages must fit the current synth emerald/light palette. Dark surfaces are used for accent (stat cards, synth. Agent button) — the canvas is `THEME.light`.
+- **UI-first, always.** Build the whole surface against seed data before wiring any backend. Types in `src/shared/data/types.ts` are the contract.
+- **Routes belong in `src/app/routes.tsx`.** Don't add `<Route>` inline anywhere else.
+- **Sidebar modifications go through `src/shared/layout/Sidebar.tsx` + `sidebarIllustrations.tsx`.** Every nav item must have an illustration.
+- **The synth. Agent is always a modal portal**, never its own route. It opens over any `/coach/*` page via `useUiStore.openAgentModal()`.
+- **Framer Motion for every animation.** No CSS transitions for meaningful motion. Use presets from `src/lib/motion.ts`.
+- **No hardcoded colors or fonts in components** — reference `THEME.*`.
+- **Demo data stays shape-accurate to `docs/SCHEMA.md`.** When the backend lands, swap in place.
+
+## Current build state
+
+- **Branch:** `build/full-app` (off `main`, not yet merged)
+- **Phase 0 (Foundation) — complete.** Deps installed (React Router 7, Zustand, @dnd-kit, Recharts, lucide-react, vite-plugin-pwa). Legacy deck code removed. `docs/SCHEMA.md` and `docs/PRODUCT.md` written. Folder structure staged for all five systems.
+- **Phase 1 (Sidebar + routing shell) — complete.** Coach sidebar with custom SVG illustrations, active-state motion indicator, synth. Agent modal portal, landing page, login + invite flow, athlete top-nav layout, all stub routes linked through `src/app/routes.tsx`.
+- **Phase 2 (Coach Dashboard) — next.** Absorb Cal Women's mock dashboard into `/coach/dashboard`, add alerts panel + activity feed + Recharts team trends.
 
 ## Critical rules
 
-1. This repo is **product-only**. The pitch deck lives in `synth-deck`.
-2. `src/prototype/` is the entry to the live demo. `src/App.tsx` must stay minimal — just `<AdvanceGateProvider><ProductPrototypeApp /></AdvanceGateProvider>`.
-3. Real data comes from real rowing workbooks. Names, times, and splits are authentic — do not replace with lorem.
-4. Every number in the UI should have provenance (source connector + sync time) per SRS §7.1.
-5. Target viewport: 1440×900. Responsive down to tablet.
+1. This repo is the **full synth. application** — not a prototype. Build everything production-shaped from the start.
+2. Keep the current synth theme. Do not switch to a dark default or redefine brand tokens.
+3. Every sidebar nav item has a custom SVG illustration in `sidebarIllustrations.tsx`.
+4. `docs/SCHEMA.md` is the DB contract. Seeds and types must match.
+5. synth. Agent is always a modal portal, never a standalone route.
+6. Target viewport: 1440×900 on the coach side, responsive down to 375px on athlete/landing.

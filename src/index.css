@@ -7,36 +7,22 @@ body,
   min-height: 100dvh;
 }
 
-/* Pitch deck uses overflow:hidden on body; product prototype (#root child) needs a bounded shell for inner scroll. */
-#root:has([data-synth-prototype]) {
-  height: 100dvh;
-  max-height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Direction comes from Tailwind on each shell (row = sidebar | main, col = sign-in). */
-[data-synth-prototype] {
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-}
-
 body {
   margin: 0;
-  background: #050403;
-  color: #ffffff;
-  overflow: hidden;
-  overflow-x: hidden;
+  background: #fafaf9;
+  color: #18181b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* Faster taps, no double-tap zoom delay on controls */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 ::selection {
@@ -44,100 +30,27 @@ body {
   color: #fff;
 }
 
-/* 16:9 slide box — use dvh on supporting browsers so mobile browser chrome doesn’t clip the deck */
-.deck-aspect-wrap {
-  width: min(100vw, calc(100vh * 16 / 9));
-  height: min(100vh, calc(100vw * 9 / 16));
-  aspect-ratio: 16 / 9;
-}
-
-@supports (height: 100dvh) {
-  .deck-aspect-wrap {
-    width: min(100vw, calc(100dvh * 16 / 9));
-    height: min(100dvh, calc(100vw * 9 / 16));
-  }
-}
-
 * {
   box-sizing: border-box;
 }
 
-/* Problem slide: infinite horizontal tool carousel */
-@keyframes problem-marquee {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
+/* Nice scrollbars in webkit for the main content panes */
+.synth-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d8 transparent;
 }
-
-.problem-marquee-track {
-  animation: problem-marquee 48s linear infinite;
-  will-change: transform;
+.synth-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .problem-marquee-track {
-    animation: none;
-    transform: none;
-  }
+.synth-scroll::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
-
-/* Full-deck PDF: stack is only mounted during print — keep hidden layer from affecting scroll/layout */
-@media screen {
-  .deck-print-only {
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    width: 0;
-    height: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    pointer-events: none;
-    visibility: hidden;
-    contain: strict;
-    clip-path: inset(50%);
-  }
-}
-
-@media print {
-  @page {
-    size: landscape;
-    margin: 0;
-  }
-
-  html,
-  body {
-    height: auto !important;
-    overflow: visible !important;
-    background: #fff !important;
-  }
-
-  .deck-print-hide {
-    display: none !important;
-  }
-
-  .deck-print-only {
-    position: static !important;
-    inset: auto !important;
-    z-index: auto !important;
-    left: auto !important;
-    top: auto !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    clip: auto !important;
-    clip-path: none !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    contain: none !important;
-    white-space: normal !important;
-  }
-
-  .deck-print-only > * {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
+.synth-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+  background-clip: padding-box;
+  border: 2px solid transparent;
 }

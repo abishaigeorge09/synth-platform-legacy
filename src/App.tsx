@@ -1,10 +1,14 @@
-import { AdvanceGateProvider } from './components/advanceGate'
-import { ProductPrototypeApp } from './prototype/ProductPrototypeApp'
+import { BrowserRouter, useRoutes } from 'react-router-dom'
+import { routes } from './app/routes'
+
+function AppRoutes() {
+  return useRoutes(routes)
+}
 
 export default function App() {
   return (
-    <AdvanceGateProvider>
-      <ProductPrototypeApp />
-    </AdvanceGateProvider>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   )
 }

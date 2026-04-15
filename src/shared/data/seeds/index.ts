@@ -1,0 +1,257 @@
+/**
+ * Phase 0 seed data. The UI-first build reads exclusively from this module.
+ * When backends land, swap these exports for query hooks — the component
+ * layer should remain unchanged.
+ *
+ * Currently sourced from src/prototype/rowiqWomensData.ts (real Cal Women's
+ * Rowing erg test data parsed from the 2025-26 workbooks).
+ */
+import type {
+  Alert,
+  ActivityItem,
+  Athlete,
+  ChatThread,
+  ErgScore,
+  Session,
+  Source,
+  Team,
+  User,
+} from '../types'
+import {
+  ERG_316_2K,
+  ROWIQ_ROSTER_COUNT_2526,
+  ROWIQ_SHEET_316_DATE,
+} from '../../../prototype/rowiqWomensData'
+
+// ─── Team ──────────────────────────────────────────────────────────────────
+
+export const SEED_TEAM_CAL_WOMENS: Team = {
+  id: 'team-cal-womens-rowing',
+  name: "Cal Women's Rowing",
+  sport: 'rowing',
+  inviteCode: 'CAL-WR-2026',
+  createdAt: '2025-08-01T00:00:00Z',
+}
+
+export const SEED_TEAM_CAL_MENS: Team = {
+  id: 'team-cal-mens-rowing',
+  name: "Cal Men's Rowing",
+  sport: 'rowing',
+  inviteCode: 'CAL-MR-2026',
+  createdAt: '2025-08-01T00:00:00Z',
+}
+
+// ─── Coach user ────────────────────────────────────────────────────────────
+
+export const SEED_COACH: User = {
+  id: 'user-coach-cal-womens',
+  email: 'coach@berkeley.edu',
+  name: 'Demo Coach',
+  role: 'coach',
+  teamId: SEED_TEAM_CAL_WOMENS.id,
+}
+
+// ─── Athletes (derived from ERG_316_2K) ────────────────────────────────────
+
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function displayName(lastFirst: string) {
+  // "Wheeler, Ella" → "Ella Wheeler"
+  const [last, first] = lastFirst.split(',').map((p) => p.trim())
+  return first ? `${first} ${last}` : lastFirst
+}
+
+export const SEED_ATHLETES: Athlete[] = ERG_316_2K.map((row, idx): Athlete => {
+  const id = `athlete-${slugify(row.lastFirst)}`
+  return {
+    id,
+    userId: `user-${id}`,
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    name: displayName(row.lastFirst),
+    side: idx % 2 === 0 ? 'port' : 'starboard',
+    status: 'active',
+    avatarColorIndex: idx % 8,
+  }
+})
+
+// ─── Erg scores (from the 316 2K sheet) ────────────────────────────────────
+
+function parseErgTime(time: string): number {
+  // "6:35.6" → 395.6 seconds
+  const [mm, ss] = time.split(':')
+  return parseInt(mm, 10) * 60 + parseFloat(ss)
+}
+
+function parseSplit(split: string): number {
+  // "1:38.9" → 98.9 seconds per 500m
+  const [mm, ss] = split.split(':')
+  return parseInt(mm, 10) * 60 + parseFloat(ss)
+}
+
+export const SEED_ERG_SCORES: ErgScore[] = ERG_316_2K.map((row): ErgScore => {
+  const athleteId = `athlete-${slugify(row.lastFirst)}`
+  return {
+    id: `erg-${athleteId}-${ROWIQ_SHEET_316_DATE}`,
+    athleteId,
+    testType: '2k',
+    timeSeconds: parseErgTime(row.time),
+    splitSeconds: parseSplit(row.avgSplit),
+    spm: row.rate,
+    watts: row.watts,
+    distanceM: 2000,
+    date: ROWIQ_SHEET_316_DATE,
+  }
+})
+
+// ─── Sources (from the existing WOMENS_CONNECTORS shape) ───────────────────
+
+export const SEED_SOURCES: Source[] = [
+  {
+    id: 'source-erg-workbooks',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    name: 'Erg workbooks',
+    url: 'https://docs.google.com/spreadsheets/d/rowing_women_ergs',
+    type: 'google_sheets',
+    scheduleCron: '0 18 * * *',
+    lastScanAt: '2026-04-14T18:00:00Z',
+    status: 'healthy',
+    colorKey: 'primary',
+  },
+  {
+    id: 'source-teamworks',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    name: 'TeamWorks',
+    url: 'https://app.teamworks.com/cal-womens-rowing',
+    type: 'teamworks',
+    scheduleCron: '*/15 * * * *',
+    lastScanAt: '2026-04-14T21:58:00Z',
+    status: 'healthy',
+    colorKey: 'cyan',
+  },
+  {
+    id: 'source-wearable-hub',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    name: 'Wearable hub',
+    url: 'https://api.whoop.com/teams/cal-wr',
+    type: 'wearable',
+    scheduleCron: null, // real-time
+    lastScanAt: '2026-04-14T22:00:00Z',
+    status: 'healthy',
+    colorKey: 'purple',
+  },
+  {
+    id: 'source-email-digests',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    name: 'Email digests',
+    url: 'mailto:digests@synth.sports',
+    type: 'email_digest',
+    scheduleCron: '0 9 * * *',
+    lastScanAt: '2026-04-14T09:00:00Z',
+    status: 'healthy',
+    colorKey: 'amber',
+  },
+]
+
+// ─── Alerts ────────────────────────────────────────────────────────────────
+
+export const SEED_ALERTS: Alert[] = [
+  {
+    id: 'alert-1',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    athleteId: SEED_ATHLETES[4]?.id,
+    severity: 'warning',
+    kind: 'wellness',
+    title: 'Low recovery score',
+    detail: '2 days below 50% HRV baseline',
+    createdAt: '2026-04-14T07:15:00Z',
+  },
+  {
+    id: 'alert-2',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    athleteId: SEED_ATHLETES[12]?.id,
+    severity: 'danger',
+    kind: 'compliance',
+    title: 'Missed gym sessions',
+    detail: '5-day gap on gym log — flagged by TeamWorks',
+    createdAt: '2026-04-14T06:45:00Z',
+  },
+  {
+    id: 'alert-3',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    severity: 'info',
+    kind: 'sync',
+    title: 'Email digest parsed',
+    detail: 'Morning wellness — 47 / 52 athletes checked in',
+    createdAt: '2026-04-14T09:02:00Z',
+  },
+]
+
+// ─── Activity feed ─────────────────────────────────────────────────────────
+
+export const SEED_ACTIVITY: ActivityItem[] = [
+  {
+    id: 'act-1',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    kind: 'scan',
+    title: 'Erg workbooks synced',
+    detail: '12 new erg scores added from 316 2k sheet',
+    at: '2026-04-14T18:00:00Z',
+  },
+  {
+    id: 'act-2',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    kind: 'lineup_published',
+    title: '1V + 2V 8+ published',
+    detail: 'Saturday practice — 16 seats assigned',
+    at: '2026-04-14T16:30:00Z',
+  },
+  {
+    id: 'act-3',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    kind: 'session',
+    title: 'Morning pieces completed',
+    detail: '5×500m — 2 boats, splits uploaded',
+    at: '2026-04-14T08:15:00Z',
+  },
+  {
+    id: 'act-4',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    kind: 'source_added',
+    title: 'New connector configured',
+    detail: 'Whoop team rollup (wearable hub)',
+    at: '2026-04-12T12:00:00Z',
+  },
+]
+
+// ─── Sessions (minimal seed) ───────────────────────────────────────────────
+
+export const SEED_SESSIONS: Session[] = [
+  {
+    id: 'session-1',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    coachId: SEED_COACH.id,
+    date: ROWIQ_SHEET_316_DATE,
+    type: 'erg_test',
+    title: '316 2k test',
+    notes: 'Primary season benchmark',
+  },
+]
+
+// ─── Chat threads (empty) ──────────────────────────────────────────────────
+
+export const SEED_CHAT_THREADS: ChatThread[] = []
+
+// ─── Stats ─────────────────────────────────────────────────────────────────
+
+export const SEED_TEAM_STATS = {
+  rosterCount: ROWIQ_ROSTER_COUNT_2526,
+  latestErgDate: ROWIQ_SHEET_316_DATE,
+  activeSourcesCount: SEED_SOURCES.filter((s) => s.status === 'healthy').length,
+  pendingSyncs: 0,
+  activeAlerts: SEED_ALERTS.length,
+}

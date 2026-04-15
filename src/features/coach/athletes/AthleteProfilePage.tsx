@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Line,
@@ -87,6 +87,7 @@ export function AthleteProfilePage() {
       <ProfileHeader
         name={athlete.name}
         subtitle={`${athlete.side ?? 'side tbd'} · ${athlete.status} · ${athlete.year ?? 'class tbd'}`}
+        athleteId={athlete.id}
       />
 
       <StatRow erg={erg} yoy={yoy} />
@@ -113,7 +114,7 @@ function ergOrDefault(d?: string) {
   return d ?? '—'
 }
 
-function ProfileHeader({ name, subtitle }: { name: string; subtitle: string }) {
+function ProfileHeader({ name, subtitle, athleteId }: { name: string; subtitle: string; athleteId: string }) {
   return (
     <div className="flex flex-col gap-6 px-10 pb-4 pt-6 xl:flex-row xl:items-end xl:justify-between">
       <div className="flex items-center gap-5">
@@ -149,14 +150,16 @@ function ProfileHeader({ name, subtitle }: { name: string; subtitle: string }) {
           </div>
         </div>
       </div>
-      <AthleteAiButton name={name} />
+      <AthleteAiButton name={name} athleteId={athleteId} />
     </div>
   )
 }
 
-function AthleteAiButton({ name }: { name: string }) {
+function AthleteAiButton({ name, athleteId }: { name: string; athleteId: string }) {
+  const navigate = useNavigate()
   return (
     <motion.button
+      onClick={() => navigate(`/coach/athletes/${athleteId}/ai`)}
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
       type="button"

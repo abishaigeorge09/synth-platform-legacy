@@ -21,7 +21,7 @@ import {
   DEMO_TEAM,
   DEMO_COACH,
 } from '../../shared/data/seeds/demoAthlete'
-import { SynthAiIllustration } from '../../shared/illustrations/sidebarIllustrations'
+import { ChatView } from '../coach/ai/ChatView'
 
 function fmt2k(seconds?: number) {
   if (!seconds) return '—'
@@ -555,44 +555,18 @@ export function MySourcesPage() {
 
 export function MyChatPage() {
   return (
-    <AthletePageShell
-      kicker="Athlete · synth. AI"
-      title="Chat with synth. AI"
-      subtitle="Scoped to your data only — no team-wide visibility"
-    >
-      <div className="px-10">
-        <div
-          className="flex max-w-[720px] items-start gap-4 rounded-2xl border p-6"
-          style={{
-            background: `linear-gradient(180deg, ${THEME.white} 0%, ${THEME.light} 100%)`,
-            borderColor: THEME.border,
-          }}
-        >
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: `${THEME.primary}12` }}
-          >
-            <SynthAiIllustration size={22} />
-          </div>
-          <div>
-            <div
-              className="text-[9px] font-semibold uppercase tracking-[0.18em]"
-              style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-            >
-              synth. AI · personal
-            </div>
-            <div className="mt-1 text-[15px] font-semibold" style={{ color: THEME.textPrimary }}>
-              Phase 8 wires the real chat UI here.
-            </div>
-            <p className="mt-2 text-[12px] leading-relaxed" style={{ color: THEME.textSecondary }}>
-              Once Phase 8 lands, you'll be able to ask questions like "How did my splits trend this month?" and
-              "What should I focus on before the 2K test?" — scoped to your own source_data only. No teammates, no
-              coach notes.
-            </p>
-          </div>
-        </div>
-      </div>
-    </AthletePageShell>
+    <ChatView
+      scope="self"
+      kicker="synth. AI · personal"
+      title="Chat with your own data"
+      subtitle="Scoped to your stats only. No team-wide visibility, no teammate data."
+      suggestions={[
+        'How did my splits trend this month?',
+        "What's my average gym load?",
+        'What should I focus on before the 2K test?',
+        'How do I compare to the team average?',
+      ]}
+    />
   )
 }
 

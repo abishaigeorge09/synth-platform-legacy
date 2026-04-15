@@ -1,12 +1,18 @@
-import { PlaceholderPage } from '../../../shared/layout/PlaceholderPage'
+import { ChatView } from './ChatView'
 
 export function TeamChatPage() {
   return (
-    <PlaceholderPage
-      kicker="synth. AI · Team-wide"
-      title="Ask anything. Every signal is context."
-      description="Phase 8 wires the team-wide chat UI with canned responses keyed off the Cal Women's roster and erg data. Real LLM calls land in P3 per the roadmap in docs/PRODUCT.md."
-      phase="Phase 8 · queued"
+    <ChatView
+      scope="team"
+      kicker="synth. AI · team-wide"
+      title="Chat with your team's synthesized data"
+      subtitle="Every signal across every connector is context. Responses cite the rows they drew from."
+      suggestions={[
+        'Which athletes improved most this month?',
+        "What is the team's average 2K split?",
+        "Who hasn't logged gym data in 7 days?",
+        'What changed in the last scan?',
+      ]}
     />
   )
 }

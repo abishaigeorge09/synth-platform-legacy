@@ -10,6 +10,7 @@ import { SourcesPage } from '../features/coach/sources/SourcesPage'
 import { LineupsPage } from '../features/coach/tools/lineups/LineupsPage'
 import { SessionTimerPage } from '../features/coach/tools/sessionTimer/SessionTimerPage'
 import { TeamChatPage } from '../features/coach/ai/TeamChatPage'
+import { AthleteScopedChatPage } from '../features/coach/ai/AthleteScopedChatPage'
 import { SettingsPage } from '../features/coach/settings/SettingsPage'
 import { AthleteLayout } from '../features/athlete/AthleteLayout'
 import {
@@ -34,6 +35,7 @@ export const routes: RouteObject[] = [
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'athletes', element: <AthletesPage /> },
       { path: 'athletes/:athleteId', element: <AthleteProfilePage /> },
+      { path: 'athletes/:athleteId/ai', element: <AthleteScopedChatPage /> },
       { path: 'sources', element: <SourcesPage /> },
       { path: 'tools/lineups', element: <LineupsPage /> },
       { path: 'tools/session-timer', element: <SessionTimerPage /> },

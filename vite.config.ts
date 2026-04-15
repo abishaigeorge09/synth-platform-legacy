@@ -36,4 +36,29 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Phase 12 — bundle optimization. Heavy vendor libraries are split into
+    // their own chunks so the landing page / auth surface don't ship Recharts
+    // or dnd-kit, and route-level React.lazy chunks stay small.
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts'
+          if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) {
+            return 'vendor-motion'
+          }
+          if (id.includes('@dnd-kit')) return 'vendor-dnd'
+          if (id.includes('react-router')) return 'vendor-router'
+          if (id.includes('lucide-react')) return 'vendor-icons'
+          if (id.includes('zustand')) return 'vendor-state'
+          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) {
+            return 'vendor-react'
+          }
+          return 'vendor'
+        },
+      },
+    },
+  },
 })

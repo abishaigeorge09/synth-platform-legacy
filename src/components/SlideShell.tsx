@@ -1,8 +1,10 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import React, { useEffect, useMemo, useRef } from 'react'
 import { THEME } from '../lib/theme'
 import { TRANSITIONS } from '../lib/motion'
 import { useAdvanceGate } from './advanceGate'
+import { SlideDeckProvider } from './SlideDeckContext'
+import { SETUP_SLIDE_NEXT_EVENT } from '../lib/setupSlideEvents'
 
 export type SlideDef = {
   id: string
@@ -46,6 +48,11 @@ export function SlideShell({
   const goNext = () => {
     if (!canNext) return
     if (blocked) return
+    /** Setup slide runs a cursor → Create account sim before advancing. */
+    if (slide.id === 's02-setup') {
+      window.dispatchEvent(new CustomEvent(SETUP_SLIDE_NEXT_EVENT))
+      return
+    }
     setIndex(index + 1)
   }
 
@@ -126,11 +133,13 @@ export function SlideShell({
 
   return (
     <div
-      className="h-full min-h-screen min-h-[100dvh] w-full select-none"
-      style={{ background: THEME.darkDeep }}
+      className="h-full min-h-screen min-h-[100dvh] w-full select-none deck-backdrop"
+      style={{
+        background: `radial-gradient(ellipse 85% 75% at 50% 42%, ${THEME.darkMid} 0%, ${THEME.darkDeep} 48%, #030201 100%)`,
+      }}
       onClick={onBackdropClick}
     >
-      <div className="h-full min-h-screen min-h-[100dvh] w-full flex items-center justify-center">
+      <div className="h-full min-h-screen min-h-[100dvh] w-full flex items-center justify-center px-2 py-3 sm:px-4 sm:py-6">
         <div
           className="deck-aspect-wrap relative"
           onTouchStart={onTouchStart}
@@ -138,10 +147,10 @@ export function SlideShell({
         >
           {frame === 'deck' ? (
             <div
-              className="absolute inset-0 rounded-[14px]"
+              className="pointer-events-none absolute inset-0 rounded-[15px] sm:rounded-[16px]"
               style={{
-                boxShadow: '0 24px 60px rgba(0,0,0,0.55)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                boxShadow:
+                  '0 0 0 1px rgba(255,255,255,0.09), 0 2px 1px rgba(255,255,255,0.04) inset, 0 32px 64px rgba(0,0,0,0.55), 0 12px 28px rgba(0,0,0,0.35)',
               }}
             />
           ) : null}
@@ -152,15 +161,16 @@ export function SlideShell({
             </div>
           ) : null}
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slide.id}
-              className="absolute inset-0 overflow-hidden"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={TRANSITIONS.page}
-            >
+          <LayoutGroup id="deck-layout">
+            <AnimatePresence mode="sync">
+              <motion.div
+                key={slide.id}
+                className="absolute inset-0 overflow-hidden"
+                initial={{ opacity: 0, y: 18, scale: 0.992 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12, scale: 0.988 }}
+                transition={TRANSITIONS.pageCrossfade}
+              >
               <div
                 className={
                   frame === 'deck'
@@ -169,10 +179,13 @@ export function SlideShell({
                 }
               >
                 <div className="absolute inset-0" style={{ background: bg }} />
-                {slide.component}
+                <SlideDeckProvider value={{ currentIndex: index, slideCount: slides.length }}>
+                  {slide.component}
+                </SlideDeckProvider>
               </div>
-            </motion.div>
-          </AnimatePresence>
+              </motion.div>
+            </AnimatePresence>
+          </LayoutGroup>
 
           {showNavButtons ? (
             <div
@@ -193,8 +206,8 @@ export function SlideShell({
                 disabled={!canPrev}
                 className={
                   lightSurface
-                    ? 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-zinc-900/85 hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-zinc-900/85 text-white font-medium shadow-sm border border-zinc-800/40'
-                    : 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-white/10 hover:bg-white/15 disabled:opacity-40 disabled:hover:bg-white/10 text-white font-medium'
+                    ? 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-md sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-zinc-900/90 hover:bg-zinc-950 disabled:opacity-40 disabled:hover:bg-zinc-900/90 text-white font-medium shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-zinc-700/50 backdrop-blur-sm transition-colors'
+                    : 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-md sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-black/35 hover:bg-black/45 disabled:opacity-40 disabled:hover:bg-black/35 text-white font-medium border border-white/12 shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors'
                 }
                 style={{ fontFamily: THEME.fontMono }}
               >
@@ -211,8 +224,8 @@ export function SlideShell({
                 disabled={!canNext || blocked}
                 className={
                   lightSurface
-                    ? 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-zinc-900/85 hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-zinc-900/85 text-white font-medium shadow-sm border border-zinc-800/40'
-                    : 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-white/10 hover:bg-white/15 disabled:opacity-40 disabled:hover:bg-white/10 text-white font-medium'
+                    ? 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-md sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-zinc-900/90 hover:bg-zinc-950 disabled:opacity-40 disabled:hover:bg-zinc-900/90 text-white font-medium shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-zinc-700/50 backdrop-blur-sm transition-colors'
+                    : 'flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-md sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 bg-black/35 hover:bg-black/45 disabled:opacity-40 disabled:hover:bg-black/35 text-white font-medium border border-white/12 shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors'
                 }
                 style={{ fontFamily: THEME.fontMono }}
               >
@@ -229,14 +242,18 @@ export function SlideShell({
 
           {showProgress ? (
             <div
-              className={`absolute left-0 w-full h-[3px] z-30 ${lightSurface ? 'bg-zinc-200/90' : 'bg-white/10'}`}
-              style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
+              className={`absolute left-3 right-3 sm:left-4 sm:right-4 h-[4px] z-30 overflow-hidden rounded-full ${lightSurface ? 'bg-zinc-300/80' : 'bg-white/[0.12]'}`}
+              style={{
+                bottom: 'max(4px, env(safe-area-inset-bottom, 0px))',
+                boxShadow: lightSurface ? 'none' : 'inset 0 1px 2px rgba(0,0,0,0.25)',
+              }}
             >
               <div
-                className="h-full"
+                className="h-full rounded-full transition-[width] duration-300 ease-out"
                 style={{
                   width: `${progressPct}%`,
-                  background: THEME.accent,
+                  background: `linear-gradient(90deg, ${THEME.primary} 0%, ${THEME.accent} 100%)`,
+                  boxShadow: `0 0 14px ${THEME.accent}66`,
                 }}
               />
             </div>

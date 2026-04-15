@@ -6,7 +6,7 @@ export function S04_Connectors() {
   return (
     <SimpleSlide
       section="03 · CONNECTORS"
-      page="4 / 13"
+      page="8 / 17"
       tone="light"
       illustration={<IllustConnectorHub />}
       primary={

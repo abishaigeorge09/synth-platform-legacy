@@ -1,5 +1,7 @@
 export const TRANSITIONS = {
   page: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] as const },
+  /** Slightly longer crossfade for paired slides (e.g. setup → workflow). */
+  pageCrossfade: { duration: 0.52, ease: [0.22, 1, 0.36, 1] as const },
   spring: { type: 'spring', stiffness: 200, damping: 25 },
   springSnappy: { type: 'spring', stiffness: 400, damping: 30 },
   smooth: { duration: 0.4, ease: 'easeOut' as const },

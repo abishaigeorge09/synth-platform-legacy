@@ -7,15 +7,41 @@ body,
   min-height: 100dvh;
 }
 
+/* Pitch deck uses overflow:hidden on body; product prototype (#root child) needs a bounded shell for inner scroll. */
+#root:has([data-synth-prototype]) {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Direction comes from Tailwind on each shell (row = sidebar | main, col = sign-in). */
+[data-synth-prototype] {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
 body {
   margin: 0;
-  background: #0c0a09;
+  background: #050403;
   color: #ffffff;
   overflow: hidden;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   /* Faster taps, no double-tap zoom delay on controls */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.35);
+  color: #fff;
 }
 
 /* 16:9 slide box — use dvh on supporting browsers so mobile browser chrome doesn’t clip the deck */
@@ -34,6 +60,28 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* Problem slide: infinite horizontal tool carousel */
+@keyframes problem-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.problem-marquee-track {
+  animation: problem-marquee 48s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .problem-marquee-track {
+    animation: none;
+    transform: none;
+  }
 }
 
 /* Full-deck PDF: stack is only mounted during print — keep hidden layer from affecting scroll/layout */

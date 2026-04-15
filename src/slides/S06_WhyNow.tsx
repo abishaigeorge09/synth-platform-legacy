@@ -6,7 +6,7 @@ export function S06_WhyNow() {
   return (
     <SimpleSlide
       section="05 · WHY NOW"
-      page="6 / 13"
+      page="10 / 17"
       tone="light"
       illustration={<IllustTrendUp />}
       primary={

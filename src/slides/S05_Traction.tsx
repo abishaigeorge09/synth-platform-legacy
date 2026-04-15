@@ -7,7 +7,7 @@ export function S05_Traction() {
   return (
     <SimpleSlide
       section="04 · TRACTION"
-      page="5 / 13"
+      page="9 / 17"
       tone="light"
       illustration={
         <div className="flex flex-col items-center gap-4 py-2">

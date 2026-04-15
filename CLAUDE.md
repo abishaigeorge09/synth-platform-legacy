@@ -235,10 +235,29 @@ All sidebar glyphs are **hand-rolled custom SVGs** in `src/shared/illustrations/
 
 ## Current build state
 
-- **Branch:** `build/full-app` (off `main`, not yet merged)
-- **Phase 0 (Foundation) — complete.** Deps installed (React Router 7, Zustand, @dnd-kit, Recharts, lucide-react, vite-plugin-pwa). Legacy deck code removed. `docs/SCHEMA.md` and `docs/PRODUCT.md` written. Folder structure staged for all five systems.
-- **Phase 1 (Sidebar + routing shell) — complete.** Coach sidebar with custom SVG illustrations, active-state motion indicator, synth. Agent modal portal, landing page, login + invite flow, athlete top-nav layout, all stub routes linked through `src/app/routes.tsx`.
-- **Phase 2 (Coach Dashboard) — next.** Absorb Cal Women's mock dashboard into `/coach/dashboard`, add alerts panel + activity feed + Recharts team trends.
+**Branch:** `build/full-app` (off `main`, not yet merged)
+
+All 11 phases shipped:
+
+| Phase | What | State |
+|---|---|---|
+| 0 | Foundation — deps, legacy cleanup, schema + product docs, folder structure | ✅ |
+| 1 | Sidebar + routing shell + custom SVG illustrations + modal portal | ✅ |
+| 2 | Coach Dashboard — stats strip, chips, Recharts trends, roster table, alerts, activity feed, AI insight | ✅ |
+| 3 | Athletes — 46-card searchable grid + profile page with YoY chart + scoped AI button | ✅ |
+| 4 | Sources page + synth. Agent modal (Sources / Scan history / Add source tabs, MD report viewer) | ✅ |
+| 5 | Lineups tool — @dnd-kit drag/drop boat builder, port/starboard seats, publish, history | ✅ |
+| 6 | Session Timer — RAF stopwatch, multi-boat, splits, video-recording stub | ✅ |
+| 7 | Athlete view — all 7 pages wired to a seeded demo athlete (Star Miller) | ✅ |
+| 8 | synth. AI chat — single ChatView, 3 scopes, canned-response engine with citations | ✅ |
+| 9 | Settings — visibility toggles + sync defaults + notifications | ✅ |
+| 10 | Landing page + PWA install (vite-plugin-pwa + beforeinstallprompt + iOS fallback) | ✅ |
+| 11 | Polish — type check clean, production build clean, PWA manifest + service worker emitted | ✅ |
+
+Production build:
+- `tsc -b` passes cleanly
+- `vite build` succeeds · generates `dist/manifest.webmanifest` and `dist/sw.js`
+- Bundle: 859 kB JS (258 kB gzipped), 40 kB CSS. Code-splitting candidates: Recharts, Framer Motion — deferred.
 
 ## Critical rules
 

@@ -72,3 +72,10 @@ body {
   background-clip: padding-box;
   border: 2px solid transparent;
 }
+
+/* Phase 33 — content-visibility for off-screen sections.
+   Browser skips layout/paint until the element is near the viewport. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}

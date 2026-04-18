@@ -37,6 +37,7 @@ export function ProductDemoPage() {
           src="/demos/synth_demo_nature.html"
           className="h-full w-full"
           style={{ border: 'none' }}
+          loading="lazy"
         />
       </div>
     </div>

@@ -487,7 +487,7 @@ export function LandingPage() {
         </section>
 
         {/* ── 4. Features grid ── */}
-        <section id="features" className="px-5 sm:px-10 py-20 sm:py-28">
+        <section id="features" className="cv-auto px-5 sm:px-10 py-20 sm:py-28">
           <div className="mb-10 max-w-[640px]">
             <SectionKicker>What's in the box</SectionKicker>
             <SectionHeadline>Six surfaces. One source of truth.</SectionHeadline>
@@ -531,7 +531,7 @@ export function LandingPage() {
         </section>
 
         {/* ── 5. Social proof / Pilot story ── */}
-        <section className="px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.light }}>
+        <section className="cv-auto px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.light }}>
           <div className="mb-14 max-w-[640px]">
             <SectionKicker>Built with coaches</SectionKicker>
             <SectionHeadline>Designed alongside Cal Women's Rowing.</SectionHeadline>
@@ -597,6 +597,9 @@ export function LandingPage() {
                   <img
                     src={person.photo}
                     alt={person.name}
+                    width={400}
+                    height={400}
+                    decoding="async"
                     className="h-full w-full object-cover"
                     loading="lazy"
                   />
@@ -618,7 +621,7 @@ export function LandingPage() {
         </section>
 
         {/* ── 6. Pricing ── */}
-        <section id="pricing" className="px-5 sm:px-10 py-20 sm:py-28">
+        <section id="pricing" className="cv-auto px-5 sm:px-10 py-20 sm:py-28">
           <div className="mb-10 max-w-[640px]">
             <SectionKicker>Pricing</SectionKicker>
             <SectionHeadline>Flat tiers. Simple to buy.</SectionHeadline>
@@ -694,7 +697,7 @@ export function LandingPage() {
         </section>
 
         {/* ── 7. FAQ ── */}
-        <section id="faq" className="px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.light }}>
+        <section id="faq" className="cv-auto px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.light }}>
           <div className="mx-auto max-w-[800px]">
             <div className="mb-10 text-center">
               <SectionKicker>FAQ</SectionKicker>
@@ -754,7 +757,7 @@ export function LandingPage() {
         </section>
 
         {/* ── 8. Close CTA ── */}
-        <section className="px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.darkDeep, color: THEME.white }}>
+        <section className="cv-auto px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.darkDeep, color: THEME.white }}>
           <div className="max-w-[720px]">
             <SectionKicker>Get started</SectionKicker>
             <h2

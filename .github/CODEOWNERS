@@ -1,0 +1,6 @@
+# Uncomment and set your team handle or usernames so GitHub auto-requests review.
+# Example: * @my-org/synth-core
+#
+# Optional path-scoped owners:
+# /src/features/coach/ @my-org/coach-ui
+# /src/features/athlete/ @my-org/athlete-ui

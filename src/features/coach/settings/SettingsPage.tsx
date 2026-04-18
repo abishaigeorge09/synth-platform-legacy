@@ -262,6 +262,9 @@ function ToggleList({
           <button
             type="button"
             onClick={() => onToggle(t.key)}
+            aria-label={`Toggle ${t.label}`}
+            role="switch"
+            aria-checked={t.on}
             className="flex h-6 w-11 items-center rounded-full p-0.5 transition-colors"
             style={{ background: t.on ? THEME.primary : THEME.border }}
           >

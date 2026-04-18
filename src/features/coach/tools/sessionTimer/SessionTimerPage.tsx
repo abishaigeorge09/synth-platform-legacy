@@ -3,7 +3,9 @@ import { motion } from 'framer-motion'
 import { PageHeader } from '../../dashboard/components/PageHeader'
 import { BoatTimerCard } from './components/BoatTimerCard'
 import { THEME } from '../../../../lib/theme'
-import { SEED_ATHLETES } from '../../../../shared/data/seeds'
+import { useAthletes } from '../../../../shared/data/queries'
+import { SkeletonBlock, SkeletonLine } from '../../../../shared/components/Skeleton'
+import { QueryError } from '../../../../shared/components/QueryError'
 
 type BoatRef = {
   id: string
@@ -12,20 +14,39 @@ type BoatRef = {
 }
 
 export function SessionTimerPage() {
+  const { data: athletes, isLoading, isError, error } = useAthletes()
   // Seed two demo boats drawn from the Cal Women's roster.
   const [boats] = useState<BoatRef[]>(() => [
     {
       id: 'boat-1v',
       name: '1V 8+',
-      athleteNames: SEED_ATHLETES.slice(0, 8).map((a) => a.name),
+      athleteNames: athletes.slice(0, 8).map((a) => a.name),
     },
     {
       id: 'boat-2v',
       name: '2V 8+',
-      athleteNames: SEED_ATHLETES.slice(8, 16).map((a) => a.name),
+      athleteNames: athletes.slice(8, 16).map((a) => a.name),
     },
   ])
   const [recording, setRecording] = useState(false)
+
+  if (isError) return <QueryError label="Session Timer" error={error} />
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-full w-full flex-col pb-12">
+        <header className="px-5 sm:px-10 pb-5 pt-8">
+          <SkeletonLine width={180} height={8} />
+          <SkeletonLine width={260} height={28} className="mt-2" />
+          <SkeletonLine width={380} height={12} className="mt-2" />
+        </header>
+        <div className="grid gap-4 px-5 sm:px-10 lg:grid-cols-2">
+          <SkeletonBlock className="w-full" style={{ height: 280, borderRadius: 12 }} />
+          <SkeletonBlock className="w-full" style={{ height: 280, borderRadius: 12 }} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-full w-full flex-col pb-12">

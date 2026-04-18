@@ -55,6 +55,7 @@ export function RosterPanel({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search name…"
+          aria-label="Search athletes for lineup"
           className="mt-3 w-full rounded-lg border px-3 py-2 text-[12px] outline-none"
           style={{ borderColor: THEME.border, color: THEME.textPrimary, background: THEME.light }}
         />

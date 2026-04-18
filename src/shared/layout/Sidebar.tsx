@@ -8,12 +8,12 @@ import {
   DashboardIllustration,
   AthletesIllustration,
   SourcesIllustration,
-  LineupsIllustration,
-  SessionTimerIllustration,
   AddToolIllustration,
   SynthAiIllustration,
   SettingsIllustration,
 } from '../illustrations/sidebarIllustrations'
+import { COACH_TOOLS } from '../../features/coach/tools/toolRegistry'
+import { prefetchRoute } from '../../app/routePrefetch'
 
 type NavItem = {
   to: string
@@ -27,10 +27,14 @@ const PRIMARY_NAV: NavItem[] = [
   { to: '/coach/sources', label: 'Sources', Glyph: SourcesIllustration },
 ]
 
-const TOOLS_NAV: NavItem[] = [
-  { to: '/coach/tools/lineups', label: 'Lineups', Glyph: LineupsIllustration },
-  { to: '/coach/tools/session-timer', label: 'Session Timer', Glyph: SessionTimerIllustration },
-]
+// Phase 16 — Custom Tools nav is derived from the ToolRegistry. Adding a new
+// tool is one entry in toolRegistry.tsx + one illustration; the sidebar picks
+// it up automatically.
+const TOOLS_NAV: NavItem[] = COACH_TOOLS.map((tool) => ({
+  to: tool.absolutePath,
+  label: tool.label,
+  Glyph: tool.Glyph,
+}))
 
 /**
  * Desktop-only wrapper around SidebarContent. Hidden below 768 px; on mobile
@@ -39,6 +43,7 @@ const TOOLS_NAV: NavItem[] = [
 export function Sidebar() {
   return (
     <aside
+      aria-label="Coach sidebar"
       className="hidden h-full w-[260px] shrink-0 flex-col border-r md:flex"
       style={{
         background: THEME.white,
@@ -66,6 +71,7 @@ export function SidebarContent({
 }) {
   const navigate = useNavigate()
   const openAgent = useUiStore((s) => s.openAgentModal)
+  const openCommandPalette = useUiStore((s) => s.openCommandPalette)
   const closeMobileDrawer = useUiStore((s) => s.closeMobileDrawer)
   const team = useTeamStore((s) => s.activeTeam)
 
@@ -76,6 +82,15 @@ export function SidebarContent({
 
   const handleAgent = () => {
     openAgent()
+    afterNavigate()
+  }
+
+  // Phase 17 — "Add tool" now opens the global command palette filtered to
+  // the Custom Tools section (plus "coming soon" placeholders for sport-
+  // specific tools that haven't shipped yet). The palette itself also
+  // listens for Cmd+K / Ctrl+K from anywhere in the coach surface.
+  const handleAddTool = () => {
+    openCommandPalette()
     afterNavigate()
   }
 
@@ -121,47 +136,61 @@ export function SidebarContent({
         </div>
       </div>
 
-      <NavGroup
-        label="Overview"
-        items={PRIMARY_NAV}
-        variant={variant}
-        afterNavigate={afterNavigate}
-      />
-
-      <NavGroup
-        label="Custom Tools"
-        items={TOOLS_NAV}
-        variant={variant}
-        afterNavigate={afterNavigate}
-        footer={
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-zinc-100"
-            style={{ color: THEME.textSecondary }}
-          >
-            <AddToolIllustration size={22} muted />
-            <span className="text-[13px]">Add tool</span>
-          </button>
-        }
-      />
-
-      {/* synth. AI */}
-      <div className="mt-2 px-4">
-        <NavRow
-          to="/coach/ai"
-          label="synth. AI"
-          Glyph={SynthAiIllustration}
+      <nav aria-label="Coach navigation">
+        <NavGroup
+          label="Overview"
+          items={PRIMARY_NAV}
           variant={variant}
           afterNavigate={afterNavigate}
-          accent
         />
-      </div>
+
+        <NavGroup
+          label="Custom Tools"
+          items={TOOLS_NAV}
+          variant={variant}
+          afterNavigate={afterNavigate}
+          footer={
+            <button
+              type="button"
+              onClick={handleAddTool}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-zinc-100"
+              style={{ color: THEME.textSecondary }}
+            >
+              <AddToolIllustration size={22} muted />
+              <span className="text-[13px]">Add tool</span>
+              <span
+                className="ml-auto rounded border px-1.5 py-0.5 text-[9px] font-semibold"
+                style={{
+                  borderColor: THEME.border,
+                  color: THEME.textMuted,
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                ⌘K
+              </span>
+            </button>
+          }
+        />
+
+        {/* synth. AI */}
+        <div className="mt-2 px-4">
+          <NavRow
+            to="/coach/ai"
+            label="synth. AI"
+            Glyph={SynthAiIllustration}
+            variant={variant}
+            afterNavigate={afterNavigate}
+            accent
+          />
+        </div>
+      </nav>
 
       {/* synth. Agent — modal trigger */}
       <div className="mt-2 px-4">
         <button
           type="button"
           onClick={handleAgent}
+          aria-label="Open synth Agent — connectors, scans, reports"
           className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all"
           style={{
             background: THEME.primaryDarker,
@@ -238,10 +267,13 @@ function NavRow({
   afterNavigate: () => void
 }) {
   const activeLayoutId = `nav-active-bar-${variant}`
+  const handlePrefetch = () => prefetchRoute(to)
   return (
     <NavLink
       to={to}
       onClick={afterNavigate}
+      onMouseEnter={handlePrefetch}
+      onFocus={handlePrefetch}
       className={({ isActive }) =>
         [
           'group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors',

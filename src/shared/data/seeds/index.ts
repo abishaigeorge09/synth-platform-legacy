@@ -7,10 +7,13 @@
  * Rowing erg test data parsed from the 2025-26 workbooks).
  */
 import type {
-  Alert,
   ActivityItem,
+  AiImportJob,
+  Alert,
   Athlete,
+  AthleteTimelineEvent,
   ChatThread,
+  ConnectorAccount,
   ErgScore,
   Session,
   Source,
@@ -255,3 +258,75 @@ export const SEED_TEAM_STATS = {
   pendingSyncs: 0,
   activeAlerts: SEED_ALERTS.length,
 }
+
+// ─── Timeline & connectors (SCHEMA §9 — seed for UI) ─────────────────────
+
+export const SEED_TIMELINE_EVENTS: AthleteTimelineEvent[] = [
+  {
+    id: 'tle-1',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    athleteId: SEED_ATHLETES[0]!.id,
+    occurredAt: '2026-04-14T15:00:00Z',
+    source: 'google_sheets',
+    category: 'erg',
+    data: { test_type: '2k', split_500m: 98.2, distance_m: 2000 },
+    confidence: 0.95,
+  },
+  {
+    id: 'tle-2',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    athleteId: SEED_ATHLETES[1]!.id,
+    occurredAt: '2026-04-13T10:30:00Z',
+    source: 'concept2_logbook',
+    category: 'erg',
+    data: { test_type: '6k', split_500m: 102.1 },
+    confidence: 0.99,
+  },
+]
+
+export const SEED_CONNECTOR_ACCOUNTS: ConnectorAccount[] = [
+  {
+    id: 'conn-gs',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    provider: 'google_sheets',
+    displayName: 'Team erg folder',
+    status: 'connected',
+    lastSyncAt: '2026-04-14T18:00:00Z',
+  },
+  {
+    id: 'conn-gcal',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    provider: 'google_calendar',
+    displayName: 'Practice calendar',
+    status: 'connected',
+    lastSyncAt: '2026-04-14T06:00:00Z',
+  },
+  {
+    id: 'conn-c2',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    provider: 'concept2_logbook',
+    displayName: 'Logbook (team)',
+    status: 'connected',
+    lastSyncAt: '2026-04-14T05:00:00Z',
+  },
+  {
+    id: 'conn-strava',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    provider: 'strava',
+    displayName: 'Strava club',
+    status: 'connected',
+    lastSyncAt: '2026-04-14T04:30:00Z',
+  },
+]
+
+export const SEED_AI_IMPORT_JOBS: AiImportJob[] = [
+  {
+    id: 'aij-1',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    kind: 'photo',
+    status: 'preview',
+    previewSummary: '12 erg scores detected from screenshot',
+    previewRows: [{ athlete: 'Miller', split: '1:38.2' }],
+    createdAt: '2026-04-14T19:00:00Z',
+  },
+]

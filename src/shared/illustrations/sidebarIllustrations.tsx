@@ -18,6 +18,8 @@ function baseProps({ size = 24, muted = false }: Props) {
     strokeWidth: 1.6,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
+    'aria-hidden': true as const,
+    focusable: false as const,
   }
 }
 
@@ -131,14 +133,3 @@ export function SettingsIllustration(props: Props) {
 export function SourcesGlyph(props: Props) {
   return <SourcesIllustration {...props} />
 }
-
-export const ILLUSTRATIONS = {
-  Dashboard: DashboardIllustration,
-  Athletes: AthletesIllustration,
-  Sources: SourcesIllustration,
-  Lineups: LineupsIllustration,
-  SessionTimer: SessionTimerIllustration,
-  AddTool: AddToolIllustration,
-  SynthAi: SynthAiIllustration,
-  Settings: SettingsIllustration,
-} as const

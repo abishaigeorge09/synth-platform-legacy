@@ -28,7 +28,8 @@ export const useChatStore = create<ChatState>((set) => ({
     })),
   reset: (key) =>
     set((state) => {
-      const { [key]: _removed, ...rest } = state.threads
+      const rest = { ...state.threads }
+      delete rest[key]
       return { threads: rest }
     }),
 }))

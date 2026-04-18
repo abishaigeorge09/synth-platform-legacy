@@ -30,7 +30,7 @@ export function MobileTopBar() {
         className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-zinc-100"
         style={{ color: THEME.textPrimary }}
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
           <line x1="4" y1="7" x2="20" y2="7" />
           <line x1="4" y1="12" x2="20" y2="12" />
           <line x1="4" y1="17" x2="20" y2="17" />
@@ -41,6 +41,7 @@ export function MobileTopBar() {
       <button
         type="button"
         onClick={() => navigate('/coach/dashboard')}
+        aria-label="synth — go to dashboard"
         className="text-[18px] font-semibold leading-none"
         style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
       >

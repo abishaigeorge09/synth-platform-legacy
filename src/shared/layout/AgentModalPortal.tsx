@@ -1,17 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useUiStore } from '../store/useUiStore'
 import { THEME } from '../../lib/theme'
-import { SEED_SOURCES } from '../data/seeds'
-import { SEED_SCAN_LOGS } from '../data/seeds/scanLogs'
-import type { Source, SourceType } from '../data/types'
+import { useSources, useScanLogs, useAiImportJobs } from '../data/queries'
+import { connectConnector } from '../data/connectors/connectorService'
+import type { ConnectorProvider, Source, SourceType } from '../data/types'
+import { featureFlags } from '../../lib/featureFlags'
+import { useWritebackStore } from '../store/useWritebackStore'
 
 type Tab = 'sources' | 'scans' | 'add'
 
 const TAB_LABELS: Record<Tab, string> = {
   sources: 'Connected sources',
   scans: 'Scan history',
-  add: '+ Connect source',
+  add: 'Add connector',
 }
 
 const SOURCE_TYPE_LABEL: Record<SourceType, string> = {
@@ -41,25 +43,104 @@ export function AgentModalPortal() {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <motion.div
-            className="absolute inset-0"
-            style={{ background: 'rgba(12,10,9,0.55)', backdropFilter: 'blur(6px)' }}
-            onClick={close}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
-            className="relative flex max-h-[86dvh] w-full max-w-[1080px] flex-col overflow-hidden rounded-2xl shadow-2xl"
-            style={{ background: THEME.white, border: `1px solid ${THEME.border}` }}
-          >
+        <AgentModalInner close={close} tab={tab} setTab={setTab} />
+      )}
+    </AnimatePresence>
+  )
+}
+
+function AgentModalInner({
+  close,
+  tab,
+  setTab,
+}: {
+  close: () => void
+  tab: Tab
+  setTab: (t: Tab) => void
+}) {
+  const dialogRef = useRef<HTMLDivElement | null>(null)
+
+  // Phase 19 — focus trap + focus restore. Captures the previously-focused
+  // element on mount, auto-focuses the close button, and restores focus on
+  // unmount. Tab/Shift+Tab cycle is trapped inside the dialog.
+  useEffect(() => {
+    const prev =
+      typeof document !== 'undefined'
+        ? (document.activeElement as HTMLElement | null)
+        : null
+
+    // Auto-focus the close button (first focusable inside the dialog)
+    const timer = window.setTimeout(() => {
+      const first = dialogRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      )
+      first?.focus()
+    }, 30)
+
+    return () => {
+      window.clearTimeout(timer)
+      try {
+        prev?.focus?.()
+      } catch {
+        /* element may have been removed */
+      }
+    }
+  }, [])
+
+  // Trap Tab inside the dialog
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Tab') return
+      const focusable = dialog!.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
+    dialog.addEventListener('keydown', onKeyDown)
+    return () => dialog.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="absolute inset-0"
+        style={{ background: 'rgba(12,10,9,0.55)', backdropFilter: 'blur(6px)' }}
+        onClick={close}
+      />
+      <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="synth Agent — connectors, AI import, sync"
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }}
+        transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+        className="relative flex max-h-[86dvh] w-full max-w-[1080px] flex-col overflow-hidden rounded-2xl shadow-2xl"
+        style={{ background: THEME.white, border: `1px solid ${THEME.border}` }}
+      >
             <header
               className="flex items-start justify-between border-b px-6 py-4"
               style={{ borderColor: THEME.border }}
@@ -72,13 +153,13 @@ export function AgentModalPortal() {
                   synth. Agent
                 </div>
                 <h2 className="mt-0.5 text-[22px] font-semibold" style={{ color: THEME.textPrimary }}>
-                  Connectors · scans · reports
+                  Connectors · import · sync
                 </h2>
                 <div
                   className="mt-1 text-[11px]"
                   style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
                 >
-                  {SEED_SOURCES.length} connectors · {SEED_SCAN_LOGS.length} scans in history
+                  <AgentSubtitle />
                 </div>
               </div>
               <button
@@ -93,6 +174,7 @@ export function AgentModalPortal() {
             </header>
 
             <nav
+              aria-label="Agent tabs"
               className="flex gap-1 border-b px-5 pt-3"
               style={{ borderColor: THEME.border }}
             >
@@ -127,15 +209,26 @@ export function AgentModalPortal() {
             </div>
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
+  )
+}
+
+function AgentSubtitle() {
+  const { data: sources, isLoading: l1, isError: e1 } = useSources()
+  const { data: scanLogs, isLoading: l2, isError: e2 } = useScanLogs()
+  if (l1 || l2 || e1 || e2) return <>loading…</>
+  return (
+    <>
+      {sources.length} connectors · {scanLogs.length} scans in history
+    </>
   )
 }
 
 function SourcesTab() {
+  const { data: sources, isLoading, isError } = useSources()
+  if (isLoading || isError) return <div className="py-8 text-center text-[12px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>{isError ? 'Failed to load sources.' : 'Loading…'}</div>
   return (
     <div className="flex flex-col gap-2">
-      {SEED_SOURCES.map((s) => (
+      {sources.map((s) => (
         <div
           key={s.id}
           className="flex items-center justify-between rounded-lg border px-4 py-3"
@@ -196,13 +289,16 @@ function SourcesTab() {
 }
 
 function ScansTab() {
-  const chronological = [...SEED_SCAN_LOGS].sort(
+  const { data: scanLogs, isLoading: l1, isError: e1 } = useScanLogs()
+  const { data: sources, isLoading: l2, isError: e2 } = useSources()
+  if (l1 || l2 || e1 || e2) return <div className="py-8 text-center text-[12px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>{e1 || e2 ? 'Failed to load scan history.' : 'Loading…'}</div>
+  const chronological = [...scanLogs].sort(
     (a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
   )
   return (
     <div className="flex flex-col gap-2">
       {chronological.map((log) => {
-        const src = SEED_SOURCES.find((s) => s.id === log.sourceId)
+        const src = sources.find((s) => s.id === log.sourceId)
         const color = log.status === 'success' ? THEME.primary : log.status === 'partial' ? THEME.amber : THEME.red
         return (
           <div
@@ -262,12 +358,12 @@ function ScansTab() {
 }
 
 function AddSourceTab() {
-  const [sub, setSub] = useState<'extension' | 'connectors' | 'manual'>('extension')
+  const [sub, setSub] = useState<'official' | 'aiImport' | 'manual'>('official')
 
   return (
-    <div>
-      <div className="mb-5 flex gap-2">
-        {(['extension', 'connectors', 'manual'] as const).map((key) => (
+    <div className="flex flex-col gap-6">
+      <div className="mb-1 flex flex-wrap gap-2">
+        {(['official', 'aiImport', 'manual'] as const).map((key) => (
           <button
             key={key}
             type="button"
@@ -280,137 +376,167 @@ function AddSourceTab() {
               fontFamily: THEME.fontMono,
             }}
           >
-            {key === 'extension' ? 'Extension' : key === 'connectors' ? 'Connectors' : 'Manual import'}
+            {key === 'official' ? 'Official connectors' : key === 'aiImport' ? 'AI import' : 'Manual import'}
           </button>
         ))}
       </div>
 
-      {sub === 'extension' && <ExtensionFlow />}
-      {sub === 'connectors' && <ConnectorsFlow />}
+      {sub === 'official' && <OfficialConnectorsFlow />}
+      {sub === 'aiImport' && <AiImportFlow />}
       {sub === 'manual' && <ManualFlow />}
+
+      <ExtensionWaitlistBanner />
     </div>
   )
 }
 
-function ExtensionFlow() {
+function OfficialConnectorsFlow() {
+  const [msg, setMsg] = useState<string | null>(null)
+  const catalog: { provider: ConnectorProvider; name: string; detail: string }[] = [
+    { provider: 'google_sheets', name: 'Google Sheets', detail: 'Two-way roster & erg workbooks' },
+    { provider: 'google_calendar', name: 'Google Calendar', detail: 'Practice & academic load' },
+    { provider: 'concept2_logbook', name: 'Concept2 Logbook', detail: 'Official erg history' },
+    { provider: 'strava', name: 'Strava', detail: 'Activities + webhooks' },
+    { provider: 'apple_health', name: 'Apple Health', detail: 'Sleep, HRV (via HealthKit)' },
+    { provider: 'slack', name: 'Slack', detail: 'Parse channel posts' },
+  ]
+
+  async function onConnect(provider: ConnectorProvider) {
+    setMsg(null)
+    const r = await connectConnector(provider)
+    setMsg(r.message)
+  }
+
+  return (
+    <div>
+      {msg && (
+        <div className="mb-3 rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
+          {msg}
+        </div>
+      )}
+      <div className="grid gap-2 md:grid-cols-2">
+        {catalog.map((c) => (
+          <div
+            key={c.provider}
+            className="flex items-start justify-between rounded-lg border p-4"
+            style={{ background: THEME.light, borderColor: THEME.border }}
+          >
+            <div className="min-w-0 flex-1 pr-2">
+              <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
+                {c.name}
+              </div>
+              <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+                {c.detail}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                border: `1px solid ${THEME.primary}`,
+                background: THEME.primary,
+                color: THEME.white,
+                fontFamily: THEME.fontMono,
+              }}
+              onClick={() => onConnect(c.provider)}
+            >
+              Connect
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AiImportFlow() {
+  const enqueue = useWritebackStore((s) => s.enqueue)
+  const { data: jobs } = useAiImportJobs()
+
+  function run(kind: 'photo' | 'voice' | 'paste') {
+    if (!featureFlags.aiImport) return
+    enqueue({
+      label: `AI import (${kind})`,
+      destination: 'timeline',
+      payloadSummary: 'Preview → confirm pipeline (server-side models)',
+    })
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <div
-        className="rounded-lg border p-4"
-        style={{ background: THEME.light, borderColor: THEME.border }}
-      >
-        <div
-          className="text-[9px] font-semibold uppercase tracking-[0.18em]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-        >
-          Step 1 · URL to scan
-        </div>
-        <input
-          defaultValue="https://app.bridgeathletics.com/team/dashboard"
-          className="mt-2 w-full rounded-lg border bg-white px-3 py-2.5 text-[13px] outline-none"
-          style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textPrimary }}
-        />
+      <div className="grid gap-2 sm:grid-cols-3">
+        {(
+          [
+            ['photo', 'Photo / screenshot', 'Claude Vision extracts tables, splits, names.'],
+            ['voice', 'Voice note', 'Whisper → structure → review.'],
+            ['paste', 'Paste text', 'Parse raw text from email or chat.'],
+          ] as const
+        ).map(([k, title, detail]) => (
+          <button
+            key={k}
+            type="button"
+            className="rounded-xl border p-4 text-left transition-colors hover:bg-zinc-50"
+            style={{ borderColor: THEME.border, background: THEME.white }}
+            onClick={() => run(k)}
+          >
+            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
+              {title}
+            </div>
+            <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
+              {detail}
+            </div>
+          </button>
+        ))}
       </div>
-      <div
-        className="rounded-lg border p-4"
-        style={{ background: THEME.light, borderColor: THEME.border }}
-      >
-        <div
-          className="text-[9px] font-semibold uppercase tracking-[0.18em]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-        >
-          Step 2 · Install synth. extension
+      {jobs.length > 0 && (
+        <div className="rounded-lg border p-3 text-[11px]" style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
+          Recent jobs: {jobs.map((j) => j.previewSummary ?? j.kind).join(' · ')}
         </div>
-        <div className="mt-2 text-[12px]" style={{ color: THEME.textSecondary }}>
-          The browser extension runs in the coach's browser context to scrape data beside the existing workflow. A real
-          Chrome Web Store install flow lands in P2.
-        </div>
+      )}
+    </div>
+  )
+}
+
+function ExtensionWaitlistBanner() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+
+  return (
+    <div
+      className="rounded-xl border border-dashed p-4 opacity-90"
+      style={{ borderColor: THEME.border, background: THEME.light }}
+    >
+      <div className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+        Browser extension — coming soon
+      </div>
+      <p className="mt-2 text-[12px]" style={{ color: THEME.textSecondary }}>
+        Connect any web app on a schedule. Until then, use AI import for screenshots and voice — same intelligence, no
+        install.
+      </p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="coach@school.edu"
+          className="min-w-0 flex-1 rounded-lg border bg-white px-3 py-2 text-[13px] outline-none"
+          style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textPrimary }}
+          aria-label="Email for extension waitlist"
+        />
         <button
           type="button"
-          className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider"
+          disabled={sent || !email.includes('@')}
+          className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider disabled:opacity-40"
           style={{
-            background: THEME.primary,
+            background: sent ? THEME.border : THEME.primary,
             color: THEME.white,
             fontFamily: THEME.fontMono,
           }}
+          onClick={() => setSent(true)}
         >
-          Install extension →
+          {sent ? 'On the list' : 'Join waitlist'}
         </button>
       </div>
-      <div
-        className="rounded-lg border p-4"
-        style={{ background: THEME.light, borderColor: THEME.border }}
-      >
-        <div
-          className="text-[9px] font-semibold uppercase tracking-[0.18em]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-        >
-          Step 3 · Schedule
-        </div>
-        <div className="mt-3 flex gap-2">
-          {['Real-time', 'Hourly', 'Daily 18:00', 'Weekly Mon 18:00'].map((label, i) => (
-            <button
-              key={label}
-              type="button"
-              className="rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
-              style={{
-                border: `1px solid ${i === 2 ? THEME.primary : THEME.border}`,
-                background: i === 2 ? 'rgba(5,150,105,0.08)' : THEME.white,
-                color: i === 2 ? THEME.primary : THEME.textSecondary,
-                fontFamily: THEME.fontMono,
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ConnectorsFlow() {
-  const catalog = [
-    { id: 'gs', name: 'Google Sheets', detail: 'Roster, erg workbooks, compliance sheets', connected: true },
-    { id: 'gd', name: 'Google Drive', detail: 'Video, screenshots, shared files', connected: false },
-    { id: 'sl', name: 'Slack', detail: 'Channel monitoring for coach threads', connected: false },
-    { id: 'tw', name: 'TeamWorks', detail: 'Calendar, attendance, compliance', connected: true },
-    { id: 'wh', name: 'Whoop (wearable hub)', detail: 'Team rollup — sleep, HRV, recovery', connected: true },
-    { id: 'br', name: 'Bridge Athletics', detail: 'Strength & conditioning program feed', connected: false },
-  ]
-  return (
-    <div className="grid gap-2 md:grid-cols-2">
-      {catalog.map((c) => (
-        <div
-          key={c.id}
-          className="flex items-start justify-between rounded-lg border p-4"
-          style={{ background: THEME.light, borderColor: THEME.border }}
-        >
-          <div className="flex-1">
-            <div
-              className="text-[13px] font-semibold"
-              style={{ color: THEME.textPrimary }}
-            >
-              {c.name}
-            </div>
-            <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
-              {c.detail}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
-            style={{
-              border: `1px solid ${c.connected ? THEME.border : THEME.primary}`,
-              background: c.connected ? THEME.white : THEME.primary,
-              color: c.connected ? THEME.textSecondary : THEME.white,
-              fontFamily: THEME.fontMono,
-            }}
-          >
-            {c.connected ? 'Connected' : 'Connect →'}
-          </button>
-        </div>
-      ))}
     </div>
   )
 }

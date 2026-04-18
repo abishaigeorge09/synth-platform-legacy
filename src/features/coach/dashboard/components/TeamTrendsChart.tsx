@@ -11,7 +11,8 @@ import {
   YAxis,
 } from 'recharts'
 import { THEME } from '../../../../lib/theme'
-import { MONTHLY_TRENDS } from '../../../../shared/data/seeds/trends'
+import { useMonthlyTrends } from '../../../../shared/data/queries'
+import { SkeletonChart } from '../../../../shared/components/Skeleton'
 
 /** Wrapper card that matches the dashboard surface style. */
 function ChartCard({
@@ -55,6 +56,9 @@ function ChartCard({
 }
 
 export function TeamSessionsChart() {
+  const { data: trends, isLoading, isError } = useMonthlyTrends()
+  if (isError) return <SkeletonChart height={200} />
+  if (isLoading) return <SkeletonChart height={200} />
   return (
     <ChartCard
       kicker="Signal · monthly"
@@ -62,7 +66,7 @@ export function TeamSessionsChart() {
       subtitle="Pieces · erg tests · water sessions synthesized from every connector"
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={MONTHLY_TRENDS} margin={{ top: 8, right: 8, bottom: 4, left: -24 }}>
+        <BarChart data={trends} margin={{ top: 8, right: 8, bottom: 4, left: -24 }}>
           <CartesianGrid stroke={THEME.border} vertical={false} strokeDasharray="2 4" />
           <XAxis
             dataKey="month"
@@ -95,6 +99,9 @@ export function TeamSessionsChart() {
 }
 
 export function TeamComplianceChart() {
+  const { data: trends, isLoading, isError } = useMonthlyTrends()
+  if (isError) return <SkeletonChart height={200} />
+  if (isLoading) return <SkeletonChart height={200} />
   return (
     <ChartCard
       kicker="Signal · compliance"
@@ -102,7 +109,7 @@ export function TeamComplianceChart() {
       subtitle="Training adherence across the roster, rolled up from TeamWorks + wellness digests"
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={MONTHLY_TRENDS} margin={{ top: 8, right: 16, bottom: 4, left: -24 }}>
+        <LineChart data={trends} margin={{ top: 8, right: 16, bottom: 4, left: -24 }}>
           <CartesianGrid stroke={THEME.border} vertical={false} strokeDasharray="2 4" />
           <XAxis
             dataKey="month"

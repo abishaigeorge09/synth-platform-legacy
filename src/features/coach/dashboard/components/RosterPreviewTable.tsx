@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { THEME } from '../../../../lib/theme'
-import { SEED_ATHLETES, SEED_ERG_SCORES } from '../../../../shared/data/seeds'
+import { useAthletes, useErgScores } from '../../../../shared/data/queries'
+import { SkeletonTable } from '../../../../shared/components/Skeleton'
 
 function fmt2k(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -16,9 +17,14 @@ function statusFor(idx: number) {
 }
 
 export function RosterPreviewTable() {
-  const rows = SEED_ERG_SCORES
+  const { data: athletes, isLoading: l1, isError: e1 } = useAthletes()
+  const { data: ergScores, isLoading: l2, isError: e2 } = useErgScores()
+
+  if (e1 || e2 || l1 || l2) return <SkeletonTable rows={8} />
+
+  const rows = ergScores
     .map((score) => {
-      const athlete = SEED_ATHLETES.find((a) => a.id === score.athleteId)
+      const athlete = athletes.find((a) => a.id === score.athleteId)
       return { score, athlete }
     })
     .slice(0, 8)
@@ -52,7 +58,7 @@ export function RosterPreviewTable() {
           className="text-[11px] font-semibold uppercase tracking-wider transition-colors hover:underline"
           style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
         >
-          View all {SEED_ATHLETES.length} →
+          View all {athletes.length} →
         </Link>
       </header>
       <div className="overflow-x-auto">

@@ -31,12 +31,6 @@ export function useStopwatch() {
   const rafRef = useRef<number>(0)
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null)
 
-  const tick = useCallback(() => {
-    const now = performance.now()
-    setElapsed(now - startTimeRef.current - pausedAccumRef.current)
-    rafRef.current = requestAnimationFrame(tick)
-  }, [])
-
   // Acquire / release Screen Wake Lock alongside the running state so phones
   // don't sleep mid-piece. Best-effort — silently no-ops on browsers without
   // the API (Safari <16.4, older Androids).
@@ -77,11 +71,15 @@ export function useStopwatch() {
   }, [state])
 
   useEffect(() => {
-    if (state === 'running') {
+    if (state !== 'running') return
+    const tick = () => {
+      const now = performance.now()
+      setElapsed(now - startTimeRef.current - pausedAccumRef.current)
       rafRef.current = requestAnimationFrame(tick)
     }
+    rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [state, tick])
+  }, [state])
 
   const start = useCallback(() => {
     if (state === 'idle') {

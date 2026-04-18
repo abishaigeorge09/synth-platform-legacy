@@ -11,17 +11,19 @@ import {
 } from 'recharts'
 import { THEME } from '../../lib/theme'
 import {
-  DEMO_ATHLETE,
-  DEMO_ATHLETE_ERG,
-  DEMO_ATHLETE_YOY,
-  DEMO_ATHLETE_TEAMMATES,
-  DEMO_ATHLETE_SESSIONS,
-  DEMO_ATHLETE_LINEUPS,
-  DEMO_ATHLETE_PERSONAL_SOURCES,
-  DEMO_TEAM,
-  DEMO_COACH,
-} from '../../shared/data/seeds/demoAthlete'
+  useDemoAthlete,
+  useDemoAthleteErg,
+  useDemoAthleteYoy,
+  useDemoAthleteTeammates,
+  useDemoAthleteSessions,
+  useDemoAthleteLineups,
+  useDemoAthletePersonalSources,
+  useDemoTeam,
+  useDemoCoach,
+} from '../../shared/data/queries'
 import { ChatView } from '../coach/ai/ChatView'
+import { SkeletonLine, SkeletonCard, SkeletonStatTile } from '../../shared/components/Skeleton'
+import { QueryError } from '../../shared/components/QueryError'
 
 function fmt2k(seconds?: number) {
   if (!seconds) return '—'
@@ -80,14 +82,56 @@ function AthletePageShell({
   )
 }
 
+/** Composite hook — call once per page to get all demo athlete data. */
+function useDemoData() {
+  const { data: athlete, isLoading: l1, isError: e1, error: err1 } = useDemoAthlete()
+  const { data: erg, isLoading: l2, isError: e2, error: err2 } = useDemoAthleteErg()
+  const { data: yoy, isLoading: l3, isError: e3, error: err3 } = useDemoAthleteYoy()
+  const { data: teammates, isLoading: l4, isError: e4 } = useDemoAthleteTeammates()
+  const { data: sessions, isLoading: l5, isError: e5 } = useDemoAthleteSessions()
+  const { data: lineups, isLoading: l6, isError: e6 } = useDemoAthleteLineups()
+  const { data: personalSources, isLoading: l7, isError: e7 } = useDemoAthletePersonalSources()
+  const { data: team, isLoading: l8, isError: e8 } = useDemoTeam()
+  const { data: coach, isLoading: l9, isError: e9 } = useDemoCoach()
+  const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9
+  const isError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9
+  const error = err1 ?? err2 ?? err3 ?? null
+  return { athlete, erg, yoy, teammates, sessions, lineups, personalSources, team, coach, isLoading, isError, error }
+}
+
+/** Shared loading skeleton for athlete pages. */
+function AthletePageSkeleton() {
+  return (
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <header className="px-5 sm:px-10 pb-5 pt-8">
+        <SkeletonLine width={100} height={8} />
+        <SkeletonLine width={240} height={28} className="mt-2" />
+        <SkeletonLine width={200} height={12} className="mt-2" />
+      </header>
+      <div className="grid grid-cols-2 gap-3 px-5 sm:px-10 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonStatTile key={i} />
+        ))}
+      </div>
+      <div className="mt-6 grid gap-4 px-5 sm:px-10 md:grid-cols-2">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    </div>
+  )
+}
+
 // ─── My Team ──────────────────────────────────────────────────────────────
 
 export function MyDashboardPage() {
+  const { athlete, erg, yoy, teammates, team, coach, isLoading, isError, error } = useDemoData()
+  if (isError) return <QueryError label="My Team" error={error} />
+  if (isLoading) return <AthletePageSkeleton />
   return (
     <AthletePageShell
       kicker="Athlete · My Team"
-      title={`Welcome back, ${DEMO_ATHLETE.name.split(' ')[0]}`}
-      subtitle={`${DEMO_TEAM.name} · ${DEMO_ATHLETE_TEAMMATES.length + 1} on roster · coach ${DEMO_COACH.name.split(' ')[0]}`}
+      title={`Welcome back, ${athlete.name.split(' ')[0]}`}
+      subtitle={`${team.name} · ${teammates.length + 1} on roster · coach ${coach.name.split(' ')[0]}`}
     >
       <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[1fr_1fr]">
         <div
@@ -107,17 +151,17 @@ export function MyDashboardPage() {
             className="mt-1 text-[24px] font-semibold"
             style={{ fontFamily: THEME.fontSerif }}
           >
-            {DEMO_TEAM.name}
+            {team.name}
           </div>
           <div className="mt-0.5 text-[12px] opacity-80" style={{ fontFamily: THEME.fontMono }}>
-            {DEMO_TEAM.sport} · invite {DEMO_TEAM.inviteCode}
+            {team.sport} · invite {team.inviteCode}
           </div>
           <div className="mt-5 flex items-center gap-3">
             <div
               className="flex h-12 w-12 items-center justify-center rounded-full text-[14px] font-semibold"
               style={{ background: 'rgba(255,255,255,0.14)', fontFamily: THEME.fontMono }}
             >
-              {initials(DEMO_COACH.name)}
+              {initials(coach.name)}
             </div>
             <div>
               <div
@@ -126,9 +170,9 @@ export function MyDashboardPage() {
               >
                 Head coach
               </div>
-              <div className="text-[15px] font-semibold">{DEMO_COACH.name}</div>
+              <div className="text-[15px] font-semibold">{coach.name}</div>
               <div className="text-[11px] opacity-80" style={{ fontFamily: THEME.fontMono }}>
-                {DEMO_COACH.email}
+                {coach.email}
               </div>
             </div>
           </div>
@@ -145,10 +189,10 @@ export function MyDashboardPage() {
             Teammates
           </div>
           <div className="mt-1 text-[17px] font-semibold" style={{ color: THEME.textPrimary }}>
-            Roster · {DEMO_ATHLETE_TEAMMATES.length}
+            Roster · {teammates.length}
           </div>
           <div className="synth-scroll mt-4 flex max-h-[280px] flex-wrap gap-2 overflow-y-auto pr-1">
-            {DEMO_ATHLETE_TEAMMATES.slice(0, 18).map((a) => (
+            {teammates.slice(0, 18).map((a) => (
               <span
                 key={a.id}
                 className="rounded-full border px-3 py-1 text-[11px] font-semibold"
@@ -161,7 +205,7 @@ export function MyDashboardPage() {
                 {a.name}
               </span>
             ))}
-            {DEMO_ATHLETE_TEAMMATES.length > 18 && (
+            {teammates.length > 18 && (
               <span
                 className="rounded-full px-3 py-1 text-[11px]"
                 style={{
@@ -170,7 +214,7 @@ export function MyDashboardPage() {
                   fontFamily: THEME.fontMono,
                 }}
               >
-                +{DEMO_ATHLETE_TEAMMATES.length - 18} more
+                +{teammates.length - 18} more
               </span>
             )}
           </div>
@@ -180,21 +224,21 @@ export function MyDashboardPage() {
       <div className="mt-6 grid gap-4 px-5 sm:px-10 xl:grid-cols-3">
         <QuickTile
           kicker="Latest 2K"
-          value={fmt2k(DEMO_ATHLETE_ERG?.timeSeconds)}
-          detail={DEMO_ATHLETE_ERG?.date ?? '—'}
+          value={fmt2k(erg?.timeSeconds)}
+          detail={erg?.date ?? '—'}
           color={THEME.primary}
         />
         <QuickTile
           kicker="Avg split /500"
-          value={fmt2k(DEMO_ATHLETE_ERG?.splitSeconds)}
-          detail={DEMO_ATHLETE_ERG?.watts ? `${DEMO_ATHLETE_ERG.watts}W · ${DEMO_ATHLETE_ERG.spm} spm` : '—'}
+          value={fmt2k(erg?.splitSeconds)}
+          detail={erg?.watts ? `${erg.watts}W · ${erg.spm} spm` : '—'}
           color={THEME.cyan}
         />
         <QuickTile
           kicker="YoY progress"
-          value={DEMO_ATHLETE_YOY ? `${DEMO_ATHLETE_YOY.deltaSec.toFixed(1)}s` : '—'}
-          detail={DEMO_ATHLETE_YOY ? 'vs. 2025 test' : 'no prior data'}
-          color={DEMO_ATHLETE_YOY && DEMO_ATHLETE_YOY.deltaSec < 0 ? THEME.primary : THEME.amber}
+          value={yoy ? `${yoy.deltaSec.toFixed(1)}s` : '—'}
+          detail={yoy ? 'vs. 2025 test' : 'no prior data'}
+          color={yoy && yoy.deltaSec < 0 ? THEME.primary : THEME.amber}
         />
       </div>
 
@@ -258,14 +302,17 @@ function QuickTile({
 // ─── My Stats ─────────────────────────────────────────────────────────────
 
 export function MyStatsPage() {
+  const { athlete, erg, yoy, isLoading, isError, error } = useDemoData()
+  if (isError) return <QueryError label="My Stats" error={error} />
+  if (isLoading) return <AthletePageSkeleton />
   return (
     <AthletePageShell
       kicker="Athlete · My Stats"
       title="Personal performance"
-      subtitle={`Scoped to ${DEMO_ATHLETE.name}'s data only · ${DEMO_ATHLETE_YOY ? '1 YoY test pair' : 'no prior tests'}`}
+      subtitle={`Scoped to ${athlete.name}'s data only · ${yoy ? '1 YoY test pair' : 'no prior tests'}`}
     >
       <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[1.4fr_1fr]">
-        {DEMO_ATHLETE_YOY ? (
+        {yoy ? (
           <div className="rounded-2xl border p-5" style={{ background: THEME.white, borderColor: THEME.border }}>
             <div
               className="text-[9px] font-semibold uppercase tracking-[0.18em]"
@@ -280,8 +327,8 @@ export function MyStatsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={[
-                    { label: 'Mar 2025', sec: DEMO_ATHLETE_YOY.sec2025 },
-                    { label: 'Mar 2026', sec: DEMO_ATHLETE_YOY.sec2026 },
+                    { label: 'Mar 2025', sec: yoy.sec2025 },
+                    { label: 'Mar 2026', sec: yoy.sec2026 },
                   ]}
                   margin={{ top: 12, right: 24, bottom: 4, left: 16 }}
                 >
@@ -335,17 +382,17 @@ export function MyStatsPage() {
         <div className="flex flex-col gap-3">
           <StatCard
             label="Current 2K"
-            value={fmt2k(DEMO_ATHLETE_ERG?.timeSeconds)}
-            detail={DEMO_ATHLETE_ERG?.date ?? '—'}
+            value={fmt2k(erg?.timeSeconds)}
+            detail={erg?.date ?? '—'}
           />
           <StatCard
             label="Avg split /500"
-            value={fmt2k(DEMO_ATHLETE_ERG?.splitSeconds)}
-            detail={DEMO_ATHLETE_ERG?.watts ? `${DEMO_ATHLETE_ERG.watts}W` : '—'}
+            value={fmt2k(erg?.splitSeconds)}
+            detail={erg?.watts ? `${erg.watts}W` : '—'}
           />
           <StatCard
             label="Stroke rate"
-            value={DEMO_ATHLETE_ERG?.spm ? `${DEMO_ATHLETE_ERG.spm}` : '—'}
+            value={erg?.spm ? `${erg.spm}` : '—'}
             detail="strokes per minute"
           />
         </div>
@@ -382,15 +429,18 @@ function StatCard({ label, value, detail }: { label: string; value: string; deta
 // ─── My Sessions ──────────────────────────────────────────────────────────
 
 export function MySessionsPage() {
+  const { sessions, isLoading, isError, error } = useDemoData()
+  if (isError) return <QueryError label="Sessions" error={error} />
+  if (isLoading) return <AthletePageSkeleton />
   return (
     <AthletePageShell
       kicker="Athlete · Sessions"
       title="My session history"
-      subtitle={`${DEMO_ATHLETE_SESSIONS.length} recent sessions · splits and videos your coach shared`}
+      subtitle={`${sessions.length} recent sessions · splits and videos your coach shared`}
     >
       <div className="px-5 sm:px-10">
         <ul className="flex flex-col gap-3">
-          {DEMO_ATHLETE_SESSIONS.map((s) => (
+          {sessions.map((s) => (
             <li
               key={s.id}
               className="rounded-2xl border p-5"
@@ -439,15 +489,18 @@ export function MySessionsPage() {
 // ─── My Lineups ───────────────────────────────────────────────────────────
 
 export function MyLineupsPage() {
+  const { lineups, isLoading, isError, error } = useDemoData()
+  if (isError) return <QueryError label="Lineups" error={error} />
+  if (isLoading) return <AthletePageSkeleton />
   return (
     <AthletePageShell
       kicker="Athlete · Lineups"
       title="My boat history"
-      subtitle={`${DEMO_ATHLETE_LINEUPS.length} published lineups · boats and seats across the season`}
+      subtitle={`${lineups.length} published lineups · boats and seats across the season`}
     >
       <div className="px-5 sm:px-10">
         <ul className="flex flex-col gap-2">
-          {DEMO_ATHLETE_LINEUPS.map((l) => (
+          {lineups.map((l) => (
             <li
               key={l.id}
               className="flex items-center justify-between rounded-lg border px-4 py-3"
@@ -492,6 +545,9 @@ export function MyLineupsPage() {
 // ─── My Sources ───────────────────────────────────────────────────────────
 
 export function MySourcesPage() {
+  const { personalSources, isLoading, isError, error } = useDemoData()
+  if (isError) return <QueryError label="Sources" error={error} />
+  if (isLoading) return <AthletePageSkeleton />
   return (
     <AthletePageShell
       kicker="Athlete · My Sources"
@@ -499,7 +555,7 @@ export function MySourcesPage() {
       subtitle="Personal data sources — separate from the team feed, only visible to you"
     >
       <div className="grid gap-3 px-5 sm:px-10 md:grid-cols-2">
-        {DEMO_ATHLETE_PERSONAL_SOURCES.map((s) => (
+        {personalSources.map((s) => (
           <div
             key={s.id}
             className="flex items-center justify-between rounded-2xl border p-5"

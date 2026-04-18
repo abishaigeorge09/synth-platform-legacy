@@ -12,14 +12,20 @@ import { PageHeader } from '../../dashboard/components/PageHeader'
 import { RosterPanel } from './components/RosterPanel'
 import { BoatCard } from './components/BoatCard'
 import { THEME } from '../../../../lib/theme'
-import { SEED_ATHLETES, SEED_ERG_SCORES } from '../../../../shared/data/seeds'
 import {
+  useAthletes,
+  useErgScores,
+  usePublishedLineups,
   makeEmptyBoat,
-  SEED_PUBLISHED_LINEUPS,
   type BoatLineup,
-} from '../../../../shared/data/seeds/lineups'
+} from '../../../../shared/data/queries'
+import { SkeletonBlock, SkeletonCard, SkeletonLine } from '../../../../shared/components/Skeleton'
+import { QueryError } from '../../../../shared/components/QueryError'
 
 export function LineupsPage() {
+  const { data: athletes, isLoading: l1, isError: e1, error: err1 } = useAthletes()
+  const { data: ergScores, isLoading: l2, isError: e2, error: err2 } = useErgScores()
+  const { data: publishedLineups, isLoading: l3, isError: e3, error: err3 } = usePublishedLineups()
   const [boats, setBoats] = useState<BoatLineup[]>(() => [
     makeEmptyBoat('boat-1v', '1V 8+', 8),
     makeEmptyBoat('boat-2v', '2V 8+', 8),
@@ -34,16 +40,16 @@ export function LineupsPage() {
   )
 
   const athleteById = useMemo(() => {
-    const map: Record<string, (typeof SEED_ATHLETES)[number]> = {}
-    for (const a of SEED_ATHLETES) map[a.id] = a
+    const map: Record<string, (typeof athletes)[number]> = {}
+    for (const a of athletes) map[a.id] = a
     return map
-  }, [])
+  }, [athletes])
 
   const ergByAthleteId = useMemo(() => {
-    const map: Record<string, (typeof SEED_ERG_SCORES)[number]> = {}
-    for (const e of SEED_ERG_SCORES) map[e.athleteId] = e
+    const map: Record<string, (typeof ergScores)[number]> = {}
+    for (const e of ergScores) map[e.athleteId] = e
     return map
-  }, [])
+  }, [ergScores])
 
   const assignedIds = useMemo(() => {
     const set = new Set<string>()
@@ -51,6 +57,27 @@ export function LineupsPage() {
       for (const seat of boat.seats) if (seat.athleteId) set.add(seat.athleteId)
     return set
   }, [boats])
+
+  if (e1 || e2 || e3) return <QueryError label="Lineups" error={err1 ?? err2 ?? err3} />
+
+  if (l1 || l2 || l3) {
+    return (
+      <div className="flex min-h-full w-full flex-col pb-12">
+        <header className="px-5 sm:px-10 pb-5 pt-8">
+          <SkeletonLine width={160} height={8} />
+          <SkeletonLine width={240} height={28} className="mt-2" />
+          <SkeletonLine width={320} height={12} className="mt-2" />
+        </header>
+        <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[300px_1fr]">
+          <SkeletonCard />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <SkeletonBlock className="w-full" style={{ height: 300, borderRadius: 12 }} />
+            <SkeletonBlock className="w-full" style={{ height: 300, borderRadius: 12 }} />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const totalSeats = boats.reduce((acc, b) => acc + b.seats.length, 0)
   const filledSeats = boats.reduce(
@@ -188,7 +215,7 @@ export function LineupsPage() {
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[300px_1fr]">
           <RosterPanel
-            athletes={SEED_ATHLETES}
+            athletes={athletes}
             ergByAthleteId={ergByAthleteId}
             assignedIds={assignedIds}
           />
@@ -223,7 +250,7 @@ export function LineupsPage() {
             Past sessions
           </div>
           <ul className="mt-4 flex flex-col gap-2">
-            {SEED_PUBLISHED_LINEUPS.map((p) => (
+            {publishedLineups.map((p) => (
               <li
                 key={p.id}
                 className="flex items-center justify-between rounded-lg border px-4 py-3"

@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { THEME } from '../../../../lib/theme'
-import { SEED_ALERTS, SEED_ATHLETES } from '../../../../shared/data/seeds'
+import { useAlerts, useAthletes } from '../../../../shared/data/queries'
 import type { Alert } from '../../../../shared/data/types'
+import { SkeletonLine } from '../../../../shared/components/Skeleton'
 
 function severityColor(sev: Alert['severity']) {
   if (sev === 'danger') return THEME.red
@@ -18,6 +19,30 @@ function relativeTime(iso: string) {
 }
 
 export function AlertsPanel() {
+  const { data: alerts, isLoading: l1, isError: e1 } = useAlerts()
+  const { data: athletes, isLoading: l2, isError: e2 } = useAthletes()
+
+  if (e1 || e2 || l1 || l2) {
+    return (
+      <div
+        className="rounded-2xl border p-5"
+        style={{ background: THEME.white, borderColor: THEME.border }}
+      >
+        <SkeletonLine width={80} height={8} />
+        <SkeletonLine width={160} height={16} className="mt-2" />
+        <div className="mt-4 flex flex-col gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-lg border px-3 py-3" style={{ borderColor: THEME.border, background: THEME.light }}>
+              <SkeletonLine width="40%" height={8} />
+              <SkeletonLine width="70%" height={12} className="mt-1.5" />
+              <SkeletonLine width="50%" height={10} className="mt-1" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -36,7 +61,7 @@ export function AlertsPanel() {
             className="text-[9px] font-semibold uppercase tracking-[0.18em]"
             style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
           >
-            Alerts · {SEED_ALERTS.length}
+            Alerts · {alerts.length}
           </div>
           <div className="mt-1 text-[17px] font-semibold" style={{ color: THEME.textPrimary }}>
             Flags worth a look
@@ -44,9 +69,9 @@ export function AlertsPanel() {
         </div>
       </header>
       <ul className="mt-4 flex flex-col gap-2">
-        {SEED_ALERTS.map((alert) => {
+        {alerts.map((alert) => {
           const color = severityColor(alert.severity)
-          const athlete = alert.athleteId ? SEED_ATHLETES.find((a) => a.id === alert.athleteId) : null
+          const athlete = alert.athleteId ? athletes.find((a) => a.id === alert.athleteId) : null
           return (
             <li
               key={alert.id}

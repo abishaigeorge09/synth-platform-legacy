@@ -10,9 +10,12 @@ import {
   CartesianGrid,
 } from 'recharts'
 import { THEME } from '../../../lib/theme'
-import { SEED_ATHLETES, SEED_ERG_SCORES } from '../../../shared/data/seeds'
-import { getYoyFor } from '../../../shared/data/seeds/athleteExtras'
+import { useAthletes, useErgScores, useAthleteYoy } from '../../../shared/data/queries'
+import type { ErgScore } from '../../../shared/data/types'
+import type { AthleteYoyPair } from '../../../shared/data/seeds/athleteExtras'
 import { SynthAiIllustration } from '../../../shared/illustrations/sidebarIllustrations'
+import { SkeletonLine, SkeletonBlock, SkeletonStatTile, SkeletonChart } from '../../../shared/components/Skeleton'
+import { QueryError } from '../../../shared/components/QueryError'
 
 function fmt2k(seconds?: number) {
   if (!seconds) return '—'
@@ -32,11 +35,37 @@ function initials(name: string) {
 
 export function AthleteProfilePage() {
   const { athleteId } = useParams()
-  const athlete = SEED_ATHLETES.find((a) => a.id === athleteId)
-  const erg = athlete ? SEED_ERG_SCORES.find((e) => e.athleteId === athlete.id) : null
-  const yoy = athlete ? getYoyFor(athlete.id) : null
+  const { data: athletes, isLoading: l1, isError: e1, error: err1 } = useAthletes()
+  const { data: ergScores, isLoading: l2, isError: e2, error: err2 } = useErgScores()
+  const { data: yoy, isLoading: l3, isError: e3, error: err3 } = useAthleteYoy(athleteId ?? '')
 
-  const rankByErg = [...SEED_ERG_SCORES]
+  if (e1 || e2 || e3) return <QueryError label="Athlete profile" error={err1 ?? err2 ?? err3} />
+
+  if (l1 || l2 || l3) {
+    return (
+      <div className="flex min-h-full w-full flex-col gap-6 pb-12 pt-8 px-5 sm:px-10">
+        <div className="flex items-center gap-5">
+          <SkeletonBlock className="h-20 w-20 !rounded-2xl" />
+          <div className="flex flex-col gap-2">
+            <SkeletonLine width={100} height={8} />
+            <SkeletonLine width={200} height={32} />
+            <SkeletonLine width={160} height={12} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonStatTile key={i} />
+          ))}
+        </div>
+        <SkeletonChart height={200} />
+      </div>
+    )
+  }
+
+  const athlete = athletes.find((a) => a.id === athleteId)
+  const erg = athlete ? ergScores.find((e) => e.athleteId === athlete.id) : null
+
+  const rankByErg = [...ergScores]
     .sort((a, b) => a.timeSeconds - b.timeSeconds)
     .findIndex((e) => e.athleteId === athleteId)
   const rank = rankByErg >= 0 ? rankByErg + 1 : null
@@ -190,8 +219,8 @@ function StatRow({
   erg,
   yoy,
 }: {
-  erg?: typeof SEED_ERG_SCORES[number] | null
-  yoy: ReturnType<typeof getYoyFor>
+  erg?: ErgScore | null
+  yoy: AthleteYoyPair | null
 }) {
   const tiles = [
     {
@@ -259,7 +288,7 @@ function YoyChart({
   yoy,
   athleteName,
 }: {
-  yoy: NonNullable<ReturnType<typeof getYoyFor>>
+  yoy: AthleteYoyPair
   athleteName: string
 }) {
   const data = [

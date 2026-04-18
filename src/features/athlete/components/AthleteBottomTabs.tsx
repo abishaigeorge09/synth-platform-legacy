@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { ComponentType } from 'react'
 import { THEME } from '../../../lib/theme'
+import { prefetchRoute } from '../../../app/routePrefetch'
 import {
   DashboardIllustration,
   AthletesIllustration,
@@ -56,12 +57,14 @@ export function AthleteBottomTabs() {
         <button
           type="button"
           onClick={() => setMoreOpen(true)}
+          aria-label="More — Lineups, Sources, Settings"
+          aria-expanded={moreOpen}
           className="flex flex-1 flex-col items-center justify-center gap-1 py-2.5"
           style={{
             color: moreActive ? THEME.primary : THEME.textSecondary,
           }}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
             <circle cx="6" cy="12" r="1.8" fill={moreActive ? THEME.primary : THEME.textMuted} />
             <circle cx="12" cy="12" r="1.8" fill={moreActive ? THEME.primary : THEME.textMuted} />
             <circle cx="18" cy="12" r="1.8" fill={moreActive ? THEME.primary : THEME.textMuted} />
@@ -88,6 +91,8 @@ function TabLink({ item }: { item: TabItem }) {
   return (
     <NavLink
       to={item.to}
+      onMouseEnter={() => prefetchRoute(item.to)}
+      onFocus={() => prefetchRoute(item.to)}
       className="relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5"
     >
       {({ isActive }) => (

@@ -445,6 +445,8 @@ The UI-first build ships with hand-rolled seed data that exactly mirrors this sc
 | `sessions` / `session_boats` / `session_lineups` | `src/shared/data/seeds/sessions.ts` | mocked lineup history |
 | `wellness_checkins` | `src/shared/data/seeds/wellness.ts` | synthetic 30-day rolling |
 | `team_settings`, `user_settings` | `src/shared/data/seeds/settings.ts` | defaults |
+| §9 `athlete_timeline_events` (seed) | `src/shared/data/seeds/index.ts` (`SEED_TIMELINE_EVENTS`) | demo timeline rows |
+| §9 connector accounts / AI jobs | `src/shared/data/seeds/index.ts` | `SEED_CONNECTOR_ACCOUNTS`, `SEED_AI_IMPORT_JOBS` |
 
 When a backend is wired up, the frontend swaps `src/shared/data/seeds/*` imports for `src/shared/data/queries/*` (TanStack Query hooks hitting Supabase). No component changes required if the TS types in `src/shared/data/types.ts` match this schema.
 
@@ -456,4 +458,233 @@ When a backend is wired up, the frontend swaps `src/shared/data/seeds/*` imports
 - **Video storage**: `session_media.file_url` points to object storage (Supabase Storage / S3). Retention and lifecycle policy TBD.
 - **Extension auth model**: how the Synth agent (browser extension) authenticates to the backend — scoped service tokens per source is the working assumption; formal threat model open.
 - **Data retention / FERPA**: athlete data deletion workflow and audit logging not modeled yet.
-- **Bi-directional connectors**: v1 is read-only ingestion. Write-back to TeamWorks / Sheets is out of scope.
+- **Bi-directional connectors**: write-back to Google Sheets is in scope for production; see §9 `connector_write_back_queue`.
+
+---
+
+## 9. Ingestion, timeline, and intelligence (production extensions)
+
+This section extends the v1 schema with tables implied by [`docs/DATA_INTELLIGENCE.md`](DATA_INTELLIGENCE.md) and [`docs/SYNTH_AGENT_CONNECTORS_PIPELINE.md`](SYNTH_AGENT_CONNECTORS_PIPELINE.md). Migrations should be added when the Supabase project is provisioned.
+
+### `athlete_timeline_events`
+
+Canonical **event** row: every normalized metric or observation from any connector lands here (see DATA_INTELLIGENCE — Athlete Timeline Model).
+
+```sql
+create table athlete_timeline_events (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  athlete_id      uuid not null references athletes(id) on delete cascade,
+  occurred_at     timestamptz not null,
+  source          text not null,           -- e.g. 'concept2_logbook', 'google_sheets', 'ai_import_photo'
+  category        text not null,           -- e.g. 'erg', 'gym', 'wellness', 'session_note'
+  data_json       jsonb not null,         -- normalized payload (split_500m in seconds, etc.)
+  confidence      numeric not null default 1.0 check (confidence >= 0 and confidence <= 1),
+  raw_data_json   jsonb,                 -- original payload for reprocessing
+  created_at      timestamptz not null default now()
+);
+create index on athlete_timeline_events (athlete_id, occurred_at desc);
+create index on athlete_timeline_events (team_id, occurred_at desc);
+```
+
+### `raw_ingest_payloads`
+
+Immutable blob for AI import or connector pull before normalization.
+
+```sql
+create table raw_ingest_payloads (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  kind            text not null check (kind in ('connector_pull', 'ai_photo', 'ai_voice', 'ai_paste', 'manual_csv', 'email_forward')),
+  storage_url     text,                    -- object storage pointer when large
+  body_preview    text,                   -- truncated text or base64 header
+  body_hash       text,                   -- sha256 for dedupe
+  status          text not null default 'pending' check (status in ('pending', 'parsed', 'failed')),
+  error_message   text,
+  created_at      timestamptz not null default now()
+);
+create index on raw_ingest_payloads (team_id, created_at desc);
+```
+
+### `connector_accounts`
+
+OAuth or API credentials metadata per team (secrets **never** in this table — use vault / `auth.users` metadata / Edge Function secrets).
+
+```sql
+create table connector_accounts (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  provider        text not null,           -- 'google_sheets', 'google_calendar', 'concept2', 'strava', ...
+  external_account_id text,
+  display_name    text,
+  scopes_granted  text[],
+  status          text not null default 'connected' check (status in ('connected', 'expired', 'revoked', 'error')),
+  last_sync_at    timestamptz,
+  config_json     jsonb not null default '{}',
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  unique (team_id, provider, external_account_id)
+);
+```
+
+### `sync_runs`
+
+Per-connector job history (replaces ad-hoc `scan_logs` for unified reporting; `scan_logs` may remain for legacy UI until migrated).
+
+```sql
+create table sync_runs (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  connector_account_id uuid references connector_accounts(id) on delete set null,
+  source_id       uuid references sources(id) on delete set null,
+  started_at      timestamptz not null default now(),
+  finished_at     timestamptz,
+  status          text not null check (status in ('running', 'success', 'partial', 'failed')),
+  stats_json      jsonb,                  -- items_added, items_updated, bytes, etc.
+  log_md          text
+);
+create index on sync_runs (team_id, started_at desc);
+```
+
+### `identity_aliases`
+
+Coach-confirmed mapping from an external label to `athlete_id` (DATA_INTELLIGENCE — name matching).
+
+```sql
+create table identity_aliases (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  athlete_id      uuid not null references athletes(id) on delete cascade,
+  provider        text not null,
+  external_label  text not null,
+  confidence      numeric,
+  confirmed_at    timestamptz not null default now(),
+  unique (team_id, provider, external_label)
+);
+```
+
+### `identity_match_queue`
+
+Unmatched or low-confidence candidates awaiting coach action.
+
+```sql
+create table identity_match_queue (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  provider        text not null,
+  external_label  text not null,
+  suggested_athlete_id uuid references athletes(id) on delete set null,
+  confidence      numeric not null,
+  status          text not null default 'open' check (status in ('open', 'confirmed', 'dismissed')),
+  payload_ref     uuid references raw_ingest_payloads(id) on delete set null,
+  created_at      timestamptz not null default now()
+);
+create index on identity_match_queue (team_id, status, created_at desc);
+```
+
+### `source_priority_overrides`
+
+Per-team ordering when two sources conflict (DATA_INTELLIGENCE — source priority).
+
+```sql
+create table source_priority_overrides (
+  team_id         uuid not null references teams(id) on delete cascade,
+  source_key      text not null,
+  priority        integer not null check (priority >= 1 and priority <= 99),
+  primary key (team_id, source_key)
+);
+```
+
+### `metric_snapshots`
+
+Materialized scores for dashboard / athlete cards (training load, recovery, risk tier, data quality).
+
+```sql
+create table metric_snapshots (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  athlete_id      uuid not null references athletes(id) on delete cascade,
+  as_of           timestamptz not null,
+  kind            text not null,           -- 'training_load', 'recovery', 'risk', 'data_quality', ...
+  value_json      jsonb not null,
+  unique (athlete_id, kind, as_of)
+);
+create index on metric_snapshots (team_id, kind, as_of desc);
+```
+
+### `alert_instances`
+
+Generated alerts (may overlap conceptually with existing `alerts` seed; consolidate at migration time).
+
+```sql
+create table alert_instances (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  athlete_id      uuid references athletes(id) on delete cascade,
+  severity        text not null check (severity in ('info', 'warning', 'danger')),
+  kind            text not null,
+  title           text not null,
+  detail          text not null,
+  factor_json     jsonb,
+  created_at      timestamptz not null default now(),
+  acknowledged_at timestamptz,
+  resolved_at     timestamptz
+);
+create index on alert_instances (team_id, created_at desc);
+```
+
+### `extension_waitlist_signups`
+
+Email capture for browser extension (SYNTH_AGENT_CONNECTORS_PIPELINE).
+
+```sql
+create table extension_waitlist_signups (
+  id              uuid primary key default gen_random_uuid(),
+  email           text not null,
+  team_id         uuid references teams(id) on delete set null,
+  created_at      timestamptz not null default now(),
+  unique (email)
+);
+```
+
+### `ai_import_jobs`
+
+Tracks AI import pipeline runs (photo / voice / paste) with preview/confirm.
+
+```sql
+create table ai_import_jobs (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  kind            text not null check (kind in ('photo', 'voice', 'paste')),
+  status          text not null default 'pending' check (status in ('pending', 'preview', 'confirmed', 'failed', 'cancelled')),
+  raw_payload_id  uuid references raw_ingest_payloads(id) on delete set null,
+  preview_json    jsonb,
+  confirmed_at    timestamptz,
+  created_at      timestamptz not null default now()
+);
+```
+
+### `connector_write_back_queue`
+
+Async write-back to Google Sheets or other destinations (sessions, lineups, wellness).
+
+```sql
+create table connector_write_back_queue (
+  id              uuid primary key default gen_random_uuid(),
+  team_id         uuid not null references teams(id) on delete cascade,
+  connector_account_id uuid not null references connector_accounts(id) on delete cascade,
+  target_ref      text not null,          -- spreadsheet id + range or sheet name
+  op              text not null check (op in ('append_row', 'update_cell', 'batch')),
+  payload_json    jsonb not null,
+  status          text not null default 'queued' check (status in ('queued', 'sent', 'failed')),
+  error_message   text,
+  created_at      timestamptz not null default now(),
+  processed_at    timestamptz
+);
+create index on connector_write_back_queue (team_id, status, created_at);
+```
+
+### RLS note
+
+All §9 tables follow the same team boundary as §6: coaches read/write rows where `team_id` matches their team; athletes read rows where `athlete_id` is self when applicable. Lock down `raw_ingest_payloads` and `connector_accounts` to coach/staff roles only.
+

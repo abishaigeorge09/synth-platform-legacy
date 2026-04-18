@@ -5,27 +5,28 @@ import { SourceCard } from './components/SourceCard'
 import { ScanLogRow } from './components/ScanLogRow'
 import { ScanReportViewer } from './components/ScanReportViewer'
 import { THEME } from '../../../lib/theme'
-import { SEED_SOURCES } from '../../../shared/data/seeds'
 import {
-  SEED_SCAN_LOGS,
-  scanLogsForSource,
-  latestScanForSource,
-} from '../../../shared/data/seeds/scanLogs'
+  useSources,
+  useScanLogs,
+  useScanLogsForSource,
+  useLatestScanForSource,
+} from '../../../shared/data/queries'
 import { useUiStore } from '../../../shared/store/useUiStore'
+import { SkeletonCard, SkeletonLine } from '../../../shared/components/Skeleton'
+import { QueryError } from '../../../shared/components/QueryError'
 
 export function SourcesPage() {
+  const { data: sources, isLoading: l1, isError: e1, error: err1 } = useSources()
+  const { data: allScanLogs, isLoading: l2, isError: e2, error: err2 } = useScanLogs()
   const [selectedSourceId, setSelectedSourceId] = useState<string>(
-    SEED_SOURCES[0]?.id ?? '',
+    sources[0]?.id ?? '',
   )
   const selectedSource = useMemo(
-    () => SEED_SOURCES.find((s) => s.id === selectedSourceId) ?? null,
-    [selectedSourceId],
+    () => sources.find((s) => s.id === selectedSourceId) ?? null,
+    [selectedSourceId, sources],
   )
 
-  const logsForSelected = useMemo(
-    () => scanLogsForSource(selectedSourceId),
-    [selectedSourceId],
-  )
+  const { data: logsForSelected } = useScanLogsForSource(selectedSourceId)
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(
     logsForSelected[0]?.id ?? null,
@@ -44,17 +45,36 @@ export function SourcesPage() {
     [logsForSelected, effectiveLogId],
   )
 
-  const totalScans = SEED_SCAN_LOGS.length
-  const healthyCount = SEED_SOURCES.filter((s) => s.status === 'healthy').length
+  const totalScans = allScanLogs.length
+  const healthyCount = sources.filter((s) => s.status === 'healthy').length
 
   const openAgent = useUiStore((s) => s.openAgentModal)
+
+  if (e1 || e2) return <QueryError label="Sources" error={err1 ?? err2} />
+
+  if (l1 || l2) {
+    return (
+      <div className="flex min-h-full w-full flex-col pb-12">
+        <header className="px-5 sm:px-10 pb-5 pt-8">
+          <SkeletonLine width={100} height={8} />
+          <SkeletonLine width={280} height={28} className="mt-2" />
+          <SkeletonLine width={240} height={12} className="mt-2" />
+        </header>
+        <div className="grid gap-4 px-5 sm:px-10 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-full w-full flex-col pb-12">
       <PageHeader
         kicker="Coach · Sources"
         title="Connectors · sync status · reports"
-        subtitle={`${SEED_SOURCES.length} connectors · ${healthyCount} healthy · ${totalScans} scans logged (72h)`}
+        subtitle={`${sources.length} connectors · ${healthyCount} healthy · ${totalScans} scans logged (72h)`}
       />
 
       <div className="flex items-center justify-between px-5 sm:px-10 pb-4">
@@ -85,17 +105,14 @@ export function SourcesPage() {
         transition={{ duration: 0.3 }}
         className="grid gap-3 px-5 sm:px-10 md:grid-cols-2 xl:grid-cols-4"
       >
-        {SEED_SOURCES.map((source) => (
-          <SourceCard
+        {sources.map((source) => (
+          <SourceCardWithHooks
             key={source.id}
             source={source}
-            latestScan={latestScanForSource(source.id)}
-            scanCount={scanLogsForSource(source.id).length}
             selected={source.id === selectedSourceId}
-            onSelect={() => {
+            onSelect={(latestLogId) => {
               setSelectedSourceId(source.id)
-              // Reset to latest scan for the newly selected source.
-              setSelectedLogId(latestScanForSource(source.id)?.id ?? null)
+              setSelectedLogId(latestLogId)
             }}
           />
         ))}
@@ -145,5 +162,28 @@ export function SourcesPage() {
         <ScanReportViewer log={selectedLog} sourceName={selectedSource?.name ?? '—'} />
       </div>
     </div>
+  )
+}
+
+/** Wrapper so we can call hooks per-source inside the .map() */
+function SourceCardWithHooks({
+  source,
+  selected,
+  onSelect,
+}: {
+  source: ReturnType<typeof useSources>['data'][number]
+  selected: boolean
+  onSelect: (latestLogId: string | null) => void
+}) {
+  const { data: latestScan } = useLatestScanForSource(source.id)
+  const { data: logs } = useScanLogsForSource(source.id)
+  return (
+    <SourceCard
+      source={source}
+      latestScan={latestScan}
+      scanCount={logs.length}
+      selected={selected}
+      onSelect={() => onSelect(latestScan?.id ?? null)}
+    />
   )
 }

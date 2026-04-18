@@ -1,13 +1,32 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { AgentModalPortal } from './AgentModalPortal'
+import { CommandPalette } from './CommandPalette'
 import { MobileSidebarDrawer } from './MobileSidebarDrawer'
 import { MobileTopBar } from './MobileTopBar'
+import { WritebackConfirmBar } from '../components/WritebackConfirmBar'
 import { THEME } from '../../lib/theme'
 
 export function CoachLayout() {
   return (
     <div className="flex h-dvh w-full overflow-hidden" style={{ background: THEME.light }}>
+      {/* Phase 19 — skip link for keyboard users. Visually hidden until
+          focused, then appears at the top of the viewport so Tab users can
+          jump past the sidebar directly into the main content area. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:px-4 focus:py-2 focus:text-[13px] focus:font-semibold focus:shadow-lg"
+        style={{
+          background: THEME.white,
+          color: THEME.primary,
+          fontFamily: THEME.fontMono,
+          outline: `2px solid ${THEME.primary}`,
+          outlineOffset: '2px',
+        }}
+      >
+        Skip to content
+      </a>
+
       {/* Desktop fixed sidebar (>= md). Hidden on mobile via its own class. */}
       <Sidebar />
 
@@ -16,7 +35,7 @@ export function CoachLayout() {
         {/* Mobile-only top bar with hamburger. Hidden at md+. */}
         <MobileTopBar />
 
-        <main className="synth-scroll min-w-0 flex-1 overflow-y-auto">
+        <main id="main-content" className="synth-scroll min-w-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
@@ -26,6 +45,13 @@ export function CoachLayout() {
 
       {/* synth. Agent modal (already mobile-safe after Phase 13 sizing pass) */}
       <AgentModalPortal />
+
+      {/* Phase 17 — global command palette (Cmd+K / Ctrl+K). Mounted at the
+          layout level so every coach surface inherits the shortcut without
+          per-page wiring. */}
+      <CommandPalette />
+
+      <WritebackConfirmBar />
     </div>
   )
 }

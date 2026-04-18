@@ -123,6 +123,7 @@ export function ChatView({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send(draft)}
+            aria-label="Chat message"
             placeholder={
               scope === 'athlete' && scopedAthleteName
                 ? `Ask about ${scopedAthleteName.split(' ')[0]}…`

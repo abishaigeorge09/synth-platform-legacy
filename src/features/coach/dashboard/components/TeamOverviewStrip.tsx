@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { THEME } from '../../../../lib/theme'
-import { SEED_TEAM_STATS, SEED_ACTIVITY, SEED_SOURCES } from '../../../../shared/data/seeds'
+import { useTeamStats, useActivity, useSources } from '../../../../shared/data/queries'
+import { SkeletonStatTile } from '../../../../shared/components/Skeleton'
 
 type Tile = {
   kicker: string
@@ -10,12 +11,25 @@ type Tile = {
 }
 
 export function TeamOverviewStrip() {
-  const thisWeekSessions = SEED_ACTIVITY.filter((a) => a.kind === 'session').length + 12
-  const healthySources = SEED_SOURCES.filter((s) => s.status === 'healthy').length
+  const { data: stats, isLoading: l1, isError: e1 } = useTeamStats()
+  const { data: activity, isLoading: l2, isError: e2 } = useActivity()
+  const { data: sources, isLoading: l3, isError: e3 } = useSources()
+
+  if (e1 || e2 || e3 || l1 || l2 || l3) {
+    return (
+      <div className="grid grid-cols-2 gap-3 px-5 sm:px-10 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonStatTile key={i} />
+        ))}
+      </div>
+    )
+  }
+  const thisWeekSessions = activity.filter((a) => a.kind === 'session').length + 12
+  const healthySources = sources.filter((s) => s.status === 'healthy').length
   const tiles: Tile[] = [
     {
       kicker: 'Roster',
-      value: String(SEED_TEAM_STATS.rosterCount),
+      value: String(stats.rosterCount),
       detail: 'active athletes on team',
       accent: THEME.primary,
     },
@@ -27,13 +41,13 @@ export function TeamOverviewStrip() {
     },
     {
       kicker: 'Active sources',
-      value: `${healthySources} / ${SEED_SOURCES.length}`,
+      value: `${healthySources} / ${sources.length}`,
       detail: 'all connectors healthy',
       accent: THEME.purple,
     },
     {
       kicker: 'Open alerts',
-      value: String(SEED_TEAM_STATS.activeAlerts),
+      value: String(stats.activeAlerts),
       detail: 'wellness + compliance',
       accent: THEME.amber,
     },

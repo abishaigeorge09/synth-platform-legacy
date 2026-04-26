@@ -147,7 +147,7 @@ export function SourceCard({
 
 function Metric({ label, value, align = 'left' }: { label: string; value: string; align?: 'left' | 'right' }) {
   return (
-    <div className="flex flex-col" style={{ textAlign: align as any }}>
+    <div className="flex flex-col" style={{ textAlign: align }}>
       <div
         className="text-[8px] font-semibold uppercase tracking-[0.16em]"
         style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}

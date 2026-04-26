@@ -34,8 +34,7 @@ export function toast(message: string, kind: ToastKind = 'info') {
   try {
     useToastStore.getState().push(message, kind)
   } catch {
-    // eslint-disable-next-line no-console
-    console.log(`[toast:${kind}]`, message)
+    // no-op in non-react contexts
   }
 }
 

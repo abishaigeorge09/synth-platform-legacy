@@ -59,13 +59,13 @@ export function AthletesPage() {
 
   const recoveryMap = useMemo(() => {
     const map = new Map<string, number>()
-    athletes.forEach((a) => map.set(a.id, getAthleteRecovery(a.id, a.name)))
+    athletes.forEach((a) => map.set(a.id, getAthleteRecovery(a.id)))
     return map
   }, [athletes])
 
   const flaggedMap = useMemo(() => {
     const map = new Map<string, boolean>()
-    athletes.forEach((a) => map.set(a.id, isAthleteFlagged(a.id, a.name)))
+    athletes.forEach((a) => map.set(a.id, isAthleteFlagged(a.id)))
     return map
   }, [athletes])
 

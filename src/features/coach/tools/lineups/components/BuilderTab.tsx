@@ -770,7 +770,7 @@ export function BuilderTab({
   function handleMultiFill(boatIdx: number) {
     const boat = boats[boatIdx]
     if (!boat) return
-    let remaining = selected.slice()
+    const remaining = selected.slice()
     const next = boats.map((b) => {
       if (b.id !== boat.id) return b
       return {

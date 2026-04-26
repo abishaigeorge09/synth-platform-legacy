@@ -133,12 +133,12 @@ export function useAthleteCoachNotes(athleteId: string) {
   return useStaticQuery(notes)
 }
 
-export function getAthleteRecovery(athleteId: string, _name?: string) {
+export function getAthleteRecovery(athleteId: string) {
   const r = hash01(athleteId)
   return Math.round(45 + r * 50)
 }
 
-export function isAthleteFlagged(athleteId: string, _name?: string) {
+export function isAthleteFlagged(athleteId: string) {
   const r = hash01(athleteId)
   return r > 0.82
 }

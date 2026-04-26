@@ -30,8 +30,9 @@ export function generateCannedReply(
   input: string,
   scope: ChatScope,
   scopedAthleteId?: string,
-  _teamId?: string,
+  teamId?: string,
 ): CannedReply {
+  void teamId
   const q = input.toLowerCase()
   const scopedAthlete = scopedAthleteId
     ? SEED_ATHLETES.find((a) => a.id === scopedAthleteId)

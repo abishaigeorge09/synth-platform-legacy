@@ -77,7 +77,7 @@ export function LineupsPage() {
           side,
           ergTime: isCox ? 'cox' : fmtErgTime(t),
           ergSeconds: isCox ? Number.POSITIVE_INFINITY : (t ?? 400),
-          recovery: getAthleteRecovery(a.id, a.name),
+          recovery: getAthleteRecovery(a.id),
           avatarColor: AVATAR_COLORS[idx % AVATAR_COLORS.length],
         }
       }),

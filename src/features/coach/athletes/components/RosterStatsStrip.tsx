@@ -21,7 +21,7 @@ export function RosterStatsStrip() {
   let atRisk = 0
   let critical = 0
   athletes.forEach((a) => {
-    const r = getAthleteRecovery(a.id, a.name)
+    const r = getAthleteRecovery(a.id)
     if (r >= 75) healthy++
     else if (r >= 50) atRisk++
     else critical++

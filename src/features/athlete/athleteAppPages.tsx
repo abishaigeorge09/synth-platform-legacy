@@ -922,6 +922,7 @@ export function MyChatPage() {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const msgIdRef = useRef(1)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -931,12 +932,12 @@ export function MyChatPage() {
     const t = text.trim()
     if (!t) return
     setInput('')
-    const now = Date.now()
-    setMessages((m) => [...m, { id: now, role: 'user', text: t, at: now }])
+    const id = msgIdRef.current++
+    setMessages((m) => [...m, { id, role: 'user', text: t, at: id }])
     setIsTyping(true)
     window.setTimeout(() => {
       const reply = findResponse(t)
-      const at = Date.now()
+      const at = msgIdRef.current++
       setMessages((m) => [...m, { id: at, role: 'assistant', text: reply, at }])
       setIsTyping(false)
     }, 650)
@@ -1461,7 +1462,7 @@ function AthleteDataViewAiPanel({ tab }: { tab: AthleteDataViewTabId }) {
 
 export function AthleteSourcesDataViewPage() {
   const [params, setParams] = useSearchParams()
-  const [whoopConnected, setWhoopConnected] = useState(readWhoopConnected())
+  const [whoopConnected, setWhoopConnected] = useState(() => readWhoopConnected())
 
   const raw = (params.get('tab') ?? 'workflow') as AthleteDataViewTabId
   const activeTab: AthleteDataViewTabId = ATHLETE_DATA_TABS.some((t) => t.id === raw) ? raw : 'workflow'
@@ -1476,10 +1477,6 @@ export function AthleteSourcesDataViewPage() {
     next.set('tab', t)
     setParams(next, { replace: true })
   }
-
-  useEffect(() => {
-    setWhoopConnected(readWhoopConnected())
-  }, [])
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 pb-24 pt-6 sm:px-10">

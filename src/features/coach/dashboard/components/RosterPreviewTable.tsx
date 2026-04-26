@@ -30,7 +30,7 @@ export function RosterPreviewTable({
     .filter(({ athlete }) => {
       if (!athlete) return false
       if (sideFilter !== 'all' && athlete.side !== sideFilter) return false
-      if (flaggedOnly && !isAthleteFlagged(athlete.id, athlete.name)) return false
+      if (flaggedOnly && !isAthleteFlagged(athlete.id)) return false
       return true
     })
     .slice(0, 8)
@@ -82,7 +82,7 @@ export function RosterPreviewTable({
           </thead>
           <tbody>
             {rows.map(({ score, athlete }, i) => {
-              const recovery = athlete ? getAthleteRecovery(athlete.id, athlete.name) : 50
+              const recovery = athlete ? getAthleteRecovery(athlete.id) : 50
               const recoveryColor =
                 recovery >= 75 ? THEME.primary : recovery >= 50 ? THEME.amber : THEME.red
               return (

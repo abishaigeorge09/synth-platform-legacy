@@ -1,8 +1,8 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { THEME } from '../../lib/theme'
-import { prefetchRoute } from '../../app/routePrefetch'
 import { AthleteBottomTabs } from './components/AthleteBottomTabs'
 import { CommandPalette } from '../../shared/layout/CommandPalette'
+import { AthleteSidebar } from '../../shared/layout/AthleteSidebar'
 
 /**
  * Athlete-side layout. On tablet/desktop (≥ md) shows a horizontal top nav.
@@ -11,7 +11,7 @@ import { CommandPalette } from '../../shared/layout/CommandPalette'
 export function AthleteLayout() {
   const navigate = useNavigate()
   return (
-    <div className="flex min-h-dvh flex-col" style={{ background: THEME.light }}>
+    <div className="flex min-h-dvh flex-col md:flex-row" style={{ background: THEME.light }}>
       {/* Phase 20 — skip link for keyboard users (athlete side) */}
       <a
         href="#athlete-main-content"
@@ -26,6 +26,8 @@ export function AthleteLayout() {
       >
         Skip to content
       </a>
+
+      <AthleteSidebar />
 
       {/* Mobile brand bar (logo only, no nav) */}
       <header
@@ -47,54 +49,6 @@ export function AthleteLayout() {
             Athlete
           </span>
         </button>
-      </header>
-
-      {/* Desktop/tablet top nav */}
-      <header
-        className="hidden items-center justify-between border-b px-6 py-3 md:flex"
-        style={{ borderColor: THEME.border, background: THEME.white }}
-      >
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          aria-label="synth — go to landing"
-          className="text-[20px] font-semibold"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
-        >
-          synth<span style={{ color: THEME.accent }}>.</span>
-          <span
-            className="ml-2 text-[10px] uppercase tracking-[0.18em]"
-            style={{ color: THEME.textMuted }}
-          >
-            Athlete
-          </span>
-        </button>
-        <nav aria-label="Athlete navigation" className="flex items-center gap-5 text-[12px]" style={{ fontFamily: THEME.fontMono }}>
-          {[
-            { to: '/athlete/home', label: 'My Team' },
-            { to: '/athlete/stats', label: 'My Stats' },
-            { to: '/athlete/sessions', label: 'Sessions' },
-            { to: '/athlete/lineups', label: 'Lineups' },
-            { to: '/athlete/sources', label: 'Sources' },
-            { to: '/athlete/ai', label: 'synth. AI' },
-            { to: '/athlete/settings', label: 'Settings' },
-          ].map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onMouseEnter={() => prefetchRoute(item.to)}
-              onFocus={() => prefetchRoute(item.to)}
-              className={({ isActive }) =>
-                isActive ? 'font-semibold' : 'opacity-70 transition-opacity hover:opacity-100'
-              }
-              style={({ isActive }) => ({
-                color: isActive ? THEME.primary : THEME.textPrimary,
-              })}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
       </header>
 
       <main id="athlete-main-content" className="flex-1 pb-[86px] md:pb-0">

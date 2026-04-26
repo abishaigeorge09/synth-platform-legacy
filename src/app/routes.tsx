@@ -64,6 +64,10 @@ const SourcesPage = lazyNamed(
   () => import('../features/coach/sources/SourcesPage'),
   'SourcesPage',
 )
+const ConnectorsDataViewPage = lazyNamed(
+  () => import('../features/coach/sources/ConnectorsDataViewPage'),
+  'ConnectorsDataViewPage',
+)
 // Lineups + Session Timer are sourced from COACH_TOOLS (Phase 16 —
 // ToolRegistry). Adding a new Custom Tool is one entry in toolRegistry.tsx
 // plus one illustration, not a three-place edit across routes / sidebar /
@@ -82,32 +86,44 @@ const SettingsPage = lazyNamed(
 )
 
 const MyDashboardPage = lazyNamed(
-  () => import('../features/athlete/athletePages'),
+  () => import('../features/athlete/athleteAppPages'),
   'MyDashboardPage',
 )
 const MyStatsPage = lazyNamed(
-  () => import('../features/athlete/athletePages'),
+  () => import('../features/athlete/athleteAppPages'),
   'MyStatsPage',
 )
+const MyRecordPage = lazyNamed(
+  () => import('../features/athlete/athleteAppPages'),
+  'MyRecordPage',
+)
+const MyWorkbookPage = lazyNamed(
+  () => import('../features/athlete/athleteAppPages'),
+  'MyWorkbookPage',
+)
 const MySessionsPage = lazyNamed(
-  () => import('../features/athlete/athletePages'),
+  () => import('../features/athlete/athleteAppPages'),
   'MySessionsPage',
 )
 const MyLineupsPage = lazyNamed(
-  () => import('../features/athlete/athletePages'),
+  () => import('../features/athlete/athleteAppPages'),
   'MyLineupsPage',
 )
-const MySourcesPage = lazyNamed(
-  () => import('../features/athlete/athletePages'),
-  'MySourcesPage',
+const AthleteSourcesConnectorsPage = lazyNamed(
+  () => import('../features/athlete/athleteAppPages'),
+  'AthleteSourcesConnectorsPage',
+)
+const AthleteSourcesDataViewPage = lazyNamed(
+  () => import('../features/athlete/athleteAppPages'),
+  'AthleteSourcesDataViewPage',
 )
 const MyChatPage = lazyNamed(
-  () => import('../features/athlete/athletePages'),
+  () => import('../features/athlete/athleteAppPages'),
   'MyChatPage',
 )
-const AthleteSettingsPage = lazyNamed(
-  () => import('../features/athlete/athletePages'),
-  'AthleteSettingsPage',
+const MySettingsPage = lazyNamed(
+  () => import('../features/athlete/athleteAppPages'),
+  'MySettingsPage',
 )
 
 // Phase 14 — every lazy route is wrapped in an ErrorBoundary → Suspense pair.
@@ -144,7 +160,9 @@ export const routes: RouteObject[] = [
       { path: 'athletes', element: withSuspense(<AthletesPage />, 'Athletes') },
       { path: 'athletes/:athleteId', element: withSuspense(<AthleteProfilePage />, 'Athlete profile') },
       { path: 'athletes/:athleteId/ai', element: withSuspense(<AthleteScopedChatPage />, 'Athlete AI') },
-      { path: 'sources', element: withSuspense(<SourcesPage />, 'Sources') },
+      { path: 'sources', element: <Navigate to="/coach/sources/connectors" replace /> },
+      { path: 'sources/connectors', element: withSuspense(<SourcesPage />, 'Sources') },
+      { path: 'sources/data-view', element: withSuspense(<ConnectorsDataViewPage />, 'Sources data view') },
       ...COACH_TOOLS.map((tool) => ({
         path: tool.path,
         element: withSuspense(<tool.Component />, tool.routeLabel),
@@ -161,14 +179,31 @@ export const routes: RouteObject[] = [
       </ErrorBoundary>
     ),
     children: [
-      { index: true, element: <Navigate to="/athlete/home" replace /> },
-      { path: 'home', element: withSuspense(<MyDashboardPage />, 'My team') },
-      { path: 'stats', element: withSuspense(<MyStatsPage />, 'My stats') },
+      // New athlete IA (Today/Progress/Record/Workbook/Chat/Sources subpages)
+      { index: true, element: <Navigate to="/athlete/today" replace /> },
+
+      // Back-compat redirects
+      { path: 'home', element: <Navigate to="/athlete/today" replace /> },
+      { path: 'stats', element: <Navigate to="/athlete/progress" replace /> },
+      { path: 'ai', element: <Navigate to="/athlete/chat" replace /> },
+      { path: 'sources', element: <Navigate to="/athlete/sources/connectors" replace /> },
+
+      { path: 'today', element: withSuspense(<MyDashboardPage />, 'Today') },
+      { path: 'progress', element: withSuspense(<MyStatsPage />, 'My progress') },
+      { path: 'record', element: withSuspense(<MyRecordPage />, 'Record') },
+      { path: 'workbook', element: withSuspense(<MyWorkbookPage />, 'Erg workbook') },
       { path: 'sessions', element: withSuspense(<MySessionsPage />, 'My sessions') },
       { path: 'lineups', element: withSuspense(<MyLineupsPage />, 'My lineups') },
-      { path: 'sources', element: withSuspense(<MySourcesPage />, 'My sources') },
-      { path: 'ai', element: withSuspense(<MyChatPage />, 'My chat') },
-      { path: 'settings', element: withSuspense(<AthleteSettingsPage />, 'Athlete settings') },
+      {
+        path: 'sources/connectors',
+        element: withSuspense(<AthleteSourcesConnectorsPage />, 'Sources connectors'),
+      },
+      {
+        path: 'sources/data-view',
+        element: withSuspense(<AthleteSourcesDataViewPage />, 'Sources data view'),
+      },
+      { path: 'chat', element: withSuspense(<MyChatPage />, 'synth. AI') },
+      { path: 'settings', element: withSuspense(<MySettingsPage />, 'Settings') },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

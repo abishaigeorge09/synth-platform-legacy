@@ -45,12 +45,14 @@ export function SourceCard({
   scanCount,
   selected,
   onSelect,
+  onDetail,
 }: {
   source: Source
   latestScan: ScanLog | null
   scanCount: number
   selected: boolean
   onSelect: () => void
+  onDetail?: () => void
 }) {
   const accent = source.colorKey ? COLOR_KEY[source.colorKey] ?? THEME.primary : THEME.primary
   const statusStyle = STATUS_STYLE[source.status]
@@ -122,15 +124,30 @@ export function SourceCard({
           label="Last scan"
           value={latestScan ? relativeFromNow(latestScan.scannedAt) : '—'}
         />
-        <Metric label="Scans logged" value={String(scanCount)} />
+        <div className="flex flex-col items-end">
+          <Metric label="Scans logged" value={String(scanCount)} align="right" />
+          {onDetail ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDetail()
+              }}
+              className="mt-1 text-[10px] font-semibold uppercase tracking-wider"
+              style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
+            >
+              Details
+            </button>
+          ) : null}
+        </div>
       </div>
     </motion.button>
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, align = 'left' }: { label: string; value: string; align?: 'left' | 'right' }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" style={{ textAlign: align as any }}>
       <div
         className="text-[8px] font-semibold uppercase tracking-[0.16em]"
         style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}

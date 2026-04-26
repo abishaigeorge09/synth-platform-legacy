@@ -22,15 +22,18 @@ type TabItem = {
 }
 
 const PRIMARY_TABS: TabItem[] = [
-  { to: '/athlete/home', label: 'Team', Glyph: DashboardIllustration },
-  { to: '/athlete/stats', label: 'Stats', Glyph: AthletesIllustration },
-  { to: '/athlete/sessions', label: 'Sessions', Glyph: SessionTimerIllustration },
-  { to: '/athlete/ai', label: 'AI', Glyph: SynthAiIllustration },
+  { to: '/athlete/today', label: 'Today', Glyph: DashboardIllustration },
+  { to: '/athlete/progress', label: 'Progress', Glyph: AthletesIllustration },
+  { to: '/athlete/record', label: 'Record', Glyph: SessionTimerIllustration },
+  { to: '/athlete/chat', label: 'AI', Glyph: SynthAiIllustration },
 ]
 
 const MORE_TABS: TabItem[] = [
+  { to: '/athlete/sessions', label: 'Sessions', Glyph: SessionTimerIllustration },
   { to: '/athlete/lineups', label: 'Lineups', Glyph: LineupsIllustration },
-  { to: '/athlete/sources', label: 'Sources', Glyph: SourcesIllustration },
+  { to: '/athlete/workbook', label: 'Erg Workbook', Glyph: DashboardIllustration },
+  { to: '/athlete/sources/connectors', label: 'Connectors', Glyph: SourcesIllustration },
+  { to: '/athlete/sources/data-view', label: 'Data View', Glyph: SourcesIllustration },
   { to: '/athlete/settings', label: 'Settings', Glyph: SettingsIllustration },
 ]
 

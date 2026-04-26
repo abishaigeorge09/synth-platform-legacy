@@ -3,10 +3,14 @@ import { motion } from 'framer-motion'
 import { PageHeader } from '../dashboard/components/PageHeader'
 import { THEME } from '../../../lib/theme'
 import { useTeamStore } from '../../../shared/store/useTeamStore'
+import { toast } from '../../../shared/store/useToastStore'
+import { useThemeStore } from '../../../shared/store/useThemeStore'
 
 type Toggle = { key: string; label: string; detail: string; on: boolean }
 
-const INITIAL_VISIBILITY: Toggle[] = [
+const STORAGE_KEY = 'synth:settings'
+
+const DEFAULT_VISIBILITY: Toggle[] = [
   {
     key: 'showTeamStats',
     label: 'Athletes can see team-wide stats',
@@ -37,41 +41,138 @@ const INITIAL_VISIBILITY: Toggle[] = [
     detail: 'Personal Google Sheets, screenshots, wearable exports',
     on: true,
   },
+  {
+    key: 'showErgRankings',
+    label: 'Athletes can see erg rankings',
+    detail: 'Team 2K ladder and anonymized distribution',
+    on: true,
+  },
+  {
+    key: 'showSessionMedia',
+    label: 'Athletes can download session media',
+    detail: 'Videos and exports from shared folder',
+    on: false,
+  },
+  {
+    key: 'allowScheduleOptIn',
+    label: 'Athletes can opt into calendar sync',
+    detail: 'Personal Google Calendar for travel and exams',
+    on: true,
+  },
 ]
 
-const INITIAL_NOTIFICATIONS: Toggle[] = [
+const DEFAULT_NOTIFICATIONS: Toggle[] = [
   { key: 'pushLineup', label: 'Push on lineup publish', detail: 'Coach + athletes get a push', on: true },
   { key: 'emailDaily', label: 'Daily email digest', detail: '09:00 PT morning summary', on: true },
   { key: 'alertWellness', label: 'Wellness alert threshold', detail: 'Low-recovery flagged below 50%', on: true },
   { key: 'alertSync', label: 'Stale source alert', detail: 'Connector silent for > 48h', on: false },
 ]
 
+type PersistedSettings = {
+  visibility: Record<string, boolean>
+  notifications: Record<string, boolean>
+  scanCron: string
+  staleHours: number
+  sheetUrl: string
+}
+
+function readSettings(): PersistedSettings | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as PersistedSettings
+  } catch {
+    return null
+  }
+}
+
+function writeSettings(s: PersistedSettings): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+  } catch { /* quota / private-mode */ }
+}
+
+function hydrateToggles(defaults: Toggle[], saved: Record<string, boolean> | undefined): Toggle[] {
+  if (!saved) return defaults
+  return defaults.map((t) => (t.key in saved ? { ...t, on: saved[t.key] } : t))
+}
+
 export function SettingsPage() {
   const team = useTeamStore((s) => s.activeTeam)
-  const [visibility, setVisibility] = useState(INITIAL_VISIBILITY)
-  const [notifs, setNotifs] = useState(INITIAL_NOTIFICATIONS)
-  const [scanCron, setScanCron] = useState('0 18 * * *')
-  const [staleHours, setStaleHours] = useState(48)
-  const [saved, setSaved] = useState(false)
+  const setActiveTeam = useTeamStore((s) => s.setActiveTeam)
+  const theme = useThemeStore((s) => s.theme)
+  const setTheme = useThemeStore((s) => s.setTheme)
+  const [persisted] = useState(() => readSettings())
+  const [teamName, setTeamName] = useState(team.name)
+  const [teamSport, setTeamSport] = useState(team.sport)
+  const [visibility, setVisibility] = useState(() =>
+    hydrateToggles(DEFAULT_VISIBILITY, persisted?.visibility),
+  )
+  const [notifs, setNotifs] = useState(() =>
+    hydrateToggles(DEFAULT_NOTIFICATIONS, persisted?.notifications),
+  )
+  const [scanCron, setScanCron] = useState(persisted?.scanCron ?? '0 18 * * *')
+  const [staleHours, setStaleHours] = useState(persisted?.staleHours ?? 48)
+  const [sheetUrl, setSheetUrl] = useState(
+    persisted?.sheetUrl ?? 'https://docs.google.com/spreadsheets/d/rowing_women_ergs',
+  )
 
   function toggleInList(list: Toggle[], setter: (t: Toggle[]) => void, key: string) {
     setter(list.map((t) => (t.key === key ? { ...t, on: !t.on } : t)))
   }
 
   function save() {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    const toMap = (list: Toggle[]) =>
+      Object.fromEntries(list.map((t) => [t.key, t.on]))
+    writeSettings({
+      visibility: toMap(visibility),
+      notifications: toMap(notifs),
+      scanCron,
+      staleHours,
+      sheetUrl,
+    })
+    setActiveTeam({ ...team, name: teamName, sport: teamSport })
+    toast('Settings saved')
   }
 
   return (
     <div className="flex min-h-full w-full flex-col pb-12">
       <PageHeader
-        kicker="Coach · Settings"
-        title="Team · visibility · sync"
-        subtitle={`${team.name} · invite ${team.inviteCode} · everything on this page maps to team_settings.*`}
+        kicker="Settings"
+        title="Team & access"
+        subtitle={`${team.name} · invite ${team.inviteCode}`}
       />
 
       <div className="flex items-center gap-3 px-5 sm:px-10 pb-4">
+        <div
+          className="inline-flex items-center rounded-full border p-0.5"
+          style={{ borderColor: THEME.border, background: THEME.white }}
+        >
+          <button
+            type="button"
+            onClick={() => setTheme('light')}
+            className="theme-hover-surface rounded-full border border-transparent px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+            style={{
+              fontFamily: THEME.fontMono,
+              background: theme === 'light' ? THEME.primary : 'transparent',
+              color: theme === 'light' ? THEME.white : THEME.textSecondary,
+            }}
+          >
+            Light
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme('dark')}
+            className="theme-hover-surface rounded-full border border-transparent px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+            style={{
+              fontFamily: THEME.fontMono,
+              background: theme === 'dark' ? THEME.primary : 'transparent',
+              color: theme === 'dark' ? THEME.white : THEME.textSecondary,
+            }}
+          >
+            Dark
+          </button>
+        </div>
         <button
           type="button"
           onClick={save}
@@ -85,16 +186,6 @@ export function SettingsPage() {
         >
           Save changes
         </button>
-        {saved && (
-          <motion.span
-            initial={{ opacity: 0, x: 8 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-[11px] font-semibold uppercase tracking-wider"
-            style={{ color: THEME.primary, fontFamily: THEME.fontMono }}
-          >
-            ✓ Saved
-          </motion.span>
-        )}
       </div>
 
       <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-2">
@@ -103,9 +194,20 @@ export function SettingsPage() {
           title="Identity"
           description="Displayed on the coach sidebar and in every athlete invite."
         >
-          <Field label="Team name" defaultValue={team.name} />
-          <Field label="Sport" defaultValue={team.sport} />
+          <Field label="Team name" defaultValue={teamName} onChange={setTeamName} />
+          <Field label="Sport" defaultValue={teamSport} onChange={setTeamSport} />
           <Field label="Invite code" defaultValue={team.inviteCode} mono suffix={<span className="text-[10px]" style={{color: THEME.textMuted, fontFamily: THEME.fontMono}}>rotate</span>} />
+          <label className="mt-3 flex flex-col gap-1">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              Primary erg workbook URL
+            </span>
+            <input
+              value={sheetUrl}
+              onChange={(e) => setSheetUrl(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-[13px] outline-none"
+              style={{ background: THEME.light, borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+            />
+          </label>
         </SettingsCard>
 
         <SettingsCard
@@ -113,18 +215,8 @@ export function SettingsPage() {
           title="Default connector cadence"
           description="Defaults applied to every newly-connected source. Per-source overrides live in the synth. Agent."
         >
-          <Field
-            label="Default scan cron"
-            defaultValue={scanCron}
-            onChange={setScanCron}
-            mono
-          />
-          <Field
-            label="Stale threshold (hours)"
-            defaultValue={String(staleHours)}
-            onChange={(v) => setStaleHours(parseInt(v, 10) || 48)}
-            mono
-          />
+          <SyncFrequencySelect value={scanCron} onChange={setScanCron} />
+          <StaleThresholdSelect value={staleHours} onChange={setStaleHours} />
         </SettingsCard>
       </div>
 
@@ -154,6 +246,86 @@ export function SettingsPage() {
         </SettingsCard>
       </div>
     </div>
+  )
+}
+
+const SYNC_FREQUENCIES = [
+  { cron: '0 */4 * * *', label: 'Every 4 hours' },
+  { cron: '0 */6 * * *', label: 'Every 6 hours' },
+  { cron: '0 */12 * * *', label: 'Every 12 hours' },
+  { cron: '0 18 * * *', label: 'Daily at 6 PM' },
+  { cron: '0 6 * * *', label: 'Daily at 6 AM' },
+  { cron: '0 6,18 * * *', label: 'Twice daily (6 AM + 6 PM)' },
+  { cron: '0 0 * * 1', label: 'Weekly (Mon midnight)' },
+]
+
+const STALE_THRESHOLDS = [
+  { hours: 12, label: '12 hours' },
+  { hours: 24, label: '24 hours' },
+  { hours: 48, label: '48 hours' },
+  { hours: 72, label: '3 days' },
+  { hours: 168, label: '1 week' },
+]
+
+function SyncFrequencySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span
+        className="text-[9px] font-semibold uppercase tracking-[0.18em]"
+        style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+      >
+        Default scan frequency
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border px-3 py-2 text-[13px] outline-none transition-colors focus:border-emerald-600"
+        style={{
+          background: THEME.light,
+          borderColor: THEME.border,
+          color: THEME.textPrimary,
+          fontFamily: THEME.fontMono,
+        }}
+      >
+        {SYNC_FREQUENCIES.map((f) => (
+          <option key={f.cron} value={f.cron}>{f.label}</option>
+        ))}
+        {!SYNC_FREQUENCIES.some((f) => f.cron === value) && (
+          <option value={value}>Custom: {value}</option>
+        )}
+      </select>
+    </label>
+  )
+}
+
+function StaleThresholdSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span
+        className="text-[9px] font-semibold uppercase tracking-[0.18em]"
+        style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+      >
+        Stale source threshold
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value, 10))}
+        className="rounded-lg border px-3 py-2 text-[13px] outline-none transition-colors focus:border-emerald-600"
+        style={{
+          background: THEME.light,
+          borderColor: THEME.border,
+          color: THEME.textPrimary,
+          fontFamily: THEME.fontMono,
+        }}
+      >
+        {STALE_THRESHOLDS.map((t) => (
+          <option key={t.hours} value={t.hours}>{t.label}</option>
+        ))}
+        {!STALE_THRESHOLDS.some((t) => t.hours === value) && (
+          <option value={value}>Custom: {value}h</option>
+        )}
+      </select>
+    </label>
   )
 }
 

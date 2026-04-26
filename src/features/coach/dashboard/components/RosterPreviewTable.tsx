@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { THEME } from '../../../../lib/theme'
-import { useAthletes, useErgScores } from '../../../../shared/data/queries'
+import { useAthletes, useErgScores, isAthleteFlagged, getAthleteRecovery } from '../../../../shared/data/queries'
 import { SkeletonTable } from '../../../../shared/components/Skeleton'
 
 function fmt2k(seconds: number) {
@@ -10,13 +10,13 @@ function fmt2k(seconds: number) {
   return `${m}:${s.padStart(4, '0')}`
 }
 
-function statusFor(idx: number) {
-  if (idx === 4) return { label: 'At risk', color: THEME.amber }
-  if (idx === 12) return { label: 'Flagged', color: THEME.red }
-  return { label: 'OK', color: THEME.primary }
-}
-
-export function RosterPreviewTable() {
+export function RosterPreviewTable({
+  sideFilter = 'all',
+  flaggedOnly = false,
+}: {
+  sideFilter?: 'all' | 'port' | 'starboard'
+  flaggedOnly?: boolean
+}) {
   const { data: athletes, isLoading: l1, isError: e1 } = useAthletes()
   const { data: ergScores, isLoading: l2, isError: e2 } = useErgScores()
 
@@ -26,6 +26,12 @@ export function RosterPreviewTable() {
     .map((score) => {
       const athlete = athletes.find((a) => a.id === score.athleteId)
       return { score, athlete }
+    })
+    .filter(({ athlete }) => {
+      if (!athlete) return false
+      if (sideFilter !== 'all' && athlete.side !== sideFilter) return false
+      if (flaggedOnly && !isAthleteFlagged(athlete.id, athlete.name)) return false
+      return true
     })
     .slice(0, 8)
 
@@ -71,12 +77,14 @@ export function RosterPreviewTable() {
               <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:table-cell">Split</th>
               <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] md:table-cell">SPM</th>
               <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] md:table-cell">Watts</th>
-              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">Status</th>
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">Recovery</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(({ score, athlete }, i) => {
-              const status = statusFor(i)
+              const recovery = athlete ? getAthleteRecovery(athlete.id, athlete.name) : 50
+              const recoveryColor =
+                recovery >= 75 ? THEME.primary : recovery >= 50 ? THEME.amber : THEME.red
               return (
                 <tr
                   key={score.id}
@@ -106,13 +114,13 @@ export function RosterPreviewTable() {
                   </td>
                   <td className="px-3 py-3 sm:px-5">
                     <span
-                      className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+                      className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
                       style={{
-                        background: `${status.color}15`,
-                        color: status.color,
+                        background: `${recoveryColor}15`,
+                        color: recoveryColor,
                       }}
                     >
-                      {status.label}
+                      {recovery}%
                     </span>
                   </td>
                 </tr>

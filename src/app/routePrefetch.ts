@@ -23,13 +23,20 @@ const loaders: Record<string, () => Promise<unknown>> = {
   '/coach/settings': () => import('../features/coach/settings/SettingsPage'),
 
   // Athlete routes
-  '/athlete/home': () => import('../features/athlete/athletePages'),
-  '/athlete/stats': () => import('../features/athlete/athletePages'),
-  '/athlete/sessions': () => import('../features/athlete/athletePages'),
-  '/athlete/lineups': () => import('../features/athlete/athletePages'),
-  '/athlete/sources': () => import('../features/athlete/athletePages'),
-  '/athlete/ai': () => import('../features/athlete/athletePages'),
-  '/athlete/settings': () => import('../features/athlete/athletePages'),
+  '/athlete/home': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/stats': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/today': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/progress': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/record': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/workbook': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/sessions': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/lineups': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/sources': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/sources/connectors': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/sources/data-view': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/ai': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/chat': () => import('../features/athlete/athleteAppPages'),
+  '/athlete/settings': () => import('../features/athlete/athleteAppPages'),
 }
 
 /**

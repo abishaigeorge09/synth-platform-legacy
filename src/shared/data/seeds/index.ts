@@ -20,11 +20,13 @@ import type {
   Team,
   User,
 } from '../types'
+export { SEED_WELLNESS } from './wellness'
 import {
   ERG_316_2K,
   ROWIQ_ROSTER_COUNT_2526,
   ROWIQ_SHEET_316_DATE,
 } from '../../../prototype/rowiqWomensData'
+import { SEED_SESSIONS_EXPANDED, SEED_SESSION_BOATS, SEED_SESSION_SPLITS } from './sessions'
 
 // ─── Team ──────────────────────────────────────────────────────────────────
 
@@ -43,6 +45,9 @@ export const SEED_TEAM_CAL_MENS: Team = {
   inviteCode: 'CAL-MR-2026',
   createdAt: '2025-08-01T00:00:00Z',
 }
+
+// Used by the coach "switch squad" demo UI.
+export const COACH_DEMO_SQUADS: Team[] = [SEED_TEAM_CAL_WOMENS, SEED_TEAM_CAL_MENS]
 
 // ─── Coach user ────────────────────────────────────────────────────────────
 
@@ -200,50 +205,57 @@ export const SEED_ACTIVITY: ActivityItem[] = [
   {
     id: 'act-1',
     teamId: SEED_TEAM_CAL_WOMENS.id,
-    kind: 'scan',
-    title: 'Erg workbooks synced',
-    detail: '12 new erg scores added from 316 2k sheet',
-    at: '2026-04-14T18:00:00Z',
+    kind: 'session',
+    title: "Ella Wheeler PR'd 2K at 6:35.6",
+    detail: 'New personal best — #1 on roster, 316 2K sheet',
+    at: '2026-04-25T20:00:00Z',
   },
   {
     id: 'act-2',
     teamId: SEED_TEAM_CAL_WOMENS.id,
     kind: 'lineup_published',
-    title: '1V + 2V 8+ published',
-    detail: 'Saturday practice — 16 seats assigned',
-    at: '2026-04-14T16:30:00Z',
+    title: 'Lineup published: V8 + 2V for Cal Invite',
+    detail: '16 seats confirmed · report time 5:30 AM Apr 26',
+    at: '2026-04-25T18:00:00Z',
   },
   {
     id: 'act-3',
     teamId: SEED_TEAM_CAL_WOMENS.id,
-    kind: 'session',
-    title: 'Morning pieces completed',
-    detail: '5×500m — 2 boats, splits uploaded',
-    at: '2026-04-14T08:15:00Z',
+    kind: 'scan',
+    title: '3 athletes missed wellness check-in',
+    detail: 'Star Miller, Vivi Spitz, Madeline Cox — follow up',
+    at: '2026-04-25T16:00:00Z',
   },
   {
     id: 'act-4',
     teamId: SEED_TEAM_CAL_WOMENS.id,
-    kind: 'source_added',
-    title: 'New connector configured',
-    detail: 'Whoop team rollup (wearable hub)',
-    at: '2026-04-12T12:00:00Z',
+    kind: 'session',
+    title: 'Coach note added: Star Miller',
+    detail: 'HRV 10% below baseline, light practice recommended',
+    at: '2026-04-24T10:00:00Z',
   },
-]
-
-// ─── Sessions (minimal seed) ───────────────────────────────────────────────
-
-export const SEED_SESSIONS: Session[] = [
   {
-    id: 'session-1',
+    id: 'act-5',
     teamId: SEED_TEAM_CAL_WOMENS.id,
-    coachId: SEED_COACH.id,
-    date: ROWIQ_SHEET_316_DATE,
-    type: 'erg_test',
-    title: '316 2k test',
-    notes: 'Primary season benchmark',
+    kind: 'scan',
+    title: 'Madeline Cox flagged: recovery 42%',
+    detail: 'Poor sleep 3 nights — wearable hub alert',
+    at: '2026-04-24T08:30:00Z',
+  },
+  {
+    id: 'act-6',
+    teamId: SEED_TEAM_CAL_WOMENS.id,
+    kind: 'scan',
+    title: 'Erg workbooks synced',
+    detail: '46 scores updated from 316 2K sheet',
+    at: '2026-04-14T18:00:00Z',
   },
 ]
+
+// ─── Sessions (expanded in seeds/sessions.ts) ────────────────────────────────
+
+export const SEED_SESSIONS: Session[] = SEED_SESSIONS_EXPANDED
+export { SEED_SESSION_BOATS, SEED_SESSION_SPLITS }
 
 // ─── Chat threads (empty) ──────────────────────────────────────────────────
 
@@ -330,3 +342,30 @@ export const SEED_AI_IMPORT_JOBS: AiImportJob[] = [
     createdAt: '2026-04-14T19:00:00Z',
   },
 ]
+
+// ─── Strava activities ────────────────────────────────────────────────────
+
+export { SEED_STRAVA_ACTIVITIES } from './stravaActivities'
+
+// ─── Gym sessions ─────────────────────────────────────────────────────────
+
+export { SEED_GYM_SESSIONS } from './gymSessions'
+
+// ─── Sleep & HRV ──────────────────────────────────────────────────────────
+
+export { SEED_SLEEP_HRV } from './sleepHrv'
+
+// ─── Calendar events ─────────────────────────────────────────────────────
+
+export { SEED_CALENDAR } from './calendar'
+export type { CalendarEvent } from './calendar'
+
+// ─── Coach notes ─────────────────────────────────────────────────────────
+
+export { SEED_COACH_NOTES } from './coachNotes'
+export type { CoachNote } from './coachNotes'
+
+// Compatibility aliases for older query modules.
+export const SEED_ATHLETES_ALL = SEED_ATHLETES
+export const SEED_ERG_SCORES_ALL = SEED_ERG_SCORES
+export const SEED_SOURCES_ALL = SEED_SOURCES

@@ -9,7 +9,7 @@ import { THEME } from '../../lib/theme'
 
 export function CoachLayout() {
   return (
-    <div className="flex h-dvh w-full overflow-hidden" style={{ background: THEME.light }}>
+    <div className="flex h-dvh w-full overflow-hidden" style={{ background: 'var(--bg-surface, #FAFAF9)' }}>
       {/* Phase 19 — skip link for keyboard users. Visually hidden until
           focused, then appears at the top of the viewport so Tab users can
           jump past the sidebar directly into the main content area. */}

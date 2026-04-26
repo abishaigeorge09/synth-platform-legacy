@@ -1,9 +1,12 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import type { ComponentType, ReactNode } from 'react'
+import { useState, type ComponentType, type ReactNode } from 'react'
 import { THEME } from '../../lib/theme'
+import { useAlerts, useActivity } from '../data/queries'
 import { useUiStore } from '../store/useUiStore'
+import { useNotificationStore } from '../store/useNotificationStore'
 import { useTeamStore } from '../store/useTeamStore'
+import { COACH_DEMO_SQUADS, SEED_TEAM_CAL_MENS } from '../data/seeds'
 import {
   DashboardIllustration,
   AthletesIllustration,
@@ -24,7 +27,11 @@ type NavItem = {
 const PRIMARY_NAV: NavItem[] = [
   { to: '/coach/dashboard', label: 'Dashboard', Glyph: DashboardIllustration },
   { to: '/coach/athletes', label: 'Athletes', Glyph: AthletesIllustration },
-  { to: '/coach/sources', label: 'Sources', Glyph: SourcesIllustration },
+]
+
+const SOURCES_NAV: NavItem[] = [
+  { to: '/coach/sources/connectors', label: 'Connectors', Glyph: SourcesIllustration },
+  { to: '/coach/sources/data-view', label: 'Data View', Glyph: SourcesIllustration },
 ]
 
 // Phase 16 — Custom Tools nav is derived from the ToolRegistry. Adding a new
@@ -46,13 +53,76 @@ export function Sidebar() {
       aria-label="Coach sidebar"
       className="hidden h-full w-[260px] shrink-0 flex-col border-r md:flex"
       style={{
-        background: THEME.white,
-        borderColor: THEME.border,
+        background: 'var(--bg-primary, #FFFFFF)',
+        borderColor: 'var(--border-default, #E4E4E7)',
         fontFamily: THEME.fontSans,
       }}
     >
       <SidebarContent variant="desktop" />
     </aside>
+  )
+}
+
+export function NotificationBell() {
+  const { data: alerts } = useAlerts()
+  const { data: activity } = useActivity()
+  const readIds = useNotificationStore((s) => s.readIds)
+  const openPanel = useNotificationStore((s) => s.openPanel)
+
+  const allIds = [...(alerts?.map((a) => a.id) ?? []), ...(activity?.map((a) => a.id) ?? [])]
+  const unreadCount = allIds.filter((id) => !readIds.has(id)).length
+  const hasDanger = alerts?.some((a) => a.severity === 'danger' && !readIds.has(a.id)) ?? false
+
+  return (
+    <div className="pointer-events-auto relative">
+      <button
+        type="button"
+        onClick={openPanel}
+        aria-label={`Notifications: ${unreadCount} unread`}
+        className="flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition-colors hover:bg-zinc-50"
+        style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }}
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+        </svg>
+        {unreadCount > 0 && (
+          <span
+            className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold"
+            style={{
+              background: hasDanger ? THEME.red : THEME.amber,
+              color: THEME.white,
+              fontFamily: THEME.fontMono,
+            }}
+          >
+            {unreadCount}
+          </span>
+        )}
+      </button>
+    </div>
+  )
+}
+
+export function CoachTopRightProfileButton() {
+  const hideTopRightControls = useUiStore((s) => s.hideTopRightControls)
+  const openCoachProfile = useUiStore((s) => s.openCoachProfile)
+  if (hideTopRightControls) return null
+  return (
+    <div className="pointer-events-none fixed right-4 top-4 z-[50] hidden items-center gap-2 md:flex">
+      <NotificationBell />
+      <button
+        type="button"
+        onClick={openCoachProfile}
+        aria-label="Open coach profile"
+        className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition-colors hover:bg-zinc-50"
+        style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+          <path d="M20 21a8 8 0 0 0-16 0" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </button>
+    </div>
   )
 }
 
@@ -69,11 +139,17 @@ export function SidebarContent({
   variant: 'desktop' | 'drawer'
   onNavigate?: () => void
 }) {
+  const location = useLocation()
   const navigate = useNavigate()
   const openAgent = useUiStore((s) => s.openAgentModal)
   const openCommandPalette = useUiStore((s) => s.openCommandPalette)
+  const openRequestTool = useUiStore((s) => s.openRequestTool)
   const closeMobileDrawer = useUiStore((s) => s.closeMobileDrawer)
   const team = useTeamStore((s) => s.activeTeam)
+  const setActiveTeam = useTeamStore((s) => s.setActiveTeam)
+  const sourcesActive = location.pathname.startsWith('/coach/sources')
+  const [sourcesOpenByUser, setSourcesOpenByUser] = useState(false)
+  const sourcesOpen = sourcesActive || sourcesOpenByUser
 
   const afterNavigate = () => {
     onNavigate?.()
@@ -91,6 +167,11 @@ export function SidebarContent({
   // listens for Cmd+K / Ctrl+K from anywhere in the coach surface.
   const handleAddTool = () => {
     openCommandPalette()
+    afterNavigate()
+  }
+
+  const handleRequestTool = () => {
+    openRequestTool()
     afterNavigate()
   }
 
@@ -132,7 +213,33 @@ export function SidebarContent({
           className="text-[10px]"
           style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
         >
-          {team.sport} · {team.inviteCode}
+          {team.sport} — {team.inviteCode}
+        </div>
+        <div
+          className="mt-2.5 flex gap-0.5 rounded-lg p-0.5"
+          style={{ background: THEME.border }}
+          role="group"
+          aria-label="Switch demo squad"
+        >
+          {COACH_DEMO_SQUADS.map((squad) => {
+            const active = squad.id === team.id
+            return (
+              <button
+                key={squad.id}
+                type="button"
+                onClick={() => setActiveTeam(squad)}
+                className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-center text-[11px] font-semibold transition-colors"
+                style={{
+                  fontFamily: THEME.fontMono,
+                  background: active ? THEME.white : 'transparent',
+                  color: active ? THEME.primary : THEME.textSecondary,
+                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : undefined,
+                }}
+              >
+                {squad.id === SEED_TEAM_CAL_MENS.id ? "Men's" : "Women's"}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -142,6 +249,23 @@ export function SidebarContent({
           items={PRIMARY_NAV}
           variant={variant}
           afterNavigate={afterNavigate}
+          footer={
+            <SourcesParentRow
+              variant={variant}
+              active={sourcesActive}
+              open={sourcesOpen}
+              onToggle={() => {
+                if (!sourcesOpen) {
+                  setSourcesOpenByUser(true)
+                  navigate('/coach/sources/connectors')
+                  afterNavigate()
+                  return
+                }
+                setSourcesOpenByUser(false)
+              }}
+              afterNavigate={afterNavigate}
+            />
+          }
         />
 
         <NavGroup
@@ -150,30 +274,44 @@ export function SidebarContent({
           variant={variant}
           afterNavigate={afterNavigate}
           footer={
-            <button
-              type="button"
-              onClick={handleAddTool}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-zinc-100"
-              style={{ color: THEME.textSecondary }}
-            >
-              <AddToolIllustration size={22} muted />
-              <span className="text-[13px]">Add tool</span>
-              <span
-                className="ml-auto rounded border px-1.5 py-0.5 text-[9px] font-semibold"
-                style={{
-                  borderColor: THEME.border,
-                  color: THEME.textMuted,
-                  fontFamily: THEME.fontMono,
-                }}
+            <div className="grid gap-1">
+              <button
+                type="button"
+                onClick={handleAddTool}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-zinc-100"
+                style={{ color: THEME.textSecondary }}
               >
-                ⌘K
-              </span>
-            </button>
+                <AddToolIllustration size={22} muted />
+                <span className="text-[13px]">Add tool</span>
+                <span
+                  className="ml-auto rounded border px-1.5 py-0.5 text-[9px] font-semibold"
+                  style={{
+                    borderColor: THEME.border,
+                    color: THEME.textMuted,
+                    fontFamily: THEME.fontMono,
+                  }}
+                >
+                  ⌘K
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRequestTool}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-zinc-100"
+                style={{ color: THEME.textSecondary }}
+              >
+                <AddToolIllustration size={22} muted />
+                <span className="text-[13px]">Request a tool</span>
+              </button>
+            </div>
           }
         />
+      </nav>
 
-        {/* synth. AI */}
-        <div className="mt-2 px-4">
+      {/* Bottom pinned section (synth. Agent above Settings) */}
+      <div className="mt-auto">
+        <div className="px-4 pb-2">
           <NavRow
             to="/coach/ai"
             label="synth. AI"
@@ -183,42 +321,85 @@ export function SidebarContent({
             accent
           />
         </div>
-      </nav>
 
-      {/* synth. Agent — modal trigger */}
-      <div className="mt-2 px-4">
-        <button
-          type="button"
-          onClick={handleAgent}
-          aria-label="Open synth Agent — connectors, scans, reports"
-          className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all"
-          style={{
-            background: THEME.primaryDarker,
-            color: THEME.white,
-            boxShadow: '0 1px 0 rgba(255,255,255,0.12) inset, 0 4px 20px rgba(4,120,87,0.25)',
-          }}
-        >
-          <AgentPulseGlyph />
-          <div className="flex-1">
-            <div className="text-[13px] font-semibold">synth. Agent</div>
-            <div className="text-[10px] opacity-80" style={{ fontFamily: THEME.fontMono }}>
-              Connectors · scans · reports
+        {/* synth. Agent — modal trigger (pinned near bottom) */}
+        <div className="px-4 pb-3">
+          <button
+            type="button"
+            onClick={handleAgent}
+            aria-label="Open synth Agent"
+            className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all"
+            style={{
+              background: THEME.primaryDarker,
+              color: THEME.white,
+              boxShadow:
+                '0 1px 0 rgba(255,255,255,0.12) inset, 0 4px 20px rgba(4,120,87,0.25)',
+            }}
+          >
+            <AgentPulseGlyph />
+            <div className="flex-1">
+              <div className="text-[13px] font-semibold">synth. Agent</div>
+              <div className="text-[10px] opacity-80" style={{ fontFamily: THEME.fontMono }}>
+                Connectors & sync
+              </div>
             </div>
-          </div>
-        </button>
-      </div>
+          </button>
+        </div>
 
-      <div className="mt-auto border-t" style={{ borderColor: THEME.border }}>
-        <div className="p-4">
-          <NavRow
-            to="/coach/settings"
-            label="Settings"
-            Glyph={SettingsIllustration}
-            variant={variant}
-            afterNavigate={afterNavigate}
-          />
+        <div className="border-t" style={{ borderColor: THEME.border }}>
+          <div className="p-4">
+            <NavRow
+              to="/coach/settings"
+              label="Settings"
+              Glyph={SettingsIllustration}
+              variant={variant}
+              afterNavigate={afterNavigate}
+            />
+          </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function SourcesParentRow({
+  variant,
+  active,
+  open,
+  onToggle,
+  afterNavigate,
+}: {
+  variant: 'desktop' | 'drawer'
+  active: boolean
+  open: boolean
+  onToggle: () => void
+  afterNavigate: () => void
+}) {
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors hover:bg-zinc-100"
+        style={{
+          color: active ? THEME.primary : THEME.textPrimary,
+          background: active ? 'rgba(5,150,105,0.08)' : 'transparent',
+          borderLeft: `2px solid ${active ? THEME.primary : 'transparent'}`,
+        }}
+      >
+        <SourcesIllustration size={22} muted={!active} />
+        <span>Sources</span>
+        <span className="ml-auto text-[10px]" style={{ fontFamily: THEME.fontMono }}>
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      {open && (
+        <div className="mt-1 grid gap-0.5 border-l pl-2 ml-5" style={{ borderColor: THEME.border }}>
+          {SOURCES_NAV.map((item) => (
+            <NavRow key={item.to} {...item} variant={variant} afterNavigate={afterNavigate} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

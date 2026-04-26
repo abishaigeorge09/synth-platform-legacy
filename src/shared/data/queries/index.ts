@@ -32,6 +32,16 @@ export {
   useAllAthleteYoy,
 } from './useAthleteQueries'
 
+// Athlete profile extras (sessions, wellness, lineups, notes)
+export {
+  useAthleteProfileSessions,
+  useAthleteProfileLineups,
+  useAthleteWellness,
+  useAthleteCoachNotes,
+  getAthleteRecovery,
+  isAthleteFlagged,
+} from './useAthleteProfileExtras'
+
 // Sources + scan logs
 export {
   useSources,

@@ -1,19 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import { useUiStore } from '../store/useUiStore'
 import { THEME } from '../../lib/theme'
 import { useSources, useScanLogs, useAiImportJobs } from '../data/queries'
 import { connectConnector } from '../data/connectors/connectorService'
 import type { ConnectorProvider, Source, SourceType } from '../data/types'
-import { featureFlags } from '../../lib/featureFlags'
-import { useWritebackStore } from '../store/useWritebackStore'
+import { toast } from '../store/useToastStore'
+import { useTeamStore } from '../store/useTeamStore'
+import { useConnectorConnectionsStore } from '../store/useConnectorConnectionsStore'
+import { useCoachOnboardingStore } from '../store/useCoachOnboardingStore'
+import { useAthleteOnboardingStore } from '../store/useAthleteOnboardingStore'
 
 type Tab = 'sources' | 'scans' | 'add'
 
 const TAB_LABELS: Record<Tab, string> = {
+  add: 'Add connector',
   sources: 'Connected sources',
   scans: 'Scan history',
-  add: 'Add connector',
 }
 
 const SOURCE_TYPE_LABEL: Record<SourceType, string> = {
@@ -38,27 +42,46 @@ const STATUS_COLOR: Record<Source['status'], string> = {
 export function AgentModalPortal() {
   const open = useUiStore((s) => s.agentModalOpen)
   const close = useUiStore((s) => s.closeAgentModal)
-  const [tab, setTab] = useState<Tab>('sources')
 
   return (
     <AnimatePresence>
       {open && (
-        <AgentModalInner close={close} tab={tab} setTab={setTab} />
+        <AgentModalInner close={close} />
       )}
     </AnimatePresence>
   )
 }
 
-function AgentModalInner({
-  close,
-  tab,
-  setTab,
-}: {
-  close: () => void
-  tab: Tab
-  setTab: (t: Tab) => void
-}) {
+function AgentModalInner({ close }: { close: () => void }) {
   const dialogRef = useRef<HTMLDivElement | null>(null)
+  const location = useLocation()
+  // Select primitives to avoid unstable object snapshots (can cause infinite loops).
+  const coachTeam = useCoachOnboardingStore((s) => s.team)
+  const coachCsvUploaded = useCoachOnboardingStore((s) => s.csvUploaded)
+  const coachSourcesConnected = useCoachOnboardingStore((s) => s.sourcesConnected)
+  const athleteConfirmed = useAthleteOnboardingStore((s) => s.confirmed)
+  const athleteProfileName = useAthleteOnboardingStore((s) => s.profileName)
+  const [tab, setTab] = useState<Tab>('add')
+
+  const hideHistory = useMemo(() => {
+    const p = location.pathname
+    // During onboarding/auth flows: hide history + connected sources.
+    if (p.startsWith('/coach/onboarding')) return true
+    if (p.startsWith('/athlete/onboarding')) return true
+    if (p.startsWith('/signup')) return true
+    if (p.startsWith('/join')) return true
+
+    // After coach onboarding, only show history once roster CSV is uploaded and sources step has been reached.
+    if (coachTeam && (!coachCsvUploaded || !coachSourcesConnected)) return true
+
+    // After athlete onboarding starts, keep history hidden until profile is set.
+    if (athleteConfirmed && !athleteProfileName.trim()) return true
+
+    return false
+  }, [location.pathname, coachTeam, coachCsvUploaded, coachSourcesConnected, athleteConfirmed, athleteProfileName])
+
+  const tabs = useMemo(() => (hideHistory ? (['add'] as Tab[]) : (Object.keys(TAB_LABELS) as Tab[])), [hideHistory])
+  const effectiveTab: Tab = hideHistory ? 'add' : tab
 
   // Phase 19 — focus trap + focus restore. Captures the previously-focused
   // element on mount, auto-focuses the close button, and restores focus on
@@ -153,13 +176,13 @@ function AgentModalInner({
                   synth. Agent
                 </div>
                 <h2 className="mt-0.5 text-[22px] font-semibold" style={{ color: THEME.textPrimary }}>
-                  Connectors · import · sync
+                  Connectors & sync
                 </h2>
                 <div
                   className="mt-1 text-[11px]"
                   style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
                 >
-                  <AgentSubtitle />
+                  {!hideHistory ? <AgentSubtitle /> : <>Connect sources first — history appears after onboarding.</>}
                 </div>
               </div>
               <button
@@ -178,19 +201,19 @@ function AgentModalInner({
               className="flex gap-1 border-b px-5 pt-3"
               style={{ borderColor: THEME.border }}
             >
-              {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
+              {tabs.map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setTab(t)}
                   className="relative px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.1em] transition-colors"
                   style={{
-                    color: tab === t ? THEME.primary : THEME.textSecondary,
+                    color: effectiveTab === t ? THEME.primary : THEME.textSecondary,
                     fontFamily: THEME.fontMono,
                   }}
                 >
                   {TAB_LABELS[t]}
-                  {tab === t && (
+                  {effectiveTab === t && (
                     <motion.span
                       layoutId="agent-tab-bar"
                       className="absolute inset-x-3 bottom-0 h-0.5 rounded-full"
@@ -203,9 +226,9 @@ function AgentModalInner({
             </nav>
 
             <div className="synth-scroll flex-1 overflow-y-auto px-6 py-5">
-              {tab === 'sources' && <SourcesTab />}
-              {tab === 'scans' && <ScansTab />}
-              {tab === 'add' && <AddSourceTab />}
+              {effectiveTab === 'add' && <AddSourceTab />}
+              {!hideHistory && effectiveTab === 'sources' && <SourcesTab />}
+              {!hideHistory && effectiveTab === 'scans' && <ScansTab />}
             </div>
           </motion.div>
         </motion.div>
@@ -218,72 +241,104 @@ function AgentSubtitle() {
   if (l1 || l2 || e1 || e2) return <>loading…</>
   return (
     <>
-      {sources.length} connectors · {scanLogs.length} scans in history
+      {sources.length} connectors, {scanLogs.length} scans
     </>
   )
 }
 
 function SourcesTab() {
   const { data: sources, isLoading, isError } = useSources()
+  const [scanning, setScanning] = useState<Record<string, 'scanning' | 'done'>>({})
+
+  const triggerScan = useCallback((sourceId: string, sourceName: string) => {
+    if (scanning[sourceId]) return
+    setScanning((p) => ({ ...p, [sourceId]: 'scanning' }))
+    const dur = 1200 + Math.random() * 800
+    window.setTimeout(() => {
+      setScanning((p) => ({ ...p, [sourceId]: 'done' }))
+      toast(`${sourceName} — scan complete`, 'success')
+      window.setTimeout(() => {
+        setScanning((p) => {
+          const next = { ...p }
+          delete next[sourceId]
+          return next
+        })
+      }, 2000)
+    }, dur)
+  }, [scanning])
+
   if (isLoading || isError) return <div className="py-8 text-center text-[12px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>{isError ? 'Failed to load sources.' : 'Loading…'}</div>
   return (
     <div className="flex flex-col gap-2">
-      {sources.map((s) => (
-        <div
-          key={s.id}
-          className="flex items-center justify-between rounded-lg border px-4 py-3"
-          style={{
-            borderColor: THEME.border,
-            background: THEME.light,
-            borderLeft: `3px solid ${STATUS_COLOR[s.status]}`,
-          }}
-        >
-          <div>
-            <div
-              className="text-[9px] font-semibold uppercase tracking-[0.18em]"
-              style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-            >
-              {SOURCE_TYPE_LABEL[s.type]}
+      {sources.map((s) => {
+        const state = scanning[s.id]
+        return (
+          <div
+            key={s.id}
+            className="flex items-center justify-between rounded-lg border px-4 py-3"
+            style={{
+              borderColor: THEME.border,
+              background: THEME.light,
+              borderLeft: `3px solid ${STATUS_COLOR[s.status]}`,
+            }}
+          >
+            <div>
+              <div
+                className="text-[9px] font-semibold uppercase tracking-[0.18em]"
+                style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+              >
+                {SOURCE_TYPE_LABEL[s.type]}
+              </div>
+              <div
+                className="mt-0.5 text-[14px] font-semibold"
+                style={{ color: THEME.textPrimary }}
+              >
+                {s.name}
+              </div>
+              <div
+                className="mt-0.5 text-[11px]"
+                style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
+              >
+                {s.scheduleCron ?? 'real-time'} · last scan {relativeFromNow(s.lastScanAt)}
+              </div>
             </div>
-            <div
-              className="mt-0.5 text-[14px] font-semibold"
-              style={{ color: THEME.textPrimary }}
-            >
-              {s.name}
-            </div>
-            <div
-              className="mt-0.5 text-[11px]"
-              style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
-            >
-              {s.scheduleCron ?? 'real-time'} · last scan {relativeFromNow(s.lastScanAt)}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={!!state}
+                onClick={() => triggerScan(s.id, s.name)}
+                className="rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-all disabled:opacity-70"
+                style={{
+                  border: `1px solid ${state === 'done' ? THEME.primary : THEME.border}`,
+                  background: state === 'done' ? THEME.primary : THEME.white,
+                  color: state === 'done' ? THEME.white : THEME.textPrimary,
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                {state === 'scanning' && (
+                  <motion.span
+                    className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full border-2 border-t-transparent"
+                    style={{ borderColor: `${THEME.primary}`, borderTopColor: 'transparent' }}
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 0.6, ease: 'linear' }}
+                  />
+                )}
+                {state === 'scanning' ? 'Scanning…' : state === 'done' ? 'Done ✓' : 'Scan now'}
+              </button>
+              <span
+                className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
+                style={{
+                  background: `${STATUS_COLOR[s.status]}22`,
+                  color: STATUS_COLOR[s.status],
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                {s.status}
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
-              style={{
-                border: `1px solid ${THEME.border}`,
-                background: THEME.white,
-                color: THEME.textPrimary,
-                fontFamily: THEME.fontMono,
-              }}
-            >
-              Scan now
-            </button>
-            <span
-              className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
-              style={{
-                background: `${STATUS_COLOR[s.status]}22`,
-                color: STATUS_COLOR[s.status],
-                fontFamily: THEME.fontMono,
-              }}
-            >
-              {s.status}
-            </span>
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -391,7 +446,10 @@ function AddSourceTab() {
 }
 
 function OfficialConnectorsFlow() {
-  const [msg, setMsg] = useState<string | null>(null)
+  const teamId = useTeamStore((s) => s.activeTeam.id)
+  const isConnected = useConnectorConnectionsStore((s) => s.isConnected)
+  const connect = useConnectorConnectionsStore((s) => s.connect)
+  const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
   const catalog: { provider: ConnectorProvider; name: string; detail: string }[] = [
     { provider: 'google_sheets', name: 'Google Sheets', detail: 'Two-way roster & erg workbooks' },
     { provider: 'google_calendar', name: 'Google Calendar', detail: 'Practice & academic load' },
@@ -402,91 +460,196 @@ function OfficialConnectorsFlow() {
   ]
 
   async function onConnect(provider: ConnectorProvider) {
-    setMsg(null)
+    if (isConnected(teamId, provider)) return
     const r = await connectConnector(provider)
-    setMsg(r.message)
+    if (r.ok) {
+      connect(teamId, provider)
+      markCoachSourcesConnected(true)
+    }
+    toast(r.message, r.ok ? 'success' : 'error')
   }
 
   return (
     <div>
-      {msg && (
-        <div className="mb-3 rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
-          {msg}
-        </div>
-      )}
       <div className="grid gap-2 md:grid-cols-2">
-        {catalog.map((c) => (
-          <div
-            key={c.provider}
-            className="flex items-start justify-between rounded-lg border p-4"
-            style={{ background: THEME.light, borderColor: THEME.border }}
-          >
-            <div className="min-w-0 flex-1 pr-2">
-              <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
-                {c.name}
-              </div>
-              <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
-                {c.detail}
-              </div>
-            </div>
-            <button
-              type="button"
-              className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
-              style={{
-                border: `1px solid ${THEME.primary}`,
-                background: THEME.primary,
-                color: THEME.white,
-                fontFamily: THEME.fontMono,
-              }}
-              onClick={() => onConnect(c.provider)}
+        {catalog.map((c) => {
+          const connected = isConnected(teamId, c.provider)
+          return (
+            <div
+              key={c.provider}
+              className="flex items-start justify-between rounded-lg border p-4"
+              style={{ background: THEME.light, borderColor: THEME.border }}
             >
-              Connect
-            </button>
-          </div>
-        ))}
+              <div className="min-w-0 flex-1 pr-2">
+                <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
+                  {c.name}
+                </div>
+                <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+                  {c.detail}
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={connected}
+                className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+                style={{
+                  border: `1px solid ${connected ? THEME.border : THEME.primary}`,
+                  background: connected ? THEME.white : THEME.primary,
+                  color: connected ? THEME.textSecondary : THEME.white,
+                  fontFamily: THEME.fontMono,
+                }}
+                onClick={() => onConnect(c.provider)}
+              >
+                {connected ? 'Connected' : 'Connect'}
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
 function AiImportFlow() {
-  const enqueue = useWritebackStore((s) => s.enqueue)
   const { data: jobs } = useAiImportJobs()
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const [photoName, setPhotoName] = useState<string | null>(null)
+  const [pasteText, setPasteText] = useState('')
+  const [recording, setRecording] = useState(false)
+  const [voiceInfo, setVoiceInfo] = useState<string | null>(null)
+  const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<BlobPart[]>([])
 
-  function run(kind: 'photo' | 'voice' | 'paste') {
-    if (!featureFlags.aiImport) return
-    enqueue({
-      label: `AI import (${kind})`,
-      destination: 'timeline',
-      payloadSummary: 'Preview → confirm pipeline (server-side models)',
-    })
+  async function startVoice() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      chunksRef.current = []
+      mr.ondataavailable = (e) => chunksRef.current.push(e.data)
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop())
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType })
+        setVoiceInfo(`Recorded ${Math.round(blob.size / 1024)} KB`)
+        markCoachSourcesConnected(true)
+        toast('Voice note captured (demo)', 'success')
+      }
+      mr.start()
+      recorderRef.current = mr
+      setRecording(true)
+      setVoiceInfo(null)
+    } catch {
+      toast('Microphone permission denied', 'error')
+    }
+  }
+
+  function stopVoice() {
+    const mr = recorderRef.current
+    if (!mr) return
+    mr.stop()
+    recorderRef.current = null
+    setRecording(false)
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-2 sm:grid-cols-3">
-        {(
-          [
-            ['photo', 'Photo / screenshot', 'Claude Vision extracts tables, splits, names.'],
-            ['voice', 'Voice note', 'Whisper → structure → review.'],
-            ['paste', 'Paste text', 'Parse raw text from email or chat.'],
-          ] as const
-        ).map(([k, title, detail]) => (
+        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
+            Upload screenshot
+          </div>
+          <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
+            Pick an image file — we’ll parse it later.
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              setPhotoName(file.name)
+              markCoachSourcesConnected(true)
+              toast(`Screenshot selected: ${file.name}`, 'success')
+            }}
+          />
           <button
-            key={k}
             type="button"
-            className="rounded-xl border p-4 text-left transition-colors hover:bg-zinc-50"
-            style={{ borderColor: THEME.border, background: THEME.white }}
-            onClick={() => run(k)}
+            onClick={() => fileRef.current?.click()}
+            className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
+            style={{ background: THEME.white, color: THEME.primary, border: `1px solid ${THEME.primary}`, fontFamily: THEME.fontMono }}
           >
-            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
-              {title}
-            </div>
-            <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
-              {detail}
-            </div>
+            Choose file
           </button>
-        ))}
+          {photoName && (
+            <div className="mt-2 text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              {photoName}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
+            Voice note
+          </div>
+          <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
+            Record audio — stored locally for now.
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              disabled={recording}
+              onClick={startVoice}
+              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider disabled:opacity-50"
+              style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
+            >
+              Record
+            </button>
+            <button
+              type="button"
+              disabled={!recording}
+              onClick={stopVoice}
+              className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider disabled:opacity-50"
+              style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+            >
+              Stop
+            </button>
+          </div>
+          {voiceInfo && (
+            <div className="mt-2 text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              {voiceInfo}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
+            Paste text
+          </div>
+          <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
+            Paste raw text from email, Slack, or notes.
+          </div>
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder="Paste here…"
+            className="mt-3 min-h-[92px] w-full resize-none rounded-lg border bg-white px-3 py-2 text-[12px] outline-none"
+            style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textPrimary }}
+          />
+          <button
+            type="button"
+            disabled={pasteText.trim().length < 5}
+            onClick={() => {
+              markCoachSourcesConnected(true)
+              toast('Paste captured (demo)', 'success')
+            }}
+            className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider disabled:opacity-50"
+            style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
+          >
+            Save paste
+          </button>
+        </div>
       </div>
       {jobs.length > 0 && (
         <div className="rounded-lg border p-3 text-[11px]" style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
@@ -542,17 +705,43 @@ function ExtensionWaitlistBanner() {
 }
 
 function ManualFlow() {
+  const [dragOver, setDragOver] = useState(false)
+  const [uploaded, setUploaded] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
+
+  function simulateUpload(name: string) {
+    setUploaded(null)
+    toast(`Parsing ${name}…`, 'info')
+    window.setTimeout(() => {
+      setUploaded(name)
+      markCoachSourcesConnected(true)
+      toast(`${name} — preview ready`, 'success')
+    }, 1500)
+  }
+
   return (
     <div>
       <div
-        className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed text-center"
-        style={{ borderColor: THEME.border, background: THEME.light }}
+        className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed text-center transition-colors"
+        style={{
+          borderColor: dragOver ? THEME.primary : THEME.border,
+          background: dragOver ? `${THEME.primary}08` : THEME.light,
+        }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault()
+          setDragOver(false)
+          const file = e.dataTransfer.files[0]
+          if (file) simulateUpload(file.name)
+        }}
       >
         <div
           className="text-[11px] font-semibold uppercase tracking-[0.18em]"
           style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
         >
-          Drag &amp; drop
+          {dragOver ? 'Drop to upload' : 'Drag & drop'}
         </div>
         <div className="mt-2 max-w-[380px] text-[13px]" style={{ color: THEME.textSecondary }}>
           Drop CSVs, Excel workbooks, or screenshots here. synth. parses and previews before committing anything to the
@@ -560,17 +749,51 @@ function ManualFlow() {
         </div>
         <button
           type="button"
-          className="mt-4 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider"
+          className="mt-4 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
           style={{
             background: THEME.white,
             color: THEME.primary,
             border: `1px solid ${THEME.primary}`,
             fontFamily: THEME.fontMono,
           }}
+          onClick={() => fileRef.current?.click()}
         >
           Browse files
         </button>
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) simulateUpload(file.name)
+          }}
+        />
       </div>
+      {uploaded && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-3 flex items-center gap-2 rounded-lg border px-4 py-3"
+          style={{ borderColor: THEME.primary, background: `${THEME.primary}08` }}
+        >
+          <span className="h-2 w-2 rounded-full" style={{ background: THEME.primary }} />
+          <span className="text-[12px] font-semibold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
+            {uploaded}
+          </span>
+          <span className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
+            — preview ready · 0 conflicts
+          </span>
+          <button
+            type="button"
+            className="ml-auto rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+            style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
+            onClick={() => { toast('Import committed to roster', 'success'); setUploaded(null) }}
+          >
+            Commit
+          </button>
+        </motion.div>
+      )}
     </div>
   )
 }

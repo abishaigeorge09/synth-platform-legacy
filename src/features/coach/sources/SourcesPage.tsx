@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PageHeader } from '../dashboard/components/PageHeader'
 import { SourceCard } from './components/SourceCard'
 import { ScanLogRow } from './components/ScanLogRow'
 import { ScanReportViewer } from './components/ScanReportViewer'
+import { SourceDetailModal } from './components/SourceDetailModal'
 import { THEME } from '../../../lib/theme'
 import {
   useSources,
@@ -16,17 +18,24 @@ import { SkeletonCard, SkeletonLine } from '../../../shared/components/Skeleton'
 import { QueryError } from '../../../shared/components/QueryError'
 
 export function SourcesPage() {
+  const [params] = useSearchParams()
   const { data: sources, isLoading: l1, isError: e1, error: err1 } = useSources()
-  const { data: allScanLogs, isLoading: l2, isError: e2, error: err2 } = useScanLogs()
-  const [selectedSourceId, setSelectedSourceId] = useState<string>(
-    sources[0]?.id ?? '',
-  )
+  const { isLoading: l2, isError: e2, error: err2 } = useScanLogs()
+  const [selectedSourceId, setSelectedSourceId] = useState<string>(() => params.get('source') ?? '')
+  const effectiveSourceId = selectedSourceId || sources[0]?.id || ''
   const selectedSource = useMemo(
-    () => sources.find((s) => s.id === selectedSourceId) ?? null,
-    [selectedSourceId, sources],
+    () => sources.find((s) => s.id === effectiveSourceId) ?? null,
+    [effectiveSourceId, sources],
   )
 
-  const { data: logsForSelected } = useScanLogsForSource(selectedSourceId)
+  const { data: logsForSelected } = useScanLogsForSource(effectiveSourceId)
+
+  const [detailSourceId, setDetailSourceId] = useState<string | null>(null)
+  const detailSource = useMemo(
+    () => sources.find((s) => s.id === detailSourceId) ?? null,
+    [detailSourceId, sources],
+  )
+  const { data: detailLogs } = useScanLogsForSource(detailSourceId ?? '')
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(
     logsForSelected[0]?.id ?? null,
@@ -45,10 +54,18 @@ export function SourcesPage() {
     [logsForSelected, effectiveLogId],
   )
 
-  const totalScans = allScanLogs.length
   const healthyCount = sources.filter((s) => s.status === 'healthy').length
 
   const openAgent = useUiStore((s) => s.openAgentModal)
+
+  useEffect(() => {
+    const sourceId = params.get('source')
+    if (!sourceId || !sources.find((s) => s.id === sourceId)) return
+    const el = document.getElementById(sourceId)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [params, sources])
 
   if (e1 || e2) return <QueryError label="Sources" error={err1 ?? err2} />
 
@@ -72,17 +89,31 @@ export function SourcesPage() {
   return (
     <div className="flex min-h-full w-full flex-col pb-12">
       <PageHeader
-        kicker="Coach · Sources"
-        title="Connectors · sync status · reports"
-        subtitle={`${sources.length} connectors · ${healthyCount} healthy · ${totalScans} scans logged (72h)`}
+        kicker="Sources"
+        title="Connectors"
+        subtitle={`${healthyCount} healthy of ${sources.length}`}
       />
+
+      <div className="flex items-center gap-3 px-5 pb-2 sm:px-10">
+        <span className="rounded-md border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: THEME.primary, color: THEME.primary, fontFamily: THEME.fontMono }}>
+          Connectors
+        </span>
+        <span style={{ color: THEME.textMuted }}>|</span>
+        <Link
+          to="/coach/sources/data-view"
+          className="rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-colors hover:opacity-90"
+          style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono }}
+        >
+          Data View
+        </Link>
+      </div>
 
       <div className="flex items-center justify-between px-5 sm:px-10 pb-4">
         <div
           className="text-[11px]"
           style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
         >
-          Every displayed number on the dashboard traces back to one of the scans below.
+          Scan history for the selected connector.
         </div>
         <button
           type="button"
@@ -95,7 +126,7 @@ export function SourcesPage() {
             boxShadow: '0 12px 30px -14px rgba(5,150,105,0.5)',
           }}
         >
-          + Add source · synth. Agent
+          + Add source
         </button>
       </div>
 
@@ -109,11 +140,12 @@ export function SourcesPage() {
           <SourceCardWithHooks
             key={source.id}
             source={source}
-            selected={source.id === selectedSourceId}
+            selected={source.id === effectiveSourceId}
             onSelect={(latestLogId) => {
               setSelectedSourceId(source.id)
               setSelectedLogId(latestLogId)
             }}
+            onDetail={() => setDetailSourceId(source.id)}
           />
         ))}
       </motion.div>
@@ -161,19 +193,27 @@ export function SourcesPage() {
 
         <ScanReportViewer log={selectedLog} sourceName={selectedSource?.name ?? '—'} />
       </div>
+
+      <SourceDetailModal
+        source={detailSource}
+        scanLogs={detailLogs}
+        open={detailSourceId !== null}
+        onClose={() => setDetailSourceId(null)}
+      />
     </div>
   )
 }
 
-/** Wrapper so we can call hooks per-source inside the .map() */
 function SourceCardWithHooks({
   source,
   selected,
   onSelect,
+  onDetail,
 }: {
   source: ReturnType<typeof useSources>['data'][number]
   selected: boolean
   onSelect: (latestLogId: string | null) => void
+  onDetail: () => void
 }) {
   const { data: latestScan } = useLatestScanForSource(source.id)
   const { data: logs } = useScanLogsForSource(source.id)
@@ -184,6 +224,7 @@ function SourceCardWithHooks({
       scanCount={logs.length}
       selected={selected}
       onSelect={() => onSelect(latestScan?.id ?? null)}
+      onDetail={onDetail}
     />
   )
 }

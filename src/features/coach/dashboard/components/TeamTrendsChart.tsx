@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Bar,
@@ -13,17 +14,21 @@ import {
 import { THEME } from '../../../../lib/theme'
 import { useMonthlyTrends } from '../../../../shared/data/queries'
 import { SkeletonChart } from '../../../../shared/components/Skeleton'
+import { useRightPanelStore } from '../../../../shared/store/useRightPanelStore'
+import { useDashboardDateRange, filterMonthsByRange } from '../DashboardDateRange'
 
 /** Wrapper card that matches the dashboard surface style. */
 function ChartCard({
   kicker,
   title,
   subtitle,
+  provenance,
   children,
 }: {
   kicker: string
   title: string
   subtitle: string
+  provenance?: { label: string; color: string }
   children: React.ReactNode
 }) {
   return (
@@ -51,22 +56,47 @@ function ChartCard({
         {subtitle}
       </div>
       <div className="mt-4 h-[200px] w-full">{children}</div>
+      {provenance && (
+        <div
+          className="mt-3 flex items-center gap-1.5 border-t pt-2.5"
+          style={{ borderColor: THEME.border }}
+        >
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full"
+            style={{ background: provenance.color }}
+          />
+          <span
+            className="text-[9px]"
+            style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+          >
+            {provenance.label}
+          </span>
+        </div>
+      )}
     </motion.div>
   )
 }
 
 export function TeamSessionsChart() {
   const { data: trends, isLoading, isError } = useMonthlyTrends()
+  const openCompareEmpty = useRightPanelStore((s) => s.openCompareEmpty)
+  const range = useDashboardDateRange()
+  const filtered = useMemo(() => filterMonthsByRange(trends, range), [trends, range])
   if (isError) return <SkeletonChart height={200} />
   if (isLoading) return <SkeletonChart height={200} />
   return (
     <ChartCard
-      kicker="Signal · monthly"
-      title="Sessions ingested"
-      subtitle="Pieces · erg tests · water sessions synthesized from every connector"
+      kicker="Sessions"
+      title="Ingested per month"
+      subtitle="Erg, pieces, and water sessions"
+      provenance={{ label: 'Erg + TeamWorks + wearables', color: THEME.primary }}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={trends} margin={{ top: 8, right: 8, bottom: 4, left: -24 }}>
+        <BarChart
+          data={filtered}
+          margin={{ top: 8, right: 8, bottom: 4, left: -24 }}
+          onClick={() => openCompareEmpty()}
+        >
           <CartesianGrid stroke={THEME.border} vertical={false} strokeDasharray="2 4" />
           <XAxis
             dataKey="month"
@@ -100,16 +130,24 @@ export function TeamSessionsChart() {
 
 export function TeamComplianceChart() {
   const { data: trends, isLoading, isError } = useMonthlyTrends()
+  const openCompareEmpty = useRightPanelStore((s) => s.openCompareEmpty)
+  const range = useDashboardDateRange()
+  const filtered = useMemo(() => filterMonthsByRange(trends, range), [trends, range])
   if (isError) return <SkeletonChart height={200} />
   if (isLoading) return <SkeletonChart height={200} />
   return (
     <ChartCard
-      kicker="Signal · compliance"
-      title="Team compliance %"
-      subtitle="Training adherence across the roster, rolled up from TeamWorks + wellness digests"
+      kicker="Compliance"
+      title="Team adherence %"
+      subtitle="Training check-ins vs plan"
+      provenance={{ label: 'TeamWorks + digests', color: THEME.accent }}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={trends} margin={{ top: 8, right: 16, bottom: 4, left: -24 }}>
+        <LineChart
+          data={filtered}
+          margin={{ top: 8, right: 16, bottom: 4, left: -24 }}
+          onClick={() => openCompareEmpty()}
+        >
           <CartesianGrid stroke={THEME.border} vertical={false} strokeDasharray="2 4" />
           <XAxis
             dataKey="month"

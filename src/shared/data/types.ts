@@ -145,13 +145,33 @@ export type ErgScore = {
   date: ISODate
 }
 
+export type GymExercise = {
+  name: string
+  sets: number
+  reps: number
+  weight: number // lbs
+}
+
 export type GymSession = {
   id: UUID
   athleteId: UUID
   sessionDate: ISODate
+  exercises: GymExercise[]
+  durationMin: number
+  notes?: string
   totalSets?: number
   totalVolumeLbs?: number
   gymLoadScore?: number
+}
+
+export type SleepHrvEntry = {
+  id: UUID
+  athleteId: UUID
+  date: ISODate
+  sleepHours: number
+  sleepQuality: number // 1-10
+  hrvMs: number
+  restingHR: number // bpm
 }
 
 export type WellnessCheckin = {
@@ -166,6 +186,22 @@ export type WellnessCheckin = {
   hrv?: number
   recovery?: number
   notes?: string
+}
+
+// ─── Strava activities ────────────────────────────────────────────────────
+
+export type StravaActivity = {
+  id: UUID
+  athleteId: UUID
+  date: ISODate
+  type: 'rowing' | 'run' | 'cycle' | 'walk' | 'yoga'
+  title: string
+  distanceMeters: number
+  durationSeconds: number
+  avgHR?: number
+  maxHR?: number
+  calories?: number
+  elevationGain?: number
 }
 
 // ─── synth. AI ─────────────────────────────────────────────────────────────

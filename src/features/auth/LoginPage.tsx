@@ -52,12 +52,17 @@ export function LoginPage() {
             Sign in (demo)
           </button>
         </form>
-        <div className="mt-6 flex items-center justify-between text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
-          <Link to="/join/CAL-WR-2026" className="hover:underline">
-            Join with invite code →
-          </Link>
+        <div className="mt-6 flex flex-col gap-2 text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
+          <div className="flex items-center justify-between">
+            <Link to="/signup" className="hover:underline">
+              Create an account →
+            </Link>
+            <Link to="/join/CAL-WR-2026" className="hover:underline">
+              Join with invite code
+            </Link>
+          </div>
           <Link to="/" className="hover:underline">
-            ← Back
+            ← Back to home
           </Link>
         </div>
       </div>

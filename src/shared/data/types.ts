@@ -145,13 +145,33 @@ export type ErgScore = {
   date: ISODate
 }
 
+export type GymExercise = {
+  name: string
+  sets: number
+  reps: number
+  weight: number // lbs
+}
+
 export type GymSession = {
   id: UUID
   athleteId: UUID
   sessionDate: ISODate
+  exercises: GymExercise[]
+  durationMin: number
+  notes?: string
   totalSets?: number
   totalVolumeLbs?: number
   gymLoadScore?: number
+}
+
+export type SleepHrvEntry = {
+  id: UUID
+  athleteId: UUID
+  date: ISODate
+  sleepHours: number
+  sleepQuality: number // 1-10
+  hrvMs: number
+  restingHR: number // bpm
 }
 
 export type WellnessCheckin = {
@@ -166,6 +186,22 @@ export type WellnessCheckin = {
   hrv?: number
   recovery?: number
   notes?: string
+}
+
+// ─── Strava activities ────────────────────────────────────────────────────
+
+export type StravaActivity = {
+  id: UUID
+  athleteId: UUID
+  date: ISODate
+  type: 'rowing' | 'run' | 'cycle' | 'walk' | 'yoga'
+  title: string
+  distanceMeters: number
+  durationSeconds: number
+  avgHR?: number
+  maxHR?: number
+  calories?: number
+  elevationGain?: number
 }
 
 // ─── synth. AI ─────────────────────────────────────────────────────────────
@@ -233,4 +269,93 @@ export type ActivityItem = {
   title: string
   detail?: string
   at: ISODateTime
+}
+
+// ─── Timeline & ingestion (docs/SCHEMA.md §9, DATA_INTELLIGENCE) ─────────
+
+export type TimelineCategory =
+  | 'erg'
+  | 'gym'
+  | 'wellness'
+  | 'session_note'
+  | 'water'
+  | 'cross_training'
+  | 'other'
+
+export type AthleteTimelineEvent = {
+  id: UUID
+  teamId: UUID
+  athleteId: UUID
+  occurredAt: ISODateTime
+  source: string
+  category: TimelineCategory
+  data: Record<string, unknown>
+  confidence: number
+  raw?: Record<string, unknown>
+}
+
+export type RawIngestKind =
+  | 'connector_pull'
+  | 'ai_photo'
+  | 'ai_voice'
+  | 'ai_paste'
+  | 'manual_csv'
+  | 'email_forward'
+
+export type ConnectorProvider =
+  | 'google_sheets'
+  | 'google_calendar'
+  | 'concept2_logbook'
+  | 'strava'
+  | 'apple_health'
+  | 'health_connect'
+  | 'whoop'
+  | 'garmin'
+  | 'oura'
+  | 'trainingpeaks'
+  | 'slack'
+
+export type ConnectorAccount = {
+  id: UUID
+  teamId: UUID
+  provider: ConnectorProvider
+  displayName: string
+  status: 'connected' | 'expired' | 'revoked' | 'error'
+  lastSyncAt?: ISODateTime
+}
+
+export type AiImportKind = 'photo' | 'voice' | 'paste'
+
+export type AiImportJobStatus = 'pending' | 'preview' | 'confirmed' | 'failed' | 'cancelled'
+
+export type AiImportJob = {
+  id: UUID
+  teamId: UUID
+  kind: AiImportKind
+  status: AiImportJobStatus
+  previewSummary?: string
+  previewRows?: Record<string, unknown>[]
+  createdAt: ISODateTime
+}
+
+export type MetricKind = 'training_load' | 'recovery' | 'risk' | 'data_quality'
+
+export type MetricSnapshot = {
+  id: UUID
+  teamId: UUID
+  athleteId: UUID
+  asOf: ISODateTime
+  kind: MetricKind
+  value: number
+  detail?: Record<string, unknown>
+}
+
+export type WritebackDestination = 'google_sheet' | 'timeline' | 'athlete_note'
+
+export type WritebackIntent = {
+  id: UUID
+  label: string
+  destination: WritebackDestination
+  payloadSummary: string
+  confirmed: boolean
 }

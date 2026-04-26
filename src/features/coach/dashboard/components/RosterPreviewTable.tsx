@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { THEME } from '../../../../lib/theme'
-import { SEED_ATHLETES, SEED_ERG_SCORES } from '../../../../shared/data/seeds'
+import { useAthletes, useErgScores, isAthleteFlagged, getAthleteRecovery } from '../../../../shared/data/queries'
+import { SkeletonTable } from '../../../../shared/components/Skeleton'
 
 function fmt2k(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -9,17 +10,28 @@ function fmt2k(seconds: number) {
   return `${m}:${s.padStart(4, '0')}`
 }
 
-function statusFor(idx: number) {
-  if (idx === 4) return { label: 'At risk', color: THEME.amber }
-  if (idx === 12) return { label: 'Flagged', color: THEME.red }
-  return { label: 'OK', color: THEME.primary }
-}
+export function RosterPreviewTable({
+  sideFilter = 'all',
+  flaggedOnly = false,
+}: {
+  sideFilter?: 'all' | 'port' | 'starboard'
+  flaggedOnly?: boolean
+}) {
+  const { data: athletes, isLoading: l1, isError: e1 } = useAthletes()
+  const { data: ergScores, isLoading: l2, isError: e2 } = useErgScores()
 
-export function RosterPreviewTable() {
-  const rows = SEED_ERG_SCORES
+  if (e1 || e2 || l1 || l2) return <SkeletonTable rows={8} />
+
+  const rows = ergScores
     .map((score) => {
-      const athlete = SEED_ATHLETES.find((a) => a.id === score.athleteId)
+      const athlete = athletes.find((a) => a.id === score.athleteId)
       return { score, athlete }
+    })
+    .filter(({ athlete }) => {
+      if (!athlete) return false
+      if (sideFilter !== 'all' && athlete.side !== sideFilter) return false
+      if (flaggedOnly && !isAthleteFlagged(athlete.id, athlete.name)) return false
+      return true
     })
     .slice(0, 8)
 
@@ -52,62 +64,63 @@ export function RosterPreviewTable() {
           className="text-[11px] font-semibold uppercase tracking-wider transition-colors hover:underline"
           style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
         >
-          View all {SEED_ATHLETES.length} →
+          View all {athletes.length} →
         </Link>
       </header>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-[12px]" style={{ fontFamily: THEME.fontMono }}>
+        <table className="w-full text-[12px]" style={{ fontFamily: THEME.fontMono }}>
           <thead>
             <tr style={{ color: THEME.textMuted, borderTop: `1px solid ${THEME.border}` }}>
-              {['#', 'Athlete', '2K', 'Split', 'SPM', 'Watts', 'Status'].map((h) => (
-                <th
-                  key={h}
-                  className="px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em]"
-                >
-                  {h}
-                </th>
-              ))}
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">#</th>
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">Athlete</th>
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">2K</th>
+              <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:table-cell">Split</th>
+              <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] md:table-cell">SPM</th>
+              <th className="hidden px-5 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] md:table-cell">Watts</th>
+              <th className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-[0.16em] sm:px-5">Recovery</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(({ score, athlete }, i) => {
-              const status = statusFor(i)
+              const recovery = athlete ? getAthleteRecovery(athlete.id, athlete.name) : 50
+              const recoveryColor =
+                recovery >= 75 ? THEME.primary : recovery >= 50 ? THEME.amber : THEME.red
               return (
                 <tr
                   key={score.id}
                   className="transition-colors hover:bg-zinc-50"
                   style={{ borderTop: `1px solid ${THEME.border}` }}
                 >
-                  <td className="px-5 py-3" style={{ color: THEME.textMuted }}>
+                  <td className="px-3 py-3 sm:px-5" style={{ color: THEME.textMuted }}>
                     {String(i + 1).padStart(2, '0')}
                   </td>
                   <td
-                    className="px-5 py-3 font-semibold"
+                    className="px-3 py-3 font-semibold sm:px-5"
                     style={{ color: THEME.textPrimary, fontFamily: THEME.fontSans }}
                   >
                     {athlete?.name ?? score.athleteId}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textPrimary }}>
+                  <td className="px-3 py-3 sm:px-5" style={{ color: THEME.textPrimary }}>
                     {fmt2k(score.timeSeconds)}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textSecondary }}>
+                  <td className="hidden px-5 py-3 sm:table-cell" style={{ color: THEME.textSecondary }}>
                     {score.splitSeconds ? fmt2k(score.splitSeconds) : '—'}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textSecondary }}>
+                  <td className="hidden px-5 py-3 md:table-cell" style={{ color: THEME.textSecondary }}>
                     {score.spm ?? '—'}
                   </td>
-                  <td className="px-5 py-3" style={{ color: THEME.textSecondary }}>
+                  <td className="hidden px-5 py-3 md:table-cell" style={{ color: THEME.textSecondary }}>
                     {score.watts ?? '—'}
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-3 py-3 sm:px-5">
                     <span
-                      className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+                      className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
                       style={{
-                        background: `${status.color}15`,
-                        color: status.color,
+                        background: `${recoveryColor}15`,
+                        color: recoveryColor,
                       }}
                     >
-                      {status.label}
+                      {recovery}%
                     </span>
                   </td>
                 </tr>

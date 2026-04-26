@@ -45,6 +45,7 @@ export function BoatCard({
           <input
             value={boat.name}
             onChange={(e) => onRename(e.target.value)}
+            aria-label="Boat name"
             className="mt-0.5 -ml-1 rounded-md bg-transparent px-1 text-[22px] font-semibold leading-tight outline-none transition-colors focus:bg-zinc-50"
             style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}
           />

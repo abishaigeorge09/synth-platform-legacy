@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { THEME } from '../../../../lib/theme'
-import { SEED_SOURCES } from '../../../../shared/data/seeds'
+import { useSources } from '../../../../shared/data/queries'
 import type { Source } from '../../../../shared/data/types'
+import { SkeletonLine } from '../../../../shared/components/Skeleton'
 
 const COLOR_MAP: Record<NonNullable<Source['colorKey']>, string> = {
   primary: THEME.primary,
@@ -23,9 +24,21 @@ function statusLabel(source: Source) {
 }
 
 export function ConnectorChipRow() {
+  const { data: sources, isLoading, isError } = useSources()
+
+  if (isError || isLoading) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 px-5 sm:px-10">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <SkeletonLine key={i} width={110} height={30} className="!rounded-full" />
+        ))}
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-2 px-10">
-      {SEED_SOURCES.map((source, i) => {
+    <div className="flex flex-wrap items-center gap-2 px-5 sm:px-10">
+      {sources.map((source, i) => {
         const accent = COLOR_MAP[source.colorKey ?? 'primary']
         return (
           <motion.div

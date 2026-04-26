@@ -17,6 +17,9 @@ export type StopwatchState =
   | 'paused'
   | 'finished'
 
+// Minimal shape of the Wake Lock API (not in older TS lib target).
+type WakeLockSentinelLike = { released: boolean; release: () => Promise<void> }
+
 export function useStopwatch() {
   const [state, setState] = useState<StopwatchState>('idle')
   const [elapsed, setElapsed] = useState(0)
@@ -26,19 +29,57 @@ export function useStopwatch() {
   const pausedAccumRef = useRef<number>(0)
   const pauseStartRef = useRef<number>(0)
   const rafRef = useRef<number>(0)
+  const wakeLockRef = useRef<WakeLockSentinelLike | null>(null)
 
-  const tick = useCallback(() => {
-    const now = performance.now()
-    setElapsed(now - startTimeRef.current - pausedAccumRef.current)
-    rafRef.current = requestAnimationFrame(tick)
-  }, [])
+  // Acquire / release Screen Wake Lock alongside the running state so phones
+  // don't sleep mid-piece. Best-effort — silently no-ops on browsers without
+  // the API (Safari <16.4, older Androids).
+  useEffect(() => {
+    const wakeLockApi = (navigator as unknown as {
+      wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinelLike> }
+    }).wakeLock
+
+    async function acquire() {
+      if (!wakeLockApi) return
+      try {
+        const sentinel = await wakeLockApi.request('screen')
+        wakeLockRef.current = sentinel
+      } catch {
+        // user gesture requirements, secure context, etc. — degrade silently
+      }
+    }
+
+    async function release() {
+      const sentinel = wakeLockRef.current
+      if (!sentinel || sentinel.released) return
+      try {
+        await sentinel.release()
+      } catch {
+        /* ignore */
+      }
+      wakeLockRef.current = null
+    }
+
+    if (state === 'running') {
+      acquire()
+    } else {
+      release()
+    }
+    return () => {
+      release()
+    }
+  }, [state])
 
   useEffect(() => {
-    if (state === 'running') {
+    if (state !== 'running') return
+    const tick = () => {
+      const now = performance.now()
+      setElapsed(now - startTimeRef.current - pausedAccumRef.current)
       rafRef.current = requestAnimationFrame(tick)
     }
+    rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [state, tick])
+  }, [state])
 
   const start = useCallback(() => {
     if (state === 'idle') {

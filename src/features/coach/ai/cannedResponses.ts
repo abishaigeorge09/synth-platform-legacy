@@ -30,6 +30,7 @@ export function generateCannedReply(
   input: string,
   scope: ChatScope,
   scopedAthleteId?: string,
+  _teamId?: string,
 ): CannedReply {
   const q = input.toLowerCase()
   const scopedAthlete = scopedAthleteId

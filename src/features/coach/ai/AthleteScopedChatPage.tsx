@@ -1,11 +1,25 @@
 import { Link, useParams } from 'react-router-dom'
 import { THEME } from '../../../lib/theme'
-import { SEED_ATHLETES } from '../../../shared/data/seeds'
+import { useAthlete } from '../../../shared/data/queries'
 import { ChatView } from './ChatView'
+import { QueryError } from '../../../shared/components/QueryError'
+import { SkeletonLine } from '../../../shared/components/Skeleton'
 
 export function AthleteScopedChatPage() {
   const { athleteId } = useParams()
-  const athlete = SEED_ATHLETES.find((a) => a.id === athleteId)
+  const { data: athlete, isLoading, isError, error } = useAthlete(athleteId ?? '')
+
+  if (isError) return <QueryError label="Athlete chat" error={error} />
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full flex-col p-10">
+        <SkeletonLine width={120} height={10} />
+        <SkeletonLine width={240} height={24} className="mt-3" />
+        <SkeletonLine width="60%" height={14} className="mt-4" />
+      </div>
+    )
+  }
 
   if (!athlete) {
     return (
@@ -22,7 +36,7 @@ export function AthleteScopedChatPage() {
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="px-10 pt-6">
+      <div className="px-5 sm:px-10 pt-6">
         <Link
           to={`/coach/athletes/${athlete.id}`}
           className="text-[11px] font-semibold uppercase tracking-wider transition-colors hover:underline"

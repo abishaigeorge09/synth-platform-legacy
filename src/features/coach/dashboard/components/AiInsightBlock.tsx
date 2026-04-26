@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { THEME } from '../../../../lib/theme'
-import { AI_INSIGHT_MARKDOWN } from '../../../../shared/data/seeds/trends'
+import { useAiInsight } from '../../../../shared/data/queries'
+import { SkeletonLine, SkeletonCircle } from '../../../../shared/components/Skeleton'
 import { SynthAiIllustration } from '../../../../shared/illustrations/sidebarIllustrations'
 
 /**
@@ -26,6 +27,28 @@ function renderLite(md: string) {
 }
 
 export function AiInsightBlock() {
+  const { data: insightMd, isLoading, isError } = useAiInsight()
+
+  if (isError || isLoading) {
+    return (
+      <div
+        className="rounded-2xl border p-6"
+        style={{ background: THEME.white, borderColor: THEME.border }}
+      >
+        <div className="flex items-start gap-4">
+          <SkeletonCircle size={40} />
+          <div className="flex-1 flex flex-col gap-2">
+            <SkeletonLine width={160} height={8} />
+            <SkeletonLine width={200} height={16} />
+            <SkeletonLine width="90%" height={12} className="mt-2" />
+            <SkeletonLine width="75%" height={12} />
+            <SkeletonLine width="60%" height={12} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -71,7 +94,7 @@ export function AiInsightBlock() {
               Ask a question →
             </Link>
           </div>
-          <div className="mt-3">{renderLite(AI_INSIGHT_MARKDOWN)}</div>
+          <div className="mt-3">{renderLite(insightMd)}</div>
         </div>
       </div>
     </motion.div>

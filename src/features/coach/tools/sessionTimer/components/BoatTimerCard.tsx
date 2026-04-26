@@ -1,14 +1,34 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { useMemo } from 'react'
 import { THEME } from '../../../../../lib/theme'
-import { useStopwatch, fmtElapsed, fmtInterval } from './useStopwatch'
+import { useStopwatch, fmtElapsed, fmtInterval, type Split } from './useStopwatch'
 
-export function BoatTimerCard({ boatName, athletes }: { boatName: string; athletes: string[] }) {
+export function BoatTimerCard({
+  boatId,
+  boatName,
+  athletes,
+  exerciseLabel,
+  onRename,
+  onFinished,
+  onRemove,
+}: {
+  boatId: string
+  boatName: string
+  athletes: string[]
+  exerciseLabel?: string
+  onRename: (name: string) => void
+  onFinished: (args: { boatId: string; boatName: string; elapsedMs: number; splits: Split[] }) => void
+  onRemove?: () => void
+}) {
   const { state, elapsed, splits, start, pause, split, finish, reset } = useStopwatch()
 
   const isRunning = state === 'running'
   const isIdle = state === 'idle'
   const isPaused = state === 'paused'
   const isFinished = state === 'finished'
+  const canFinish = !isIdle
+
+  const finishLabel = useMemo(() => (isFinished ? '↻ New' : 'Finish'), [isFinished])
 
   const statusColor =
     state === 'running'
@@ -29,19 +49,30 @@ export function BoatTimerCard({ boatName, athletes }: { boatName: string; athlet
       }}
     >
       <header
-        className="flex items-center justify-between border-b px-6 py-4"
+        className="flex items-center justify-between border-b px-4 py-3"
         style={{ borderColor: THEME.border }}
       >
-        <div>
-          <div
-            className="text-[9px] font-semibold uppercase tracking-[0.2em]"
-            style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-          >
-            Boat
-          </div>
-          <div className="mt-0.5 text-[22px] font-semibold" style={{ color: THEME.textPrimary }}>
-            {boatName}
-          </div>
+        <div className="min-w-0 flex-1">
+          <input
+            value={boatName}
+            onChange={(e) => onRename(e.target.value)}
+            className="w-full rounded-lg border px-3 py-2 text-[15px] font-semibold outline-none"
+            style={{
+              borderColor: THEME.border,
+              background: THEME.white,
+              color: THEME.textPrimary,
+              fontFamily: THEME.fontSans,
+            }}
+            aria-label="Boat name"
+          />
+          {exerciseLabel && (
+            <div
+              className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.16em]"
+              style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+            >
+              {exerciseLabel}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <motion.span
@@ -59,28 +90,63 @@ export function BoatTimerCard({ boatName, athletes }: { boatName: string; athlet
           >
             {state}
           </span>
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="ml-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
+              style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono }}
+              aria-label="Remove boat"
+            >
+              Remove
+            </button>
+          )}
         </div>
       </header>
 
       {/* Big clock */}
-      <div className="flex flex-col items-center gap-2 px-6 py-8" style={{ background: THEME.light }}>
+      <div
+        className="flex flex-col items-center gap-3 px-4 py-8"
+        style={{
+          background: isRunning
+            ? 'linear-gradient(160deg, #065F46 0%, #047857 100%)'
+            : isFinished
+            ? 'linear-gradient(160deg, #1e3a5f 0%, #1d4ed8 100%)'
+            : THEME.dark,
+        }}
+      >
         <div
-          className="text-[72px] font-bold leading-none tabular-nums"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
+          className="text-[64px] font-bold leading-none tabular-nums tracking-tight"
+          style={{
+            fontFamily: THEME.fontMono,
+            color: isRunning ? '#A7F3D0' : isFinished ? '#BFDBFE' : '#E4E4E7',
+            textShadow: isRunning ? '0 0 40px rgba(167,243,208,0.3)' : 'none',
+          }}
         >
           {fmtElapsed(elapsed)}
         </div>
         <div
-          className="text-[10px] uppercase tracking-[0.2em]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+          className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em]"
+          style={{ fontFamily: THEME.fontMono, color: isRunning ? '#6EE7B7' : '#71717A' }}
         >
-          {splits.length} split{splits.length === 1 ? '' : 's'} · {athletes.length} athletes
+          <span>{splits.length} split{splits.length === 1 ? '' : 's'}</span>
+          <span style={{ opacity: 0.4 }}>·</span>
+          <span>{athletes.length} seats</span>
+          {athletes.slice(0, 3).map((a) => (
+            <span
+              key={a}
+              className="rounded-full px-1.5 py-0.5"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 9 }}
+            >
+              {a.split(' ').pop()}
+            </span>
+          ))}
         </div>
       </div>
 
       {/* Controls */}
       <div
-        className="grid grid-cols-3 gap-2 border-t px-6 py-4"
+        className="grid grid-cols-3 gap-2 border-t px-4 py-3"
         style={{ borderColor: THEME.border }}
       >
         {isIdle || isPaused ? (
@@ -98,24 +164,32 @@ export function BoatTimerCard({ boatName, athletes }: { boatName: string; athlet
           primary={isRunning}
         />
         <ActionButton
-          label={isFinished ? '↻ New' : 'Finish'}
-          onClick={isFinished ? reset : finish}
+          label={finishLabel}
+          onClick={() => {
+            if (isFinished) {
+              reset()
+              return
+            }
+            if (!canFinish) return
+            onFinished({ boatId, boatName, elapsedMs: elapsed, splits })
+            finish()
+          }}
           disabled={isIdle}
         />
       </div>
 
       {/* Splits list */}
       <div
-        className="synth-scroll max-h-[280px] overflow-y-auto border-t px-2 py-2"
+        className="synth-scroll max-h-[220px] overflow-y-auto border-t px-2 py-2"
         style={{ borderColor: THEME.border }}
       >
         <AnimatePresence initial={false}>
           {splits.length === 0 ? (
             <div
-              className="px-4 py-6 text-center text-[11px]"
+              className="px-4 py-5 text-center text-[11px]"
               style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
             >
-              No splits yet. Tap Split to record piece times.
+              No splits
             </div>
           ) : (
             [...splits].reverse().map((sp) => (

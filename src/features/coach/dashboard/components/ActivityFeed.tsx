@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { THEME } from '../../../../lib/theme'
-import { SEED_ACTIVITY } from '../../../../shared/data/seeds'
+import { useActivity } from '../../../../shared/data/queries'
 import type { ActivityItem } from '../../../../shared/data/types'
+import { SkeletonLine, SkeletonCircle } from '../../../../shared/components/Skeleton'
 
 const KIND_COLOR: Record<ActivityItem['kind'], string> = {
   scan: THEME.primary,
@@ -27,6 +28,31 @@ function relativeTime(iso: string) {
 }
 
 export function ActivityFeed() {
+  const { data: activity, isLoading, isError } = useActivity()
+
+  if (isError || isLoading) {
+    return (
+      <div
+        className="rounded-2xl border p-5"
+        style={{ background: THEME.white, borderColor: THEME.border }}
+      >
+        <SkeletonLine width={60} height={8} />
+        <SkeletonLine width={180} height={16} className="mt-2" />
+        <div className="mt-4 flex flex-col gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex gap-3 pl-5">
+              <SkeletonCircle size={12} />
+              <div className="flex-1 flex flex-col gap-1">
+                <SkeletonLine width="30%" height={8} />
+                <SkeletonLine width="60%" height={12} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -51,12 +77,12 @@ export function ActivityFeed() {
         </div>
       </header>
       <ol className="mt-4 flex flex-col gap-0">
-        {SEED_ACTIVITY.map((item, idx) => {
+        {activity.map((item, idx) => {
           const color = KIND_COLOR[item.kind]
           return (
             <li key={item.id} className="relative flex gap-3 pb-4 pl-5">
               {/* timeline rail */}
-              {idx < SEED_ACTIVITY.length - 1 && (
+              {idx < activity.length - 1 && (
                 <span
                   className="absolute left-[7px] top-3 w-px"
                   style={{ bottom: 0, background: THEME.border }}

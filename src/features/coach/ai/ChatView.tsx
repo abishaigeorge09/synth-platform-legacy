@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { THEME } from '../../../lib/theme'
+import { streamClaudeMessages, selectModel } from '../../../lib/ai/claude'
+import { isClaudeConfigured } from '../../../lib/ai/env'
+import { coachPromptFromSeeds } from '../../../lib/ai/prompts'
 import { SynthAiIllustration } from '../../../shared/illustrations/sidebarIllustrations'
-import { useChatStore, threadKey, type ChatMsg } from '../../../shared/store/useChatStore'
+import { useChatStore, threadKey, type ChatMsg, type ArchivedThread } from '../../../shared/store/useChatStore'
+import { useTeamStore } from '../../../shared/store/useTeamStore'
 import type { ChatScope } from '../../../shared/data/types'
 import { generateCannedReply } from './cannedResponses'
 
@@ -26,77 +30,179 @@ export function ChatView({
   suggestions: string[]
 }) {
   const key = useMemo(() => threadKey(scope, scopedAthleteId), [scope, scopedAthleteId])
+  const activeTeam = useTeamStore((s) => s.activeTeam)
+  const activeTeamId = activeTeam.id
   const threads = useChatStore((s) => s.threads)
   const messages = threads[key] ?? EMPTY_THREAD
   const append = useChatStore((s) => s.append)
+  const patchMessage = useChatStore((s) => s.patchMessage)
   const reset = useChatStore((s) => s.reset)
+  const archivedThreads = useChatStore((s) => s.archivedThreads)
+  const restoreThread = useChatStore((s) => s.restoreThread)
+  const scopeArchived = useMemo(
+    () => archivedThreads.filter((a) => a.key === key),
+    [archivedThreads, key],
+  )
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [draft, setDraft] = useState('')
+  const [typing, setTyping] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages])
+  }, [messages, typing])
 
-  function send(content: string) {
+  async function send(content: string) {
     if (!content.trim()) return
+    const trimmed = content.trim()
     const userMsg: ChatMsg = {
       id: `u-${Date.now()}`,
       role: 'user',
-      content: content.trim(),
+      content: trimmed,
       createdAt: Date.now(),
     }
+    const priorForApi = (threads[key] ?? EMPTY_THREAD)
+      .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.content)
+      .slice(-12)
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
     append(key, userMsg)
     setDraft('')
 
-    setTimeout(() => {
-      const reply = generateCannedReply(content, scope, scopedAthleteId)
-      const asst: ChatMsg = {
-        id: `a-${Date.now() + 1}`,
-        role: 'assistant',
-        content: reply.content,
-        createdAt: Date.now(),
-        citations: reply.citations,
-      }
-      append(key, asst)
-    }, 420)
+    if (!isClaudeConfigured() || scope === 'self') {
+      setTyping(true)
+      setTimeout(() => {
+        const reply = generateCannedReply(trimmed, scope, scopedAthleteId, activeTeamId)
+        const asst: ChatMsg = {
+          id: `a-${Date.now() + 1}`,
+          role: 'assistant',
+          content: reply.content,
+          createdAt: Date.now(),
+          citations: reply.citations,
+        }
+        append(key, asst)
+        setTyping(false)
+      }, 680)
+      return
+    }
+
+    const system = coachPromptFromSeeds(
+      activeTeamId,
+      activeTeam.name,
+      scope === 'athlete' ? scopedAthleteId : undefined,
+    )
+    const model = selectModel(trimmed, system)
+    const asstId = `a-${Date.now() + 1}`
+    append(key, {
+      id: asstId,
+      role: 'assistant',
+      content: '',
+      createdAt: Date.now(),
+    })
+    setTyping(true)
+
+    try {
+      await streamClaudeMessages({
+        system,
+        model,
+        messages: [...priorForApi, { role: 'user' as const, content: trimmed }],
+        onTextDelta: (full) => {
+          setTyping(false)
+          patchMessage(key, asstId, { content: full })
+        },
+      })
+    } catch {
+      setTyping(false)
+      const reply = generateCannedReply(trimmed, scope, scopedAthleteId, activeTeamId)
+      patchMessage(key, asstId, { content: reply.content, citations: reply.citations })
+    }
+    setTyping(false)
   }
 
   return (
     <div className="flex min-h-full w-full flex-col pb-12">
-      <header className="flex items-start justify-between px-10 pb-5 pt-8">
-        <div>
+      <header className="flex items-center justify-between px-5 sm:px-10 pb-4 pt-6">
+        <div className="flex items-center gap-3">
           <div
-            className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
-            style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+            style={{ background: `${THEME.primary}18` }}
+            aria-hidden
           >
-            {kicker}
+            <SynthAiIllustration size={20} />
           </div>
-          <h1
-            className="text-[32px] font-semibold leading-[1.1]"
-            style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}
-          >
-            {title}
-          </h1>
-          <div
-            className="mt-1 text-[12px]"
-            style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
-          >
-            {subtitle}
+          <div>
+            <div
+              className="text-[9px] font-semibold uppercase tracking-[0.2em]"
+              style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
+            >
+              {kicker}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1
+                className="text-[18px] font-semibold leading-tight"
+                style={{ fontFamily: THEME.fontSans, color: THEME.textPrimary }}
+              >
+                {title}
+              </h1>
+              <ScopeBadge scope={scope} athleteName={scopedAthleteName} />
+            </div>
+            <div
+              className="text-[12px] leading-snug"
+              style={{ fontFamily: THEME.fontSans, color: THEME.textSecondary }}
+            >
+              {subtitle}
+            </div>
           </div>
         </div>
-        {messages.length > 0 && (
-          <button
-            type="button"
-            onClick={() => reset(key)}
-            className="rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
-            style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono }}
-          >
-            Clear thread
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {scopeArchived.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((p) => !p)}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
+              style={{
+                borderColor: historyOpen ? THEME.primary : THEME.border,
+                color: historyOpen ? THEME.primary : THEME.textSecondary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              History ({scopeArchived.length})
+            </button>
+          )}
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => reset(key)}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
+              style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="mx-10 flex flex-1 flex-col overflow-hidden rounded-2xl border"
+      <AnimatePresence>
+        {historyOpen && scopeArchived.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <ThreadHistory
+              threads={scopeArchived}
+              onRestore={(id) => {
+                restoreThread(id)
+                setHistoryOpen(false)
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="mx-5 flex flex-1 flex-col overflow-hidden rounded-2xl border sm:mx-10"
         style={{ background: THEME.white, borderColor: THEME.border, minHeight: 520 }}
       >
         <div ref={scrollRef} className="synth-scroll flex-1 overflow-y-auto px-6 py-6">
@@ -111,6 +217,27 @@ export function ChatView({
               {messages.map((m) => (
                 <Message key={m.id} msg={m} />
               ))}
+              {typing && (
+                <div className="flex items-center gap-2" style={{ color: THEME.textSecondary }}>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: `${THEME.primary}18` }}>
+                    <SynthAiIllustration size={18} />
+                  </div>
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <motion.span
+                        key={i}
+                        className="inline-block h-1.5 w-1.5 rounded-full"
+                        style={{ background: THEME.primary }}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono }}>
+                    synth. is typing
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -123,6 +250,7 @@ export function ChatView({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send(draft)}
+            aria-label="Chat message"
             placeholder={
               scope === 'athlete' && scopedAthleteName
                 ? `Ask about ${scopedAthleteName.split(' ')[0]}…`
@@ -257,5 +385,100 @@ function renderBold(s: string) {
   return s.replace(
     /\*\*([^*]+)\*\*/g,
     `<strong style="font-weight:600">$1</strong>`,
+  )
+}
+
+function formatArchivedThreadTime(ts: number) {
+  const d = new Date(ts)
+  const now = Date.now()
+  const diff = now - ts
+  if (diff < 60_000) return 'Just now'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function ThreadHistory({
+  threads,
+  onRestore,
+}: {
+  threads: ArchivedThread[]
+  onRestore: (id: string) => void
+}) {
+  return (
+    <div className="mx-5 mb-3 sm:mx-10">
+      <div
+        className="rounded-xl border p-3"
+        style={{ background: THEME.white, borderColor: THEME.border }}
+      >
+        <div
+          className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em]"
+          style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+        >
+          Previous threads
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {threads.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onRestore(t.id)}
+              className="flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors hover:bg-zinc-50"
+              style={{ borderColor: THEME.border }}
+            >
+              <div className="min-w-0 flex-1">
+                <div
+                  className="truncate text-[12px]"
+                  style={{ color: THEME.textPrimary }}
+                >
+                  {t.preview}
+                </div>
+                <div
+                  className="mt-0.5 text-[10px]"
+                  style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+                >
+                  {t.messageCount} messages · {formatArchivedThreadTime(t.archivedAt)}
+                </div>
+              </div>
+              <span
+                className="ml-3 shrink-0 text-[10px] font-semibold uppercase tracking-wider"
+                style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
+              >
+                Restore
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const SCOPE_META: Record<ChatScope, { label: string; color: string }> = {
+  team: { label: 'Team scope', color: THEME.primary },
+  athlete: { label: 'Athlete scope', color: THEME.cyan },
+  self: { label: 'My data', color: THEME.purple },
+}
+
+function ScopeBadge({ scope, athleteName }: { scope: ChatScope; athleteName?: string }) {
+  const meta = SCOPE_META[scope]
+  const label = scope === 'athlete' && athleteName
+    ? `${athleteName}`
+    : meta.label
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
+      style={{
+        fontFamily: THEME.fontMono,
+        borderColor: meta.color,
+        color: meta.color,
+        background: `${meta.color}0A`,
+      }}
+    >
+      <span
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ background: meta.color }}
+      />
+      {label}
+    </span>
   )
 }

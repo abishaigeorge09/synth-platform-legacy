@@ -11,13 +11,13 @@ import { AthleteSidebar } from '../../shared/layout/AthleteSidebar'
 export function AthleteLayout() {
   const navigate = useNavigate()
   return (
-    <div className="flex min-h-dvh flex-col md:flex-row" style={{ background: THEME.light }}>
+    <div className="flex h-dvh w-full flex-col overflow-hidden md:flex-row" style={{ background: 'var(--bg-surface)' }}>
       {/* Phase 20 — skip link for keyboard users (athlete side) */}
       <a
         href="#athlete-main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:px-4 focus:py-2 focus:text-[13px] focus:font-semibold focus:shadow-lg"
         style={{
-          background: THEME.white,
+          background: 'var(--bg-primary)',
           color: THEME.primary,
           fontFamily: THEME.fontMono,
           outline: `2px solid ${THEME.primary}`,
@@ -31,8 +31,8 @@ export function AthleteLayout() {
 
       {/* Mobile brand bar (logo only, no nav) */}
       <header
-        className="flex items-center justify-between border-b px-5 py-3 md:hidden"
-        style={{ borderColor: THEME.border, background: THEME.white }}
+        className="flex shrink-0 items-center justify-between border-b px-5 py-3 md:hidden"
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
       >
         <button
           type="button"
@@ -51,9 +51,11 @@ export function AthleteLayout() {
         </button>
       </header>
 
-      <main id="athlete-main-content" className="flex-1 pb-[86px] md:pb-0">
-        <Outlet />
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <main id="athlete-main-content" className="synth-scroll flex-1 overflow-y-auto pb-[86px] md:pb-0">
+          <Outlet />
+        </main>
+      </div>
 
       <AthleteBottomTabs />
 

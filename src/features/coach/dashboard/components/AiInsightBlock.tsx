@@ -33,7 +33,7 @@ export function AiInsightBlock() {
     return (
       <div
         className="rounded-2xl border p-6"
-        style={{ background: THEME.white, borderColor: THEME.border }}
+        style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
       >
         <div className="flex items-start gap-4">
           <SkeletonCircle size={40} />
@@ -56,7 +56,7 @@ export function AiInsightBlock() {
       transition={{ duration: 0.4, delay: 0.1 }}
       className="rounded-2xl border p-6"
       style={{
-        background: `linear-gradient(180deg, ${THEME.white} 0%, ${THEME.light} 100%)`,
+        background: `linear-gradient(180deg, var(--bg-primary) 0%, ${THEME.light} 100%)`,
         borderColor: THEME.border,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
       }}
@@ -88,7 +88,7 @@ export function AiInsightBlock() {
                 borderColor: THEME.border,
                 color: THEME.primary,
                 fontFamily: THEME.fontMono,
-                background: THEME.white,
+                background: 'var(--bg-primary)',
               }}
             >
               Ask a question →

@@ -47,7 +47,7 @@ export function ConnectorChipRow() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 + i * 0.05 }}
             className="flex items-center gap-2 rounded-full border px-3 py-1.5"
-            style={{ borderColor: THEME.border, background: THEME.white }}
+            style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
           >
             <span className="h-2 w-2 rounded-full" style={{ background: accent }} />
             <span className="text-[12px] font-semibold" style={{ color: THEME.textPrimary }}>

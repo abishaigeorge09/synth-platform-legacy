@@ -91,7 +91,7 @@ export function SessionTimerPage() {
         <div className="mr-3 flex items-center gap-2">
           <div
             className="flex rounded-full border p-1"
-            style={{ borderColor: THEME.border, background: THEME.white }}
+            style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
             title="Workout type (labels only in demo)"
           >
             {(
@@ -125,7 +125,7 @@ export function SessionTimerPage() {
           type="button"
           onClick={() => addBoat()}
           className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }}
         >
           + Boat
         </button>
@@ -134,7 +134,7 @@ export function SessionTimerPage() {
           onClick={() => setRecording((v) => !v)}
           className="flex items-center gap-2 rounded-full px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
           style={{
-            background: recording ? THEME.red : THEME.white,
+            background: recording ? THEME.red : 'var(--bg-primary)',
             color: recording ? THEME.white : THEME.textPrimary,
             border: `1px solid ${recording ? THEME.red : THEME.border}`,
             fontFamily: THEME.fontMono,
@@ -147,7 +147,7 @@ export function SessionTimerPage() {
                 animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
                 transition={{ duration: 1.2, repeat: Infinity }}
                 className="h-2.5 w-2.5 rounded-full"
-                style={{ background: THEME.white }}
+                style={{ background: 'var(--bg-primary)' }}
               />
               Rec
             </>
@@ -165,7 +165,7 @@ export function SessionTimerPage() {
           type="button"
           onClick={clearHistory}
           className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textSecondary, fontFamily: THEME.fontMono }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textSecondary, fontFamily: THEME.fontMono }}
         >
           Clear
         </button>
@@ -192,7 +192,7 @@ export function SessionTimerPage() {
       </motion.div>
 
       <div className="mt-6 px-5 sm:px-10">
-        <div className="rounded-2xl border p-5" style={{ background: THEME.white, borderColor: THEME.border }}>
+        <div className="rounded-2xl border p-5" style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}>
           <div className="flex items-center justify-between">
             <div className="text-[15px] font-semibold" style={{ color: THEME.textPrimary }}>
               Session history
@@ -227,7 +227,7 @@ export function SessionTimerPage() {
                         <div
                           key={sp.index}
                           className="flex items-center justify-between rounded-lg border px-3 py-2"
-                          style={{ borderColor: THEME.border, background: THEME.white }}
+                          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
                         >
                           <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
                             #{String(sp.index).padStart(2, '0')}
@@ -262,7 +262,7 @@ export function SessionTimerPage() {
       </div>
 
       <div className="mt-4 px-5 sm:px-10">
-        <details className="rounded-2xl border border-dashed p-3" style={{ background: THEME.white, borderColor: THEME.border }}>
+        <details className="rounded-2xl border border-dashed p-3" style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}>
           <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
             Post-session report — soon
           </summary>

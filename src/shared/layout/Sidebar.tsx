@@ -79,8 +79,8 @@ export function NotificationBell() {
         type="button"
         onClick={openPanel}
         aria-label={`Notifications: ${unreadCount} unread`}
-        className="flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition-colors hover:bg-zinc-50"
-        style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }}
+        className="flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition-colors hover:bg-[var(--bg-surface)]"
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }}
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
@@ -114,8 +114,8 @@ export function CoachTopRightProfileButton() {
         type="button"
         onClick={openCoachProfile}
         aria-label="Open coach profile"
-        className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition-colors hover:bg-zinc-50"
-        style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }}
+        className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition-colors hover:bg-[var(--bg-surface)]"
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
           <path d="M20 21a8 8 0 0 0-16 0" />
@@ -231,7 +231,7 @@ export function SidebarContent({
                 className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-center text-[11px] font-semibold transition-colors"
                 style={{
                   fontFamily: THEME.fontMono,
-                  background: active ? THEME.white : 'transparent',
+                  background: active ? 'var(--bg-primary)' : 'transparent',
                   color: active ? THEME.primary : THEME.textSecondary,
                   boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : undefined,
                 }}
@@ -278,7 +278,7 @@ export function SidebarContent({
               <button
                 type="button"
                 onClick={handleAddTool}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-zinc-100"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--bg-surface-raised)]"
                 style={{ color: THEME.textSecondary }}
               >
                 <AddToolIllustration size={22} muted />
@@ -298,7 +298,7 @@ export function SidebarContent({
               <button
                 type="button"
                 onClick={handleRequestTool}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-zinc-100"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--bg-surface-raised)]"
                 style={{ color: THEME.textSecondary }}
               >
                 <AddToolIllustration size={22} muted />
@@ -380,7 +380,7 @@ function SourcesParentRow({
       <button
         type="button"
         onClick={onToggle}
-        className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors hover:bg-zinc-100"
+        className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors hover:bg-[var(--bg-surface-raised)]"
         style={{
           color: active ? THEME.primary : THEME.textPrimary,
           background: active ? 'rgba(5,150,105,0.08)' : 'transparent',
@@ -458,7 +458,7 @@ function NavRow({
       className={({ isActive }) =>
         [
           'group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors',
-          isActive ? 'font-semibold' : 'font-medium hover:bg-zinc-100',
+          isActive ? 'font-semibold' : 'font-medium hover:bg-[var(--bg-surface-raised)]',
         ].join(' ')
       }
       style={({ isActive }) => ({

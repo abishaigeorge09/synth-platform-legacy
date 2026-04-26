@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { THEME } from '../../lib/theme'
@@ -35,6 +36,38 @@ import {
 import { useAthleteMediaStore } from '../../shared/store/useAthleteMediaStore'
 import { toast } from '../../shared/store/useToastStore'
 import { useThemeStore, type AppTheme } from '../../shared/store/useThemeStore'
+import { useLineupsStore } from '../../shared/store/useLineupsStore'
+import { useSessionTimerStore } from '../../shared/store/useSessionTimerStore'
+import { useVisibilitySettings } from '../../shared/store/useVisibilitySettings'
+import { create } from 'zustand'
+
+// ─── Team Messages Store ─────────────────────────────────────────────────────
+
+type TeamMsg = { id: string; from: 'coach' | 'athlete'; text: string; at: number }
+const useTeamMsgStore = create<{
+  messages: TeamMsg[]
+  send: (from: 'coach' | 'athlete', text: string) => void
+}>((set) => ({
+  messages: [
+    { id: 'm0', from: 'coach', text: "Great work in practice today, Star. Your catch timing is really clicking. Keep it going into the race.", at: Date.now() - 2 * 3600000 },
+    { id: 'm1', from: 'athlete', text: "Thanks Coach! Felt good today. Should I focus on anything specific for Saturday?", at: Date.now() - 1.5 * 3600000 },
+    { id: 'm2', from: 'coach', text: "Stay relaxed in the first 500. Don't chase the other crews. Trust your base.", at: Date.now() - 3600000 },
+  ],
+  send: (from, text) =>
+    set((s) => ({
+      messages: [...s.messages, { id: `m-${Date.now()}`, from, text, at: Date.now() }],
+    })),
+}))
+
+function fmtRelativeTime(ts: number): string {
+  const diff = Date.now() - ts
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor(diff / 60000)
+  if (hours >= 24) return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  if (hours >= 1) return `${hours}h ago`
+  if (minutes >= 1) return `${minutes}m ago`
+  return 'just now'
+}
 
 type ChatRole = 'user' | 'assistant'
 type ChatMessage = { id: number; role: ChatRole; text: string; at: number }
@@ -151,7 +184,7 @@ function Pill({
 
 function Card({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <div className={`rounded-2xl border p-5 ${className ?? ''}`} style={{ borderColor: THEME.border, background: THEME.white }} onClick={onClick}>
+    <div className={`rounded-2xl border p-5 ${className ?? ''}`} style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }} onClick={onClick}>
       {children}
     </div>
   )
@@ -220,7 +253,7 @@ function ChatBubble({ m }: { m: ChatMessage }) {
         className={`max-w-[80%] rounded-2xl border px-4 py-3 ${isUser ? 'rounded-br-md' : 'rounded-bl-md'}`}
         style={{
           borderColor: THEME.border,
-          background: isUser ? 'var(--blue-subtle)' : THEME.white,
+          background: isUser ? 'var(--blue-subtle)' : 'var(--bg-primary)',
         }}
       >
         <FormattedMessage text={m.text} />
@@ -229,22 +262,119 @@ function ChatBubble({ m }: { m: ChatMessage }) {
   )
 }
 
+const SCHEDULE_DOT_COLOR: Record<string, string> = {
+  Team: 'var(--green-primary)',
+  Exam: 'var(--amber-primary)',
+  Classes: 'var(--text-tertiary)',
+}
+
+const cardVariant = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] as const } },
+}
+
 export function MyDashboardPage() {
   const nav = useNavigate()
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle
-        kicker={DEMO_ATHLETE_PROFILE.team}
-        title={`Hey ${DEMO_ATHLETE_PROFILE.name.split(' ')[0]} — here's today`}
-        right={<Pill tone="good">Race in {TODAY_META.raceCountdown.daysAway} days</Pill>}
-      />
+    <motion.div
+      className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10"
+      initial="hidden"
+      animate="visible"
+      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
+    >
+      {/* Page header */}
+      <motion.div variants={cardVariant}>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+          {TODAY_META.dateLabel}
+        </div>
+        <div className="mt-0.5 text-[22px] font-bold" style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}>
+          Today
+        </div>
+      </motion.div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-12">
-        <Card className="lg:col-span-7">
-          <div className="text-[13px] leading-relaxed" style={{ color: THEME.textSecondary }}>
+        {/* ── Hero status card ── */}
+        <motion.div
+          variants={cardVariant}
+          className="lg:col-span-12 rounded-2xl border p-5"
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
+        >
+          {/* Avatar + identity */}
+          <div className="flex items-start gap-4">
+            <div
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[20px] font-bold"
+              style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
+            >
+              SM
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[20px] font-bold leading-tight" style={{ color: THEME.textPrimary }}>
+                {DEMO_ATHLETE_PROFILE.name}
+              </div>
+              <div className="mt-0.5 text-[13px]" style={{ color: THEME.textSecondary }}>
+                {DEMO_ATHLETE_PROFILE.team} · {DEMO_ATHLETE_PROFILE.side} · {DEMO_ATHLETE_PROFILE.year}
+              </div>
+            </div>
+            <Pill tone="good">Race in {TODAY_META.raceCountdown.daysAway} days</Pill>
+          </div>
+
+          {/* Stat pods */}
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            {/* 2K BEST */}
+            <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                2K Best
+              </div>
+              <div className="mt-2 text-[28px] font-bold leading-none" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
+                6:44.9
+              </div>
+              <div className="mt-1 text-[12px] font-semibold" style={{ color: 'var(--green-primary)' }}>
+                -1.7s YOY
+              </div>
+            </div>
+
+            {/* RECOVERY */}
+            <div className="flex flex-col rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                Recovery
+              </div>
+              <div className="mt-2 flex items-center justify-center">
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-[22px] font-bold"
+                  style={{
+                    fontFamily: THEME.fontMono,
+                    color: 'var(--amber-primary)',
+                    background: 'var(--amber-subtle)',
+                    border: '3px solid var(--amber-primary)',
+                  }}
+                >
+                  72
+                </div>
+              </div>
+            </div>
+
+            {/* STREAK */}
+            <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                Streak
+              </div>
+              <div className="mt-2 text-[28px] font-bold leading-none" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
+                13 days
+              </div>
+              <div className="mt-1 text-[12px]" style={{ color: THEME.textMuted }}>
+                wellness
+              </div>
+            </div>
+          </div>
+
+          {/* Contextual sentence */}
+          <div className="mt-4 text-[14px]" style={{ color: THEME.textSecondary }}>
             {TODAY_STATUS_SENTENCE}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+
+          {/* Quick actions */}
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50"
@@ -265,69 +395,104 @@ export function MyDashboardPage() {
               type="button"
               className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50"
               style={{ borderColor: THEME.border, color: THEME.textPrimary }}
-              onClick={() => nav('/athlete/ai')}
+              onClick={() => nav('/athlete/chat')}
             >
               Ask synth.
             </button>
           </div>
-        </Card>
+        </motion.div>
 
-        <Card className="lg:col-span-5">
+        {/* ── Schedule ── */}
+        <motion.div
+          variants={cardVariant}
+          className="lg:col-span-7 rounded-2xl border p-5"
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
+        >
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            Schedule
+            Today's schedule
           </div>
           <div className="mt-4 space-y-3">
             {TODAY_SCHEDULE.map((e) => (
               <div key={e.time} className="flex items-start gap-3">
-                <div className="mt-0.5 w-[70px] text-[12px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                <div className="mt-0.5 w-[68px] shrink-0 text-[12px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
                   {e.time}
                 </div>
+                <div
+                  className="mt-[6px] h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: SCHEDULE_DOT_COLOR[e.type] ?? THEME.textMuted }}
+                />
                 <div className="flex-1">
                   <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
                     {e.title}
                   </div>
-                  <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
+                  <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
                     {e.type}
                   </div>
                 </div>
-                {/* Demo schedule data has no flags yet */}
               </div>
             ))}
           </div>
-        </Card>
 
-        <Card className="lg:col-span-12">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-                Latest coach feedback
-              </div>
-              <div className="mt-2 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>
-                Coach note • {LATEST_COACH_FEEDBACK.date}
-              </div>
-              <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>
-                {LATEST_COACH_FEEDBACK.quote}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {LATEST_COACH_FEEDBACK.focusPoints.map((f) => (
-                  <Pill key={f.label} tone="neutral">
-                    {f.label}
-                  </Pill>
-                ))}
-              </div>
+          {/* Race countdown */}
+          <div
+            className="mt-5 rounded-xl border-l-4 p-3"
+            style={{ borderLeftColor: 'var(--green-primary)', background: 'var(--green-subtle)' }}
+          >
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ fontFamily: THEME.fontMono, color: 'var(--green-primary)' }}>
+              Cal Invite Regatta — Saturday
             </div>
-            <button
-              type="button"
-              className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50"
-              style={{ borderColor: THEME.border, color: THEME.textPrimary }}
-              onClick={() => nav('/athlete/progress')}
-            >
-              View history →
-            </button>
+            <div className="mt-0.5 text-[12px]" style={{ color: THEME.textSecondary }}>
+              V8 Seat 3 (Port) · {TODAY_META.raceCountdown.daysAway} days away
+            </div>
           </div>
-        </Card>
+        </motion.div>
+
+        {/* ── Coach feedback ── */}
+        <motion.div
+          variants={cardVariant}
+          className="lg:col-span-5 rounded-2xl border p-5"
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
+        >
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+            Latest from coach
+          </div>
+          <div
+            className="mt-3 rounded-xl border-l-4 p-4"
+            style={{ borderLeftColor: 'var(--purple-primary)', background: 'var(--bg-surface)' }}
+          >
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: 'var(--purple-primary)' }}>
+              Coach note · {LATEST_COACH_FEEDBACK.date}
+            </div>
+            <div className="mt-2 text-[13px] leading-relaxed" style={{ color: THEME.textPrimary }}>
+              {LATEST_COACH_FEEDBACK.quote}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {LATEST_COACH_FEEDBACK.focusPoints.map((f) => (
+                <span
+                  key={f.label}
+                  className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                  style={{
+                    borderColor: f.status === 'improved' ? 'var(--green-primary)' : 'var(--amber-primary)',
+                    color: f.status === 'improved' ? 'var(--green-primary)' : 'var(--amber-primary)',
+                    background: f.status === 'improved' ? 'var(--green-subtle)' : 'var(--amber-subtle)',
+                  }}
+                >
+                  {f.label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="mt-3 text-[12px] font-semibold hover:underline"
+            style={{ color: THEME.textSecondary }}
+            onClick={() => nav('/athlete/progress')}
+          >
+            View feedback history →
+          </button>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -460,7 +625,7 @@ export function MyRecordPage() {
           type="button"
           onClick={() => setTab('form')}
           className="rounded-xl border px-3 py-2 text-[12px] font-semibold"
-          style={{ borderColor: THEME.border, background: tab === 'form' ? THEME.light : THEME.white }}
+          style={{ borderColor: THEME.border, background: tab === 'form' ? THEME.light : 'var(--bg-primary)' }}
         >
           Record form
         </button>
@@ -468,7 +633,7 @@ export function MyRecordPage() {
           type="button"
           onClick={() => setTab('score')}
           className="rounded-xl border px-3 py-2 text-[12px] font-semibold"
-          style={{ borderColor: THEME.border, background: tab === 'score' ? THEME.light : THEME.white }}
+          style={{ borderColor: THEME.border, background: tab === 'score' ? THEME.light : 'var(--bg-primary)' }}
         >
           Log score
         </button>
@@ -620,9 +785,14 @@ function RecordFormPanel() {
             </button>
           </>
         )}
-        <div className="ml-auto text-[12px]" style={{ color: THEME.textMuted }}>
-          Analyze with AI: coming soon
-        </div>
+        <button
+          type="button"
+          className="ml-auto rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50"
+          style={{ borderColor: THEME.border, color: THEME.textSecondary }}
+          onClick={() => { window.location.href = '/athlete/chat' }}
+        >
+          Analyze with AI →
+        </button>
       </div>
     </Card>
   )
@@ -641,11 +811,11 @@ function LogScorePanel() {
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <label className="text-[12px]" style={{ color: THEME.textSecondary }}>
           Split
-          <input value={split} onChange={(e) => setSplit(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
+          <input value={split} onChange={(e) => setSplit(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
         </label>
         <label className="text-[12px]" style={{ color: THEME.textSecondary }}>
           Distance (m)
-          <input value={distance} onChange={(e) => setDistance(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
+          <input value={distance} onChange={(e) => setDistance(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
         </label>
         <label className="text-[12px]" style={{ color: THEME.textSecondary }}>
           Photo
@@ -656,7 +826,7 @@ function LogScorePanel() {
       </div>
       <label className="mt-3 block text-[12px]" style={{ color: THEME.textSecondary }}>
         Notes
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" rows={3} style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }} />
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" rows={3} style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }} />
       </label>
       <div className="mt-4 flex justify-end">
         <button type="button" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={save}>
@@ -668,9 +838,22 @@ function LogScorePanel() {
 }
 
 export function MyWorkbookPage() {
+  const vis = useVisibilitySettings()
   const [activeSheet, setActiveSheet] = useState<keyof typeof WORKBOOK_SHEETS>(WORKBOOK_TABS[0])
   const rows = WORKBOOK_SHEETS[activeSheet]
   const cols = activeSheet === 'Erg Log' ? WORKBOOK_COLUMNS : activeSheet === "8.25 30'" ? ['Side', 'Athlete', 'Meters', 'Split', 'Watts', 'SPM'] : ['Side', 'Athlete', 'P1', 'P2', 'P3', 'SPM']
+
+  if (!vis.showErgRankings) {
+    return (
+      <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
+        <SectionTitle kicker="Erg workbook" title="Team sheet" />
+        <div className="mt-5 rounded-2xl border border-dashed p-8 text-center" style={{ borderColor: THEME.border }}>
+          <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>Team workbook not enabled</div>
+          <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>Your coach hasn't enabled team erg rankings. Ask them to turn it on in Settings.</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
@@ -681,7 +864,7 @@ export function MyWorkbookPage() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl border" style={{ borderColor: THEME.border, background: '#fff' }}>
+      <div className="mt-5 overflow-hidden rounded-2xl border" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="overflow-x-auto">
           <table className="w-full text-left" style={{ fontFamily: 'Arial, sans-serif', fontSize: 13 }}>
             <thead>
@@ -749,12 +932,40 @@ export function MyWorkbookPage() {
   )
 }
 
+/** Format milliseconds as M:SS.d (e.g. 1:23.4) */
+function fmtMs(ms: number) {
+  const m = Math.floor(ms / 60000)
+  const s = ((ms % 60000) / 1000).toFixed(1)
+  const sPadded = String(Math.floor(Number(s))).padStart(2, '0')
+  const tenths = (ms % 1000 / 100).toFixed(0)
+  return `${m}:${sPadded}.${tenths}`
+}
+
 export function MySessionsPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'race' | 'steady' | 'drill'>('all')
 
-  const filtered = SESSION_ENTRIES.filter((s) => {
+  const timerHistory = useSessionTimerStore((s) => s.history)
+
+  /** Convert timer history entries to the same shape as SESSION_ENTRIES */
+  const timerSessions = timerHistory.map((entry) => ({
+    id: entry.id,
+    date: fmtDateShort(entry.createdAt),
+    title: `${entry.boatName} · timer session`,
+    detail: `${entry.splits.length} split${entry.splits.length !== 1 ? 's' : ''}`,
+    splits: entry.splits.map((sp) => fmtMs(sp.intervalMs)),
+    notes: `Recorded via Session Timer · ${entry.boatName}`,
+    isTimer: true,
+  }))
+
+  const allSessions = [
+    ...timerSessions,
+    ...SESSION_ENTRIES.map((s) => ({ ...s, isTimer: false })),
+  ]
+
+  const filtered = allSessions.filter((s) => {
     if (filter === 'all') return true
+    if (s.isTimer) return false // timer sessions only show in 'all' filter
     if (filter === 'race') return s.title.toLowerCase().includes('race') || s.title.toLowerCase().includes('power') || s.title.toLowerCase().includes('2k')
     if (filter === 'steady') return s.title.toLowerCase().includes('steady') || s.title.toLowerCase().includes('ut2')
     return s.title.toLowerCase().includes('drill') || s.title.toLowerCase().includes('technical') || s.title.toLowerCase().includes('rate')
@@ -766,7 +977,7 @@ export function MySessionsPage() {
 
       <div className="mt-4 grid grid-cols-4 gap-3">
         {[
-          { label: 'Total', value: String(SESSION_ENTRIES.length) },
+          { label: 'Total', value: String(allSessions.length) },
           { label: 'On-water', value: '5' },
           { label: 'Erg', value: '2' },
           { label: 'Drills', value: '1' },
@@ -785,7 +996,7 @@ export function MySessionsPage() {
             type="button"
             onClick={() => setFilter(f)}
             className="rounded-xl border px-3 py-2 text-[12px] font-semibold"
-            style={{ borderColor: THEME.border, background: filter === f ? THEME.light : THEME.white }}
+            style={{ borderColor: THEME.border, background: filter === f ? THEME.light : 'var(--bg-primary)' }}
           >
             {f === 'all' ? 'All' : f === 'race' ? 'Race pieces' : f === 'steady' ? 'Steady state' : 'Drills'}
           </button>
@@ -799,7 +1010,17 @@ export function MySessionsPage() {
             <Card key={s.id} className="cursor-pointer" onClick={() => setExpanded(isOpen ? null : s.id)}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{s.date}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{s.date}</div>
+                    {s.isTimer && (
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                        style={{ borderColor: 'rgba(16,185,129,0.35)', color: THEME.accent, background: 'rgba(16,185,129,0.08)', fontFamily: THEME.fontMono }}
+                      >
+                        Timer
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{s.title}</div>
                   <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>{s.detail}</div>
                 </div>
@@ -840,8 +1061,22 @@ export function MySessionsPage() {
   )
 }
 
+const STAR_MILLER_ID = 'a-miller'
+const STAR_MILLER_NAME = 'Star Miller'
+
 export function MyLineupsPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  const publishedFromStore = useLineupsStore((s) => s.published)
+
+  /** Filter store lineups to those containing Star Miller by athleteId */
+  const storeCards = [...publishedFromStore]
+    .filter((pl) =>
+      pl.boats.some((b) => b.seats.some((s) => s.athleteId === STAR_MILLER_ID)),
+    )
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+
+  const totalLineups = storeCards.length + LINEUP_ENTRIES.length
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
@@ -857,12 +1092,80 @@ export function MyLineupsPage() {
           <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>V8</div>
         </div>
         <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.light }}>
-          <div className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Streak</div>
-          <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>4 lineups</div>
+          <div className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Total lineups</div>
+          <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>{totalLineups}</div>
         </div>
       </div>
 
       <div className="mt-5 space-y-4">
+        {/* Published lineups from coach (store), newest first — only when Star Miller is seated */}
+        {storeCards.map((pl) => {
+          const isOpen = expanded === pl.id
+          const starSeat = pl.boats
+            .flatMap((b) => b.seats.filter((s) => s.athleteId === STAR_MILLER_ID).map((s) => ({ ...s, boatName: b.name })))
+            [0]
+          const seatSummary = starSeat
+            ? `Seat ${starSeat.seatNumber} · ${starSeat.side} · ${starSeat.boatName}`
+            : 'Seat assigned'
+          const dateLabel = new Date(pl.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+
+          return (
+            <Card key={pl.id} className="cursor-pointer" onClick={() => setExpanded(isOpen ? null : pl.id)}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{dateLabel}</div>
+                  <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{pl.sessionTitle}</div>
+                  <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>{seatSummary}</div>
+                  {pl.note && <div className="mt-0.5 text-[11px]" style={{ color: THEME.textMuted }}>{pl.note}</div>}
+                </div>
+                <Pill tone="good">Published</Pill>
+              </div>
+              {isOpen && pl.boats.length > 0 && (
+                <div className="mt-4 border-t pt-4" style={{ borderColor: THEME.border }}>
+                  {pl.boats.map((boat) => (
+                    <div key={boat.id} className="mb-4 last:mb-0">
+                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                        {boat.name}
+                      </div>
+                      <div className="overflow-hidden rounded-xl border" style={{ borderColor: THEME.border }}>
+                        <table className="w-full text-left text-[12px]">
+                          <thead style={{ background: THEME.light }}>
+                            <tr>
+                              <th className="px-3 py-2 w-16">Seat</th>
+                              <th className="px-3 py-2 w-16">Side</th>
+                              <th className="px-3 py-2">Athlete</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {boat.seats.map((s) => {
+                              const isStarMiller = s.athleteId === STAR_MILLER_ID
+                              const seatLabel = s.isCox ? 'Cox' : String(s.seatNumber)
+                              return (
+                                <tr
+                                  key={`${s.seatNumber}-${s.side}`}
+                                  className="border-t"
+                                  style={{ borderColor: THEME.border, background: isStarMiller ? '#e6f4ea' : 'transparent' }}
+                                >
+                                  <td className="px-3 py-1.5" style={{ fontFamily: THEME.fontMono, fontWeight: 600 }}>{seatLabel}</td>
+                                  <td className="px-3 py-1.5" style={{ color: THEME.textSecondary }}>{s.side}</td>
+                                  <td className="px-3 py-1.5" style={{ fontWeight: isStarMiller ? 600 : 400, color: THEME.textPrimary }}>
+                                    {isStarMiller ? `★ ${STAR_MILLER_NAME}` : (s.athleteId ?? '—')}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )
+        })}
+
+        {/* Seed lineup entries (always shown) */}
         {LINEUP_ENTRIES.map((l) => {
           const isOpen = expanded === l.id
           return (
@@ -918,15 +1221,31 @@ export function MyLineupsPage() {
 }
 
 export function MyChatPage() {
+  const [chatTab, setChatTab] = useState<'ai' | 'messages'>('ai')
+
+  // AI chat state
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const msgIdRef = useRef(1)
 
+  // Team messages state
+  const teamMessages = useTeamMsgStore((s) => s.messages)
+  const sendTeamMsg = useTeamMsgStore((s) => s.send)
+  const [teamInput, setTeamInput] = useState('')
+  const [teamSearch, setTeamSearch] = useState('')
+  const teamBottomRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length, isTyping])
+
+  useEffect(() => {
+    if (chatTab === 'messages') {
+      teamBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [teamMessages.length, chatTab])
 
   const send = (text: string) => {
     const t = text.trim()
@@ -943,50 +1262,157 @@ export function MyChatPage() {
     }, 650)
   }
 
+  const handleSendTeam = () => {
+    const t = teamInput.trim()
+    if (!t) return
+    sendTeamMsg('athlete', t)
+    setTeamInput('')
+  }
+
+  const filteredTeamMessages = teamSearch.trim()
+    ? teamMessages.filter((m) => m.text.toLowerCase().includes(teamSearch.toLowerCase()))
+    : teamMessages
+
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle kicker="synth. AI" title="Ask anything" />
+      <SectionTitle kicker="Chat" title="Messages" />
 
-      <Card className="mt-5">
-        {messages.length === 0 ? (
-          <div className="py-3">
-            <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>
-              What do you want to know right now?
-            </div>
-            <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>
-              Tap a prompt to start.
-            </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {['Race plan for tomorrow', 'What should I focus on today?', 'How is my recovery?', 'How do I improve my 2K?'].map((p) => (
-                <button key={p} type="button" className="rounded-xl border px-3 py-3 text-left text-[13px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={() => send(p)}>
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {messages.map((m) => (
-              <ChatBubble key={m.id} m={m} />
-            ))}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl border px-4 py-3" style={{ borderColor: THEME.border, background: THEME.white }}>
-                  <TypingIndicator />
-                </div>
+      {/* Tab switcher */}
+      <div className="mt-4 flex gap-2">
+        {(['ai', 'messages'] as const).map((tab) => {
+          const active = chatTab === tab
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setChatTab(tab)}
+              className="rounded-full border px-4 py-2 text-[12px] font-semibold transition-colors"
+              style={{
+                fontFamily: THEME.fontMono,
+                borderColor: active ? THEME.primary : THEME.border,
+                background: active ? `${THEME.primary}14` : 'var(--bg-primary)',
+                color: active ? THEME.primary : THEME.textSecondary,
+              }}
+            >
+              {tab === 'ai' ? 'synth. AI' : 'Team Messages'}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* AI Tab */}
+      {chatTab === 'ai' && (
+        <Card className="mt-4">
+          {messages.length === 0 ? (
+            <div className="py-3">
+              <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>
+                What do you want to know right now?
               </div>
-            )}
-            <div ref={bottomRef} />
+              <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>
+                Tap a prompt to start.
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {['Race plan for tomorrow', 'What should I focus on today?', 'How is my recovery?', 'How do I improve my 2K?'].map((p) => (
+                  <button key={p} type="button" className="rounded-xl border px-3 py-3 text-left text-[13px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={() => send(p)}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {messages.map((m) => (
+                <ChatBubble key={m.id} m={m} />
+              ))}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="rounded-2xl border px-4 py-3" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
+                    <TypingIndicator />
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+          )}
+          <div className="mt-4 flex gap-2">
+            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(input) }} className="flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }} placeholder="Ask synth…" />
+            <button type="button" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={() => send(input)}>
+              Send
+            </button>
           </div>
-        )}
+        </Card>
+      )}
 
-        <div className="mt-4 flex gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(input) }} className="flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }} placeholder="Ask synth…" />
-          <button type="button" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={() => send(input)}>
-            Send
-          </button>
-        </div>
-      </Card>
+      {/* Team Messages Tab */}
+      {chatTab === 'messages' && (
+        <Card className="mt-4">
+          {/* Search */}
+          <input
+            value={teamSearch}
+            onChange={(e) => setTeamSearch(e.target.value)}
+            placeholder="Search messages…"
+            className="w-full rounded-xl border px-3 py-2 text-[13px] outline-none"
+            style={{ borderColor: THEME.border, background: THEME.light, color: THEME.textPrimary }}
+          />
+
+          {/* Messages */}
+          <div className="synth-scroll mt-4 flex max-h-[400px] flex-col gap-3 overflow-y-auto pr-1">
+            {filteredTeamMessages.map((m) => {
+              const isMe = m.from === 'athlete'
+              return (
+                <div key={m.id} className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+                  <div
+                    className="text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+                  >
+                    {isMe ? 'Me' : 'Coach'} · {fmtRelativeTime(m.at)}
+                  </div>
+                  <div
+                    className="max-w-[80%] rounded-2xl px-4 py-2.5 text-[13px]"
+                    style={{
+                      background: isMe ? `${THEME.primary}18` : 'var(--bg-primary)',
+                      border: `1px solid ${isMe ? THEME.primary + '40' : THEME.border}`,
+                      color: THEME.textPrimary,
+                    }}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              )
+            })}
+            <div ref={teamBottomRef} />
+          </div>
+
+          {/* Input bar */}
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              className="rounded-xl border px-3 py-2 text-[12px] transition-colors hover:bg-zinc-50"
+              style={{ borderColor: THEME.border, color: THEME.textMuted }}
+              onClick={() => toast('Image upload coming soon', 'info')}
+              aria-label="Upload image"
+            >
+              📎
+            </button>
+            <input
+              value={teamInput}
+              onChange={(e) => setTeamInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSendTeam() }}
+              className="flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none"
+              style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }}
+              placeholder="Message your coach…"
+            />
+            <button
+              type="button"
+              className="rounded-xl px-4 py-2 text-[12px] font-semibold transition-colors"
+              style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
+              onClick={handleSendTeam}
+            >
+              Send
+            </button>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }
@@ -1031,7 +1457,7 @@ export function MySettingsPage() {
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {(['system', 'light', 'dark'] as const).map((t) => (
-              <button key={t} type="button" onClick={() => setTheme(t as AppTheme)} className="rounded-xl border px-3 py-2 text-[12px] font-semibold" style={{ borderColor: THEME.border, background: theme === t ? THEME.light : THEME.white }}>
+              <button key={t} type="button" onClick={() => setTheme(t as AppTheme)} className="rounded-xl border px-3 py-2 text-[12px] font-semibold" style={{ borderColor: THEME.border, background: theme === t ? THEME.light : 'var(--bg-primary)' }}>
                 {t[0].toUpperCase() + t.slice(1)}
               </button>
             ))}
@@ -1096,6 +1522,7 @@ export function MySettingsPage() {
 
 export function AthleteSourcesConnectorsPage() {
   const nav = useNavigate()
+  const vis = useVisibilitySettings()
   const [whoopConnected, setWhoopConnected] = useState(readWhoopConnected())
 
   const toggleWhoop = () => {
@@ -1103,6 +1530,18 @@ export function AthleteSourcesConnectorsPage() {
     setWhoopConnected(next)
     writeWhoopConnected(next)
     toast(next ? 'Whoop connected (demo)' : 'Whoop disconnected (demo)', 'success')
+  }
+
+  if (!vis.allowPersonalSources) {
+    return (
+      <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
+        <SectionTitle kicker="Sources" title="Connectors" />
+        <div className="mt-5 rounded-2xl border border-dashed p-8 text-center" style={{ borderColor: THEME.border }}>
+          <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>Personal sources not enabled</div>
+          <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>Your coach hasn't enabled personal source connections for this team.</div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -1174,11 +1613,11 @@ export function AthleteSourcesConnectorsPage() {
                   {n}
                 </div>
                 <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
-                  Coming soon (demo)
+                  Available via synth. Agent
                 </div>
                 <div className="mt-3">
-                  <button type="button" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={() => toast('Not available in demo yet', 'info')}>
-                    Connect
+                  <button type="button" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textSecondary }} disabled>
+                    Connect — via coach
                   </button>
                 </div>
               </div>
@@ -1224,7 +1663,7 @@ function AthleteSourceShell({
   if (!s) return <>{children}</>
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div>
           <div className="flex items-center gap-2 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>
             <SourceDot color={s.color} />
@@ -1283,7 +1722,7 @@ function AthleteWorkflowBoard({ onSelectTab }: { onSelectTab: (t: AthleteDataVie
   return (
     <div className="grid gap-5 lg:grid-cols-12">
       <div className="lg:col-span-8">
-        <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
@@ -1352,7 +1791,7 @@ function AthleteWorkflowBoard({ onSelectTab }: { onSelectTab: (t: AthleteDataVie
       </div>
 
       <div className="lg:col-span-4 space-y-5">
-        <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Source health
           </div>
@@ -1387,7 +1826,7 @@ function AthleteWorkflowBoard({ onSelectTab }: { onSelectTab: (t: AthleteDataVie
           </div>
         </div>
 
-        <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Inference log
           </div>
@@ -1439,7 +1878,7 @@ function AthleteDataViewAiPanel({ tab }: { tab: AthleteDataViewTabId }) {
   }
 
   return (
-    <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-2xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           synth. AI
@@ -1660,7 +2099,7 @@ export function AthleteSourcesDataViewPage() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 h-56 rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.white }}>
+                <div className="mt-4 h-56 rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={ATHLETE_BIOMETRICS}>
                       <CartesianGrid stroke={THEME.border} strokeDasharray="4 6" />
@@ -1741,7 +2180,7 @@ export function AthleteSourcesDataViewPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 h-56 rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.white }}>
+                  <div className="mt-4 h-56 rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={ATHLETE_BIOMETRICS}>
                         <CartesianGrid stroke={THEME.border} strokeDasharray="4 6" />

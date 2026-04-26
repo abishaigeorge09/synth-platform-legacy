@@ -180,7 +180,7 @@ export function MyDashboardPage() {
 
         <div
           className="rounded-2xl border p-5"
-          style={{ background: THEME.white, borderColor: THEME.border }}
+          style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
         >
           <div
             className="text-[9px] font-semibold uppercase tracking-[0.18em]"
@@ -250,7 +250,7 @@ export function MyDashboardPage() {
             borderColor: THEME.primary,
             color: THEME.primary,
             fontFamily: THEME.fontMono,
-            background: THEME.white,
+            background: 'var(--bg-primary)',
           }}
         >
           See my full stats →
@@ -275,7 +275,7 @@ function QuickTile({
     <div
       className="rounded-xl border p-4"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         borderLeft: `3px solid ${color}`,
       }}
@@ -313,7 +313,7 @@ export function MyStatsPage() {
     >
       <div className="grid gap-4 px-5 sm:px-10 xl:grid-cols-[1.4fr_1fr]">
         {yoy ? (
-          <div className="rounded-2xl border p-5" style={{ background: THEME.white, borderColor: THEME.border }}>
+          <div className="rounded-2xl border p-5" style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}>
             <div
               className="text-[9px] font-semibold uppercase tracking-[0.18em]"
               style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
@@ -350,7 +350,7 @@ export function MyStatsPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      background: THEME.white,
+                      background: 'var(--bg-primary)',
                       border: `1px solid ${THEME.border}`,
                       borderRadius: 8,
                       fontFamily: THEME.fontMono,
@@ -373,7 +373,7 @@ export function MyStatsPage() {
         ) : (
           <div
             className="flex h-[240px] items-center justify-center rounded-2xl border border-dashed p-5 text-center text-[12px]"
-            style={{ borderColor: THEME.border, color: THEME.textMuted, background: THEME.white }}
+            style={{ borderColor: THEME.border, color: THEME.textMuted, background: 'var(--bg-primary)' }}
           >
             No prior test data yet. Your first 2K will appear here.
           </div>
@@ -405,7 +405,7 @@ function StatCard({ label, value, detail }: { label: string; value: string; deta
   return (
     <div
       className="rounded-xl border p-4"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <div
         className="text-[9px] font-semibold uppercase tracking-[0.18em]"
@@ -444,7 +444,7 @@ export function MySessionsPage() {
             <li
               key={s.id}
               className="rounded-2xl border p-5"
-              style={{ background: THEME.white, borderColor: THEME.border }}
+              style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -505,7 +505,7 @@ export function MyLineupsPage() {
               key={l.id}
               className="flex items-center justify-between rounded-lg border px-4 py-3"
               style={{
-                background: THEME.white,
+                background: 'var(--bg-primary)',
                 borderColor: THEME.border,
                 borderLeft: `3px solid ${l.side === 'port' ? THEME.cyan : THEME.purple}`,
               }}
@@ -559,7 +559,7 @@ export function MySourcesPage() {
           <div
             key={s.id}
             className="flex items-center justify-between rounded-2xl border p-5"
-            style={{ background: THEME.white, borderColor: THEME.border }}
+            style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
           >
             <div>
               <div
@@ -590,7 +590,7 @@ export function MySourcesPage() {
 
         <div
           className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-8 text-center"
-          style={{ borderColor: THEME.border, background: THEME.white }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
         >
           <div
             className="text-[10px] font-semibold uppercase tracking-[0.18em]"
@@ -644,7 +644,7 @@ export function AthleteSettingsPage() {
       <div className="px-5 sm:px-10">
         <div
           className="max-w-[640px] rounded-2xl border"
-          style={{ background: THEME.white, borderColor: THEME.border }}
+          style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
         >
           {toggles.map((t, i) => (
             <div

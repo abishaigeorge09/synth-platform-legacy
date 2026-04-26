@@ -139,13 +139,13 @@ function DrawerPanel({ close }: { close: () => void }) {
       exit={{ x: -340, opacity: 0.4 }}
       transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
       className="relative h-full w-[86vw] max-w-[320px] overflow-y-auto border-r shadow-2xl"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <button
         type="button"
         onClick={close}
         aria-label="Close menu"
-        className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-zinc-50"
+        className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-[var(--bg-surface)]"
         style={{ borderColor: THEME.border, color: THEME.textSecondary }}
       >
         ✕

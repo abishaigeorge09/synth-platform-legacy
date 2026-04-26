@@ -1,238 +1,637 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { THEME } from '../../lib/theme'
-import { STAGGER } from '../../lib/motion'
 import { useInstallPrompt } from './useInstallPrompt'
 import { Hero3D } from './Hero3D'
-import {
-  DashboardIllustration,
-  AthletesIllustration,
-  SourcesIllustration,
-  LineupsIllustration,
-  SessionTimerIllustration,
-  SynthAiIllustration,
-} from '../../shared/illustrations/sidebarIllustrations'
+import { MockConnect, MockSynthesize, MockDashboard, MockAthleteView, MockAI } from './StepMockups'
 
-/* ─── Data ────────────────────────────────────────────────────────────── */
+/* ─── Dark-section constants ──────────────────────────────────────────── */
 
-type Feature = {
-  kicker: string
-  title: string
-  body: string
-  Glyph: React.ComponentType<{ size?: number }>
+const BG        = '#000000'
+const SURFACE   = '#0a0a0a'
+const CARD      = '#0f0f10'
+const BORDER    = 'rgba(255,255,255,0.07)'
+const BORDER_HI = 'rgba(255,255,255,0.13)'
+const T1        = '#ffffff'
+const T2        = 'rgba(255,255,255,0.50)'
+const T3        = 'rgba(255,255,255,0.25)'
+const GREEN     = '#10B981'
+const G_DIM     = 'rgba(16,185,129,0.10)'
+const G_GLOW    = 'rgba(16,185,129,0.22)'
+const FONT_MONO = THEME.fontMono
+const FONT_SERIF = THEME.fontSerif
+
+const SPORTS = ['Rowing', 'Track & Field', 'Swimming', 'Baseball / Softball', 'Basketball', 'Soccer', 'Other']
+
+type Step = {
+  num: string
+  label: string
+  desc: string
+  url: string
+  Mockup: React.ComponentType
 }
 
-const FEATURES: Feature[] = [
-  {
-    kicker: '01',
-    title: 'Unified coach dashboard',
-    body: 'Every athlete, every signal, one surface. Roster health, compliance, wellness, and alerts rolled up from every connector.',
-    Glyph: DashboardIllustration,
-  },
-  {
-    kicker: '02',
-    title: 'Connect once, it updates forever',
-    body: 'OAuth Sheets, TeamWorks, Whoop, Slack, or browser-extension scrape. Scheduled scans write clean markdown reports.',
-    Glyph: SourcesIllustration,
-  },
-  {
-    kicker: '03',
-    title: 'Rank, drill, decide',
-    body: '52-athlete rosters sortable by 2K, watts, side. Click any card to open a full profile with trend charts and scoped AI.',
-    Glyph: AthletesIllustration,
-  },
-  {
-    kicker: '04',
-    title: 'Sport-specific custom tools',
-    body: 'Lineups, session timers, practice planners. Drag athletes into boats, publish with one tap, notify the roster.',
-    Glyph: LineupsIllustration,
-  },
-  {
-    kicker: '05',
-    title: 'Strava-style piece timer',
-    body: 'Sub-100ms clock per boat, multi-boat swipe, splits that flow back into the dashboard and each athlete profile.',
-    Glyph: SessionTimerIllustration,
-  },
-  {
-    kicker: '06',
-    title: 'synth. AI with citations',
-    body: 'Team-wide, athlete-scoped, or athlete-own. Every answer carries the source rows it drew from. No black-box insights.',
-    Glyph: SynthAiIllustration,
-  },
-]
-
-const TIERS = [
-  {
-    name: 'Pilot',
-    price: '$0',
-    period: 'free for the first 3 programs',
-    bullets: ['Up to 1 team', '3 connectors', 'Email support'],
-    cta: 'Join pilot',
-    featured: false,
-  },
-  {
-    name: 'Club',
-    price: '$199',
-    period: 'per team / month',
-    bullets: ['Up to 60 athletes', 'All connectors', 'synth. Agent extension', 'Priority support'],
-    cta: 'Start trial',
-    featured: true,
-  },
-  {
-    name: 'Program',
-    price: '$499',
-    period: 'per program / month',
-    bullets: ['Multi-team', 'Custom tools', 'SSO + audit', 'Dedicated onboarding'],
-    cta: 'Talk to us',
-    featured: false,
-  },
-]
-
-const STEPS = [
+const STEPS: Step[] = [
   {
     num: '01',
-    title: 'Connect your tools',
-    body: 'Link the spreadsheets, wearables, team-ops apps, and calendars your program already uses. OAuth handshake or browser extension — done in 60 seconds.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke={THEME.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="7" cy="14" r="3" />
-        <circle cx="21" cy="7" r="3" />
-        <circle cx="21" cy="21" r="3" />
-        <path d="M10 13 L18 8" />
-        <path d="M10 15 L18 20" />
-      </svg>
-    ),
+    label: 'Connect your sources',
+    desc: 'Link Google Sheets, TeamWorks, Whoop, Strava, and Apple Health in 60 seconds. OAuth handshake — no rip-and-replace.',
+    url: 'synthsports.com/coach/sources',
+    Mockup: MockConnect,
   },
   {
     num: '02',
-    title: 'synth. scrapes & synthesizes',
-    body: 'Scheduled scans pull fresh data from every source. The intelligence layer computes training load, recovery readiness, risk flags, and trend lines across the entire roster.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke={THEME.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="4" y="4" width="20" height="20" rx="4" />
-        <path d="M9 18 L12 12 L16 15 L20 8" />
-        <circle cx="20" cy="8" r="1.5" fill={THEME.primary} stroke="none" />
-      </svg>
-    ),
+    label: 'synth. synthesizes',
+    desc: 'Scheduled scans pull fresh data. The engine normalises athletes, computes training load, recovery readiness, and risk flags.',
+    url: 'synthsports.com/coach/sources/data-view',
+    Mockup: MockSynthesize,
   },
   {
     num: '03',
-    title: 'Coach and athletes act',
-    body: 'One dashboard for the coach, one view for the athlete. Build lineups, time sessions, ask the AI — every action is grounded in real data with provenance.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke={THEME.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 4 L14 12" />
-        <path d="M8 8 L14 12 L20 8" />
-        <rect x="4" y="16" width="8" height="8" rx="2" />
-        <rect x="16" y="16" width="8" height="8" rx="2" />
-        <path d="M14 12 L8 16" />
-        <path d="M14 12 L20 16" />
-      </svg>
-    ),
+    label: 'Coach from one surface',
+    desc: 'Every athlete, every signal in one dashboard. Sort by 2K, wellness, compliance. Build lineups with drag-and-drop.',
+    url: 'synthsports.com/coach/dashboard',
+    Mockup: MockDashboard,
+  },
+  {
+    num: '04',
+    label: 'Athletes see their view',
+    desc: 'Athletes join via invite code. They see their schedule, stats, lineups, coach feedback — nothing else unless you share it.',
+    url: 'synthsports.com/athlete/today',
+    Mockup: MockAthleteView,
+  },
+  {
+    num: '05',
+    label: 'Ask synth. AI',
+    desc: 'Team-wide or athlete-scoped. Every answer carries the exact source rows it drew from — full provenance, no black box.',
+    url: 'synthsports.com/coach/ai',
+    Mockup: MockAI,
   },
 ]
 
-const FAQS: { q: string; a: string }[] = [
-  {
-    q: 'What data sources does synth. connect to?',
-    a: 'Google Sheets, Concept2 Logbook, Strava, Apple Health, Whoop, Garmin, Oura, Google Calendar, TrainingPeaks, TeamWorks, and Slack. For anything without an API, the synth. Agent browser extension or AI import (photo, voice, paste) fills the gap.',
-  },
-  {
-    q: 'Is my data safe? Where is it stored?',
-    a: 'All data is stored in a dedicated Supabase (Postgres) instance with row-level security. Coaches see their team only. Athletes see their own data plus what the coach explicitly shares. OAuth tokens are held server-side in edge functions — never in the browser.',
-  },
-  {
-    q: 'What sports does synth. support?',
-    a: 'synth. launches with rowing (our pilot partner is Cal Women\'s Rowing), but the platform is sport-agnostic. The custom tools system lets us add sport-specific features — lineups for rowing, pitch charts for baseball, rotation planners for basketball — without changing the core data model.',
-  },
-  {
-    q: 'How does synth. AI work? Is it a black box?',
-    a: 'synth. AI is backed by Claude with full citation grounding. Every answer carries the specific source rows it drew from — the table, the date, the connector. Coaches can verify any insight by clicking through to the underlying data.',
-  },
-  {
-    q: 'Can athletes see each other\'s data?',
-    a: 'No. Athletes only see their own metrics unless the coach explicitly enables team stats visibility in Settings. Coaches control what\'s shared through granular visibility toggles — show team stats, show other boats, share videos — all off by default.',
-  },
-  {
-    q: 'Do I need to replace the tools I already use?',
-    a: 'No — that\'s the point. synth. connects to the tools your program already runs. Keep your Google Sheets, keep TeamWorks, keep Whoop. synth. reads from them, synthesizes across them, and gives you one surface. You don\'t rip and replace; you unify.',
-  },
-  {
-    q: 'What does the Pilot (free) tier include?',
-    a: 'One team, up to 3 connected sources, the full dashboard, all custom tools, synth. AI, and email support. It\'s free for the first 3 programs while we build alongside early adopters. No credit card required.',
-  },
-  {
-    q: 'How long does setup take?',
-    a: 'Under five minutes. Create your team, connect your first source (most coaches start with their erg spreadsheet), and you\'re looking at real data. Athletes join via an invite code you share — no app store, just a link.',
-  },
-]
+/* ─── Background decorations shared across dark sections ──────────────── */
 
-const TEAM = [
-  { name: 'Abishai Gosula', role: 'CEO / Engineering', photo: '/team/abishai-gosula.png' },
-  { name: 'Star Rose', role: 'Head of Product', photo: '/team/star-rose.png' },
-  { name: 'Lily Pember', role: 'Design Lead', photo: '/team/lily-pember.png' },
-  { name: 'Matthew Waddell', role: 'Growth', photo: '/team/matthew-waddell.png' },
-]
-
-/* ─── Helpers ─────────────────────────────────────────────────────────── */
-
-function SectionKicker({ children }: { children: React.ReactNode }) {
+/** Floating translucent green orbs for depth */
+function Orbs() {
   return (
-    <div
-      className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
-      style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-    >
-      {children}
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+      {/* Large top-left orb */}
+      <div
+        className="absolute"
+        style={{
+          width: 600,
+          height: 600,
+          borderRadius: '50%',
+          top: -200,
+          left: -180,
+          background: 'radial-gradient(circle, rgba(16,185,129,0.09) 0%, transparent 70%)',
+          filter: 'blur(2px)',
+        }}
+      />
+      {/* Mid-right orb */}
+      <div
+        className="absolute"
+        style={{
+          width: 480,
+          height: 480,
+          borderRadius: '50%',
+          top: '35%',
+          right: -120,
+          background: 'radial-gradient(circle, rgba(5,150,105,0.08) 0%, transparent 70%)',
+        }}
+      />
+      {/* Bottom-center orb */}
+      <div
+        className="absolute"
+        style={{
+          width: 700,
+          height: 300,
+          borderRadius: '50%',
+          bottom: -120,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 70%)',
+        }}
+      />
     </div>
   )
 }
 
-function SectionHeadline({ children }: { children: React.ReactNode }) {
+/** Dot-grid background pattern. `uid` must be unique per instance to avoid SVG ID collisions. */
+function DotGrid({ uid }: { uid: string }) {
+  const pid = `dg-pat-${uid}`
+  const gid = `dg-grad-${uid}`
+  const mid = `dg-mask-${uid}`
   return (
-    <h2
-      className="text-[clamp(28px,4.2vw,44px)] font-semibold leading-[1.05]"
-      style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}
+    <svg
+      aria-hidden
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      xmlns="http://www.w3.org/2000/svg"
     >
-      {children}
-    </h2>
+      <defs>
+        <pattern id={pid} width="28" height="28" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.8" fill="rgba(255,255,255,0.06)" />
+        </pattern>
+        <radialGradient id={gid} cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="white" stopOpacity="1" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
+        </radialGradient>
+        <mask id={mid}>
+          <rect width="100%" height="100%" fill={`url(#${gid})`} />
+        </mask>
+      </defs>
+      <rect width="100%" height="100%" fill={`url(#${pid})`} mask={`url(#${mid})`} />
+    </svg>
   )
 }
 
-function SectionSubhead({ children }: { children: React.ReactNode }) {
+
+/* ─── 3D browser-chrome mockup window ────────────────────────────────── */
+
+function MockupWindow({ url, Mockup }: { url: string; Mockup: React.ComponentType }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const mx  = useMotionValue(0)
+  const my  = useMotionValue(0)
+  const sx  = useSpring(mx, { stiffness: 110, damping: 22, mass: 0.5 })
+  const sy  = useSpring(my, { stiffness: 110, damping: 22, mass: 0.5 })
+  const rotY = useTransform(sx, [-1, 1], [7, -7])
+  const rotX = useTransform(sy, [-1, 1], [-4, 4])
+
+  function onMove(e: React.MouseEvent<HTMLDivElement>) {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r) return
+    mx.set(((e.clientX - r.left) / r.width  - 0.5) * 2)
+    my.set(((e.clientY - r.top)  / r.height - 0.5) * 2)
+  }
+  function onLeave() { mx.set(0); my.set(0) }
+
   return (
-    <p
-      className="mt-4 max-w-[600px] text-[15px] leading-relaxed"
-      style={{ color: THEME.textSecondary }}
-    >
-      {children}
-    </p>
+    <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} style={{ perspective: '1200px' }}>
+      {/* Green glow halo */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ boxShadow: `0 0 80px 0 ${G_GLOW}`, borderRadius: 18, zIndex: 0 }}
+      />
+      <motion.div
+        style={{
+          rotateX: rotX,
+          rotateY: rotY,
+          transformStyle: 'preserve-3d',
+          borderRadius: 14,
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 1,
+          border: `1px solid ${BORDER_HI}`,
+          boxShadow: [
+            '0 0 0 1px rgba(255,255,255,0.04)',
+            '0 24px 60px rgba(0,0,0,0.88)',
+            '0 60px 120px rgba(0,0,0,0.55)',
+            `0 0 60px 0 ${G_DIM}`,
+          ].join(', '),
+        }}
+      >
+        {/* Browser chrome bar */}
+        <div
+          className="flex items-center gap-2 px-4 py-2.5"
+          style={{ background: '#0a0a0b', borderBottom: `1px solid ${BORDER}` }}
+        >
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#EF4444' }} />
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#F59E0B' }} />
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#22C55E' }} />
+          <div
+            className="ml-3 flex-1 rounded px-3 py-1 text-[11px] truncate"
+            style={{ background: '#161618', color: T3, fontFamily: FONT_MONO }}
+          >
+            {url}
+          </div>
+        </div>
+
+        {/* React mockup — fixed height so it doesn't collapse */}
+        <div style={{ height: 440, overflow: 'hidden' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={url}
+              className="h-full w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <Mockup />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </div>
   )
 }
 
-/* ─── Page ─────────────────────────────────────────────────────────────── */
+/* ─── How it works section ────────────────────────────────────────────── */
+
+function HowItWorksSection() {
+  const [active, setActive] = useState(0)
+
+  return (
+    <section
+      id="how"
+      className="relative overflow-hidden px-5 sm:px-10 py-20 sm:py-28"
+      style={{ background: BG }}
+    >
+      <DotGrid uid="how" />
+      <Orbs />
+
+      <div className="relative z-10 mx-auto w-full max-w-[1160px] grid gap-12 lg:grid-cols-12 lg:items-start">
+
+        {/* LEFT — steps */}
+        <div className="lg:col-span-5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45 }}
+          >
+            {/* Section chip */}
+            <div
+              className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em]"
+              style={{ border: `1px solid rgba(16,185,129,0.3)`, background: G_DIM, color: GREEN, fontFamily: FONT_MONO }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
+              How it works
+            </div>
+
+            <h2
+              className="text-[clamp(28px,3.8vw,44px)] font-semibold leading-[1.05] text-white"
+              style={{ fontFamily: FONT_SERIF }}
+            >
+              Built to handle your entire program.
+            </h2>
+            <p className="mt-3 text-[14px] leading-relaxed max-w-[400px]" style={{ color: T2 }}>
+              Five steps, under five minutes. Click each step to preview it live.
+            </p>
+          </motion.div>
+
+          {/* Accordion steps */}
+          <div className="mt-10">
+            {STEPS.map((step, i) => {
+              const isActive = active === i
+              return (
+                <motion.div
+                  key={step.num}
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: i * 0.06 }}
+                >
+                  {/* Top rule */}
+                  <div
+                    className="h-px w-full transition-colors duration-300"
+                    style={{ background: isActive ? GREEN : BORDER_HI }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setActive(i)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-start gap-4 py-4">
+                      {/* Number badge */}
+                      <div
+                        className="shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-bold transition-all duration-300"
+                        style={{
+                          fontFamily: FONT_MONO,
+                          background: isActive ? GREEN : 'transparent',
+                          color: isActive ? '#050505' : T3,
+                          border: `1px solid ${isActive ? GREEN : BORDER_HI}`,
+                        }}
+                      >
+                        {i + 1}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className="text-[15px] font-semibold leading-snug transition-colors duration-200"
+                          style={{ color: isActive ? T1 : T2 }}
+                        >
+                          {step.label}
+                        </div>
+
+                        <AnimatePresence initial={false}>
+                          {isActive && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <p className="mt-2 text-[13px] leading-relaxed" style={{ color: T2 }}>
+                                {step.desc}
+                              </p>
+                              <Link
+                                to={`/${step.url.replace('synthsports.com/', '')}`}
+                                className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider transition-opacity hover:opacity-80"
+                                style={{ fontFamily: FONT_MONO, color: GREEN }}
+                              >
+                                <span
+                                  className="h-1 w-1 rounded-full"
+                                  style={{ background: GREEN }}
+                                />
+                                Open in demo →
+                              </Link>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </button>
+                </motion.div>
+              )
+            })}
+            {/* Final rule */}
+            <div className="h-px w-full" style={{ background: BORDER_HI }} />
+          </div>
+        </div>
+
+        {/* RIGHT — sticky 3D mockup window */}
+        <div className="relative lg:col-span-7 lg:sticky lg:top-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <MockupWindow url={STEPS[active].url} Mockup={STEPS[active].Mockup} />
+          </motion.div>
+
+          {/* Step dots */}
+          <div className="mt-5 flex justify-center gap-2">
+            {STEPS.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActive(i)}
+                className="rounded-full transition-all duration-300"
+                style={{
+                  width: active === i ? 22 : 7,
+                  height: 7,
+                  background: active === i ? GREEN : BORDER_HI,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── Signup section ──────────────────────────────────────────────────── */
+
+function SignupSection() {
+  const [role, setRole] = useState<'Coach' | 'Athlete' | 'AD' | null>(null)
+  const [done, setDone] = useState(false)
+
+  return (
+    <section
+      id="signup"
+      className="relative overflow-hidden px-5 sm:px-10 py-24 sm:py-32"
+      style={{ background: BG }}
+    >
+      <DotGrid uid="signup" />
+      <Orbs />
+
+      {/* Central green bloom */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          width: 800,
+          height: 400,
+          background: `radial-gradient(ellipse, rgba(16,185,129,0.10) 0%, transparent 70%)`,
+          borderRadius: '50%',
+        }}
+      />
+
+      {/* No hard divider — flows from the how-it-works section */}
+
+      <div className="relative z-10 mx-auto max-w-[620px]">
+        {/* Label */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4 }}
+        >
+          <div
+            className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em]"
+            style={{ border: `1px solid rgba(16,185,129,0.3)`, background: G_DIM, color: GREEN, fontFamily: FONT_MONO }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
+            Early access
+          </div>
+
+          <h2
+            className="text-[clamp(34px,5vw,56px)] font-semibold leading-[1.03] text-white"
+            style={{ fontFamily: FONT_SERIF }}
+          >
+            Join the Beta.
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed" style={{ color: T2 }}>
+            250+ coaches and athletes already signed up. Free for the first 3 programs — no credit card required.
+          </p>
+        </motion.div>
+
+        {/* Form / success */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.08 }}
+        >
+          {done ? (
+            <div
+              className="mt-10 rounded-2xl border p-10 text-center"
+              style={{ background: CARD, borderColor: BORDER_HI }}
+            >
+              {/* Green check ring */}
+              <div
+                className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                style={{ background: G_DIM, border: `1px solid rgba(16,185,129,0.3)` }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </div>
+              <div className="text-[22px] font-bold text-white mb-2" style={{ fontFamily: FONT_SERIF }}>
+                You're on the list.
+              </div>
+              <div className="text-[14px]" style={{ color: T2 }}>
+                We'll reach out with early access details within a week.
+              </div>
+            </div>
+          ) : (
+            <form
+              className="mt-10 rounded-2xl border p-6 sm:p-8 flex flex-col gap-5"
+              style={{
+                background: CARD,
+                borderColor: BORDER_HI,
+                boxShadow: `0 0 0 1px ${BORDER}, 0 40px 80px rgba(0,0,0,0.6), 0 0 60px ${G_DIM}`,
+              }}
+              onSubmit={(e) => { e.preventDefault(); setDone(true) }}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  { label: 'Name', placeholder: 'Alex Martinez', type: 'text', req: true, span: false },
+                  { label: 'Email', placeholder: 'coach@university.edu', type: 'email', req: true, span: false },
+                  { label: 'School / Org', placeholder: 'UC Berkeley Athletics', type: 'text', req: false, span: true },
+                ].map(f => (
+                  <label
+                    key={f.label}
+                    className={`flex flex-col gap-1.5 ${f.span ? 'sm:col-span-2' : ''}`}
+                  >
+                    <span
+                      className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                      style={{ fontFamily: FONT_MONO, color: T3 }}
+                    >
+                      {f.label}
+                    </span>
+                    <input
+                      type={f.type}
+                      required={f.req}
+                      placeholder={f.placeholder}
+                      className="rounded-xl px-3.5 py-2.5 text-[14px] text-white outline-none transition-all"
+                      style={{
+                        background: SURFACE,
+                        border: `1px solid ${BORDER_HI}`,
+                        fontFamily: FONT_MONO,
+                        caretColor: GREEN,
+                      }}
+                      onFocus={e => (e.currentTarget.style.borderColor = GREEN)}
+                      onBlur={e => (e.currentTarget.style.borderColor = BORDER_HI)}
+                    />
+                  </label>
+                ))}
+
+                <label className="flex flex-col gap-1.5">
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                    style={{ fontFamily: FONT_MONO, color: T3 }}
+                  >
+                    Sport
+                  </span>
+                  <select
+                    className="rounded-xl px-3.5 py-2.5 text-[14px] text-white outline-none"
+                    style={{ background: SURFACE, border: `1px solid ${BORDER_HI}`, fontFamily: FONT_MONO }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Select sport</option>
+                    {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </label>
+              </div>
+
+              {/* Role pills */}
+              <div>
+                <div
+                  className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
+                  style={{ fontFamily: FONT_MONO, color: T3 }}
+                >
+                  I am a
+                </div>
+                <div className="flex gap-2">
+                  {(['Coach', 'Athlete', 'AD'] as const).map(r => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRole(r)}
+                      className="rounded-full px-4 py-2 text-[12px] font-semibold uppercase tracking-wider transition-all duration-200"
+                      style={{
+                        fontFamily: FONT_MONO,
+                        border: `1px solid ${role === r ? GREEN : BORDER_HI}`,
+                        background: role === r ? G_DIM : 'transparent',
+                        color: role === r ? GREEN : T2,
+                        boxShadow: role === r ? `0 0 12px ${G_DIM}` : 'none',
+                      }}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                className="w-full rounded-full py-3.5 text-[13px] font-semibold uppercase tracking-wider transition-all hover:scale-[1.01]"
+                style={{
+                  background: GREEN,
+                  color: '#050505',
+                  fontFamily: FONT_MONO,
+                  boxShadow: `0 0 40px ${G_GLOW}, 0 4px 20px rgba(0,0,0,0.4)`,
+                }}
+              >
+                Join →
+              </button>
+
+              <div className="text-center text-[11px]" style={{ fontFamily: FONT_MONO, color: T3 }}>
+                Already have access?{' '}
+                <Link to="/login" className="transition-colors hover:text-white" style={{ color: T2 }}>
+                  Sign in →
+                </Link>
+              </div>
+            </form>
+          )}
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── Footer ──────────────────────────────────────────────────────────── */
+
+function Footer() {
+  return (
+    <footer
+      className="relative px-5 sm:px-10 py-8"
+      style={{ background: '#000000', borderTop: 'none' }}
+    >
+      <div className="mx-auto max-w-[1160px] flex flex-col sm:flex-row items-center justify-between gap-5 text-[11px]" style={{ fontFamily: FONT_MONO, color: T3 }}>
+        <div className="flex items-center gap-3">
+          <span className="text-[17px] font-semibold" style={{ fontFamily: FONT_MONO, color: T1 }}>
+            synth<span style={{ color: GREEN }}>.</span>
+          </span>
+          <span>Every data signal. One platform.</span>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-5">
+          <a href="mailto:supportsynth@gmail.com" className="hover:text-white transition-colors">
+            supportsynth@gmail.com
+          </a>
+          <Link to="/login" className="hover:text-white transition-colors">Sign in</Link>
+          <Link to="/signup" className="hover:text-white transition-colors">Sign up</Link>
+          <Link to="/join/demo" className="hover:text-white transition-colors">Join as athlete</Link>
+          <span>© 2026 synth.</span>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+/* ─── Page ────────────────────────────────────────────────────────────── */
 
 export function LandingPage() {
   const { canInstall, installed, isIos, trigger } = useInstallPrompt()
   const [showIosTip, setShowIosTip] = useState(false)
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
-
-  const handleDownload = () => {
-    if (canInstall) {
-      trigger()
-      return
-    }
-    if (isIos) {
-      setShowIosTip(true)
-      return
-    }
+  function handleDownload() {
+    if (canInstall) { trigger(); return }
+    if (isIos) { setShowIosTip(true); return }
     setShowIosTip(true)
   }
 
   return (
-    <div className="flex min-h-dvh w-full flex-col" style={{ background: THEME.white }}>
-      {/* ── Top nav (floats over 3D hero) ── */}
+    <div className="flex min-h-dvh w-full flex-col" style={{ background: '#000000' }}>
+
+      {/* ── Floating nav (over the green hero) ── */}
       <header
         className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 sm:px-10 py-5"
         style={{ color: THEME.white }}
@@ -245,15 +644,14 @@ export function LandingPage() {
             synth<span style={{ color: THEME.accent }}>.</span>
           </span>
         </div>
+
+        {/* Desktop nav links */}
         <nav
           className="hidden sm:flex items-center gap-6 text-[12px]"
-          style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.85)' }}
+          style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.82)' }}
         >
-          <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#demo" className="hover:text-white transition-colors">Demo</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-          <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+          <a href="#how" className="hover:text-white transition-colors">How it works</a>
+          <a href="#signup" className="hover:text-white transition-colors">Beta</a>
           <Link to="/login" className="hover:text-white transition-colors">Sign in</Link>
           <Link
             to="/signup"
@@ -283,7 +681,8 @@ export function LandingPage() {
             {installed ? 'Installed' : 'Download'}
           </button>
         </nav>
-        {/* Mobile: just sign-in + download */}
+
+        {/* Mobile: sign-in + download */}
         <div className="flex sm:hidden items-center gap-3">
           <Link
             to="/login"
@@ -297,708 +696,71 @@ export function LandingPage() {
             onClick={handleDownload}
             disabled={installed}
             className="rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
-            style={{
-              background: THEME.white,
-              color: THEME.primaryDarker,
-              fontFamily: THEME.fontMono,
-            }}
+            style={{ background: THEME.white, color: THEME.primaryDarker, fontFamily: THEME.fontMono }}
           >
             {installed ? 'Installed' : 'Download'}
           </button>
         </div>
       </header>
 
-      <main>
-        {/* ── 1. Hero ── */}
-        <Hero3D
-          onDownload={handleDownload}
-          downloadLabel={installed ? 'Installed' : 'Download app'}
-        />
-
-        {/* ── 2. How it works ── */}
-        <section id="how-it-works" className="px-5 sm:px-10 py-20 sm:py-28">
-          <div className="mb-14 max-w-[640px]">
-            <SectionKicker>How it works</SectionKicker>
-            <SectionHeadline>Three steps. Under five minutes.</SectionHeadline>
-            <SectionSubhead>
-              No rip-and-replace. Connect the tools you already use, let synth. do the synthesis, and start making decisions from one surface.
-            </SectionSubhead>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {STEPS.map((step, i) => (
-              <motion.div
-                key={step.num}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * STAGGER.cards }}
-                className="relative rounded-2xl border p-6"
-                style={{
-                  background: THEME.white,
-                  borderColor: THEME.border,
-                  boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.12)',
-                }}
-              >
-                {/* Step connector line */}
-                {i < STEPS.length - 1 && (
-                  <div
-                    className="absolute -right-3 top-1/2 hidden h-px w-6 md:block"
-                    style={{ background: THEME.border }}
-                  />
-                )}
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-xl"
-                  style={{ background: `${THEME.primary}10` }}
-                >
-                  {step.icon}
-                </div>
-                <div
-                  className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em]"
-                  style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-                >
-                  Step {step.num}
-                </div>
-                <h3 className="mt-1 text-[18px] font-semibold" style={{ color: THEME.textPrimary }}>
-                  {step.title}
-                </h3>
-                <p className="mt-2 text-[13px] leading-relaxed" style={{ color: THEME.textSecondary }}>
-                  {step.body}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 3. Product Demo ── */}
-        <section id="demo" className="px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.light }}>
-          <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-[640px]">
-              <SectionKicker>Product demo</SectionKicker>
-              <SectionHeadline>See it in action.</SectionHeadline>
-              <SectionSubhead>
-                Explore the full coach dashboard, athlete profiles, connectors, lineups, and AI — all running on real Cal Women's Rowing data.
-              </SectionSubhead>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <Link
-                to="/coach/dashboard"
-                className="rounded-full px-5 py-2.5 text-[12px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
-                style={{
-                  background: THEME.primary,
-                  color: THEME.white,
-                  fontFamily: THEME.fontMono,
-                }}
-              >
-                Enter live demo
-              </Link>
-              <Link
-                to="/product-demo"
-                className="rounded-full border px-5 py-2.5 text-[12px] font-semibold uppercase tracking-wider transition-opacity hover:opacity-80"
-                style={{
-                  borderColor: THEME.border,
-                  color: THEME.textPrimary,
-                  fontFamily: THEME.fontMono,
-                }}
-              >
-                Full screen
-              </Link>
-            </div>
-          </div>
-
-          {/* Demo embed */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="overflow-hidden rounded-2xl border"
-            style={{
-              borderColor: THEME.border,
-              boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 40px 80px -40px rgba(24,24,27,0.2)',
-            }}
-          >
-            {/* Browser chrome bar */}
-            <div
-              className="flex items-center gap-2 border-b px-4 py-2.5"
-              style={{ background: THEME.white, borderColor: THEME.border }}
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#EF4444' }} />
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#F59E0B' }} />
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#22C55E' }} />
-              </div>
-              <div
-                className="ml-3 flex-1 rounded-md px-3 py-1 text-[11px]"
-                style={{
-                  background: THEME.light,
-                  color: THEME.textMuted,
-                  fontFamily: THEME.fontMono,
-                }}
-              >
-                synthsports.com/coach/dashboard
-              </div>
-            </div>
-            <div className="relative" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                title="synth. Product Demo"
-                src="/demos/synth_demo_nature.html"
-                className="absolute inset-0 h-full w-full"
-                style={{ border: 'none', background: THEME.white }}
-                loading="lazy"
-              />
-            </div>
-          </motion.div>
-
-          {/* Quick feature highlights below the demo */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: 'Dashboard', desc: 'Team stats, trends, alerts' },
-              { label: 'Athletes', desc: '52-card roster with profiles' },
-              { label: 'Lineups', desc: 'Drag-and-drop boat builder' },
-              { label: 'synth. AI', desc: 'Ask anything, get citations' },
-            ].map((item, i) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: i * 0.06 }}
-                className="flex items-center gap-3 rounded-xl border px-4 py-3"
-                style={{ background: THEME.white, borderColor: THEME.border }}
-              >
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: THEME.primary }}
-                />
-                <div>
-                  <div
-                    className="text-[12px] font-semibold"
-                    style={{ color: THEME.textPrimary, fontFamily: THEME.fontMono }}
-                  >
-                    {item.label}
-                  </div>
-                  <div className="text-[11px]" style={{ color: THEME.textMuted }}>
-                    {item.desc}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 4. Features grid ── */}
-        <section id="features" className="cv-auto px-5 sm:px-10 py-20 sm:py-28">
-          <div className="mb-10 max-w-[640px]">
-            <SectionKicker>What's in the box</SectionKicker>
-            <SectionHeadline>Six surfaces. One source of truth.</SectionHeadline>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.kicker}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.05 }}
-                className="rounded-2xl border p-6"
-                style={{
-                  background: THEME.white,
-                  borderColor: THEME.border,
-                  boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
-                }}
-              >
-                <div
-                  className="flex h-11 w-11 items-center justify-center rounded-full"
-                  style={{ background: `${THEME.primary}12` }}
-                >
-                  <f.Glyph size={24} />
-                </div>
-                <div
-                  className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em]"
-                  style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-                >
-                  {f.kicker}
-                </div>
-                <h3 className="mt-1 text-[18px] font-semibold" style={{ color: THEME.textPrimary }}>
-                  {f.title}
-                </h3>
-                <p className="mt-2 text-[13px] leading-relaxed" style={{ color: THEME.textSecondary }}>
-                  {f.body}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 5. Social proof / Pilot story ── */}
-        <section className="cv-auto px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.light }}>
-          <div className="mb-14 max-w-[640px]">
-            <SectionKicker>Built with coaches</SectionKicker>
-            <SectionHeadline>Designed alongside Cal Women's Rowing.</SectionHeadline>
-            <SectionSubhead>
-              Our pilot partner is the UC Berkeley Women's Rowing program — 52 athletes, 4+ data sources, real erg data. Every surface in synth. was built with their coaching staff in the room.
-            </SectionSubhead>
-          </div>
-
-          {/* Proof points */}
-          <div className="grid gap-4 sm:grid-cols-3 mb-14">
-            {[
-              { value: '52', label: 'Athletes in pilot', sub: 'Cal Women\'s Rowing' },
-              { value: '4+', label: 'Data sources', sub: 'Sheets, TeamWorks, Whoop, Email' },
-              { value: '<5 min', label: 'Setup time', sub: 'Connect to dashboard' },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * STAGGER.cards }}
-                className="rounded-2xl border p-6"
-                style={{ background: THEME.white, borderColor: THEME.border }}
-              >
-                <div
-                  className="text-[36px] font-bold leading-none"
-                  style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-                >
-                  {stat.value}
-                </div>
-                <div className="mt-2 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>
-                  {stat.label}
-                </div>
-                <div className="mt-0.5 text-[12px]" style={{ color: THEME.textMuted }}>
-                  {stat.sub}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Team */}
-          <div className="mb-4">
-            <SectionKicker>The team</SectionKicker>
-            <h3
-              className="text-[22px] font-semibold"
-              style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}
-            >
-              Athletes building for athletes.
-            </h3>
-          </div>
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-            {TEAM.map((person, i) => (
-              <motion.div
-                key={person.name}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.06 }}
-                className="overflow-hidden rounded-2xl border"
-                style={{ background: THEME.white, borderColor: THEME.border }}
-              >
-                <div className="aspect-square overflow-hidden" style={{ background: THEME.light }}>
-                  <img
-                    src={person.photo}
-                    alt={person.name}
-                    width={400}
-                    height={400}
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
-                    {person.name}
-                  </div>
-                  <div
-                    className="mt-0.5 text-[11px]"
-                    style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-                  >
-                    {person.role}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 6. Pricing ── */}
-        <section id="pricing" className="cv-auto px-5 sm:px-10 py-20 sm:py-28">
-          <div className="mb-10 max-w-[640px]">
-            <SectionKicker>Pricing</SectionKicker>
-            <SectionHeadline>Flat tiers. Simple to buy.</SectionHeadline>
-            <SectionSubhead>
-              Start free with the Pilot tier. Upgrade when your program grows.
-            </SectionSubhead>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {TIERS.map((t) => (
-              <div
-                key={t.name}
-                className="flex flex-col rounded-2xl border p-6"
-                style={{
-                  background: THEME.white,
-                  borderColor: t.featured ? THEME.primary : THEME.border,
-                  boxShadow: t.featured
-                    ? '0 1px 0 rgba(24,24,27,0.02), 0 30px 60px -30px rgba(5,150,105,0.35)'
-                    : '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
-                  transform: t.featured ? 'translateY(-8px)' : 'none',
-                }}
-              >
-                <div
-                  className="text-[10px] font-semibold uppercase tracking-[0.2em]"
-                  style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
-                >
-                  {t.name}
-                </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span
-                    className="text-[38px] font-bold leading-none"
-                    style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
-                  >
-                    {t.price}
-                  </span>
-                </div>
-                <div
-                  className="mt-1 text-[11px]"
-                  style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
-                >
-                  {t.period}
-                </div>
-                <ul className="mt-5 flex flex-col gap-2">
-                  {t.bullets.map((b) => (
-                    <li
-                      key={b}
-                      className="flex items-start gap-2 text-[12px]"
-                      style={{ color: THEME.textSecondary }}
-                    >
-                      <span
-                        className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ background: THEME.primary }}
-                      />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/signup"
-                  className="mt-auto block rounded-full px-4 py-2.5 text-center text-[12px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
-                  style={{
-                    background: t.featured ? THEME.primary : THEME.white,
-                    color: t.featured ? THEME.white : THEME.textPrimary,
-                    border: `1px solid ${t.featured ? THEME.primary : THEME.border}`,
-                    fontFamily: THEME.fontMono,
-                    marginTop: 20,
-                  }}
-                >
-                  {t.cta} →
-                </Link>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 7. FAQ ── */}
-        <section id="faq" className="cv-auto px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.light }}>
-          <div className="mx-auto max-w-[800px]">
-            <div className="mb-10 text-center">
-              <SectionKicker>FAQ</SectionKicker>
-              <SectionHeadline>Common questions.</SectionHeadline>
-            </div>
-            <div className="flex flex-col gap-2">
-              {FAQS.map((faq, i) => {
-                const isOpen = openFaq === i
-                return (
-                  <div
-                    key={i}
-                    className="overflow-hidden rounded-xl border"
-                    style={{ background: THEME.white, borderColor: isOpen ? THEME.primary : THEME.border }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setOpenFaq(isOpen ? null : i)}
-                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors"
-                    >
-                      <span
-                        className="text-[14px] font-semibold"
-                        style={{ color: THEME.textPrimary }}
-                      >
-                        {faq.q}
-                      </span>
-                      <motion.span
-                        animate={{ rotate: isOpen ? 45 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="shrink-0 text-[18px] leading-none"
-                        style={{ color: THEME.primary, fontFamily: THEME.fontMono }}
-                      >
-                        +
-                      </motion.span>
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-                        >
-                          <div
-                            className="border-t px-5 pb-5 pt-3 text-[13px] leading-relaxed"
-                            style={{ borderColor: THEME.border, color: THEME.textSecondary }}
-                          >
-                            {faq.a}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ── 8. Close CTA ── */}
-        <section className="cv-auto px-5 sm:px-10 py-20 sm:py-28" style={{ background: THEME.darkDeep, color: THEME.white }}>
-          <div className="max-w-[720px]">
-            <SectionKicker>Get started</SectionKicker>
-            <h2
-              className="text-[clamp(28px,4.2vw,44px)] font-semibold leading-[1.05]"
-              style={{ fontFamily: THEME.fontSerif }}
-            >
-              Stop stitching tabs. Start coaching.
-            </h2>
-            <p className="mt-4 text-[14px] leading-relaxed opacity-80">
-              Download synth. to your laptop or phone and connect your first source in under 60 seconds.
-            </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={installed}
-                className="rounded-full px-6 py-3 text-[13px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02] disabled:opacity-60"
-                style={{
-                  background: THEME.accent,
-                  color: THEME.darkDeep,
-                  fontFamily: THEME.fontMono,
-                }}
-              >
-                {installed ? 'Installed' : 'Download app'}
-              </button>
-              <Link
-                to="/coach/dashboard"
-                className="rounded-full border px-6 py-3 text-[13px] font-semibold uppercase tracking-wider transition-opacity hover:opacity-100"
-                style={{
-                  borderColor: 'rgba(255,255,255,0.25)',
-                  color: THEME.white,
-                  fontFamily: THEME.fontMono,
-                }}
-              >
-                Try the demo
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 9. Footer ── */}
-        <footer style={{ background: THEME.darkDeep, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="grid gap-10 px-5 sm:px-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Brand column */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span
-                  className="text-[20px] font-semibold leading-none"
-                  style={{ fontFamily: THEME.fontMono, color: THEME.white }}
-                >
-                  synth<span style={{ color: THEME.accent }}>.</span>
-                </span>
-              </div>
-              <p
-                className="mt-3 max-w-[280px] text-[12px] leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.5)' }}
-              >
-                Every data signal. One platform. Built for coaches, by athletes.
-              </p>
-            </div>
-
-            {/* Product links */}
-            <div>
-              <div
-                className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em]"
-                style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.4)' }}
-              >
-                Product
-              </div>
-              <ul className="flex flex-col gap-2">
-                {[
-                  { label: 'Features', href: '#features' },
-                  { label: 'Pricing', href: '#pricing' },
-                  { label: 'Demo', href: '#demo' },
-                  { label: 'FAQ', href: '#faq' },
-                ].map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-[12px] transition-colors hover:text-white"
-                      style={{ color: 'rgba(255,255,255,0.6)', fontFamily: THEME.fontMono }}
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Company links */}
-            <div>
-              <div
-                className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em]"
-                style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.4)' }}
-              >
-                Company
-              </div>
-              <ul className="flex flex-col gap-2">
-                {(
-                  [
-                    { label: 'About', href: '#team' },
-                    { label: 'Contact', href: 'mailto:supportsynth@gmail.com' },
-                    { label: 'Sign up', href: '/signup' },
-                    { label: 'Sign in', href: '/login' },
-                    { label: 'Join as athlete', href: '/join/demo' },
-                  ] as const
-                ).map((link) => (
-                  <li key={link.label}>
-                    {link.href.startsWith('/') ? (
-                      <Link
-                        to={link.href}
-                        className="text-[12px] transition-colors hover:text-white"
-                        style={{ color: 'rgba(255,255,255,0.6)', fontFamily: THEME.fontMono }}
-                      >
-                        {link.label}
-                      </Link>
-                    ) : (
-                      <a
-                        href={link.href}
-                        className="text-[12px] transition-colors hover:text-white"
-                        style={{ color: 'rgba(255,255,255,0.6)', fontFamily: THEME.fontMono }}
-                      >
-                        {link.label}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Legal + contact */}
-            <div>
-              <div
-                className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em]"
-                style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.4)' }}
-              >
-                Legal
-              </div>
-              <ul className="flex flex-col gap-2">
-                <li>
-                  <span
-                    className="text-[12px]"
-                    style={{ color: 'rgba(255,255,255,0.6)', fontFamily: THEME.fontMono }}
-                  >
-                    Privacy Policy
-                  </span>
-                </li>
-                <li>
-                  <span
-                    className="text-[12px]"
-                    style={{ color: 'rgba(255,255,255,0.6)', fontFamily: THEME.fontMono }}
-                  >
-                    Terms of Service
-                  </span>
-                </li>
-              </ul>
-              <div className="mt-5">
-                <a
-                  href="mailto:supportsynth@gmail.com"
-                  className="text-[12px] transition-colors hover:text-white"
-                  style={{ color: 'rgba(255,255,255,0.5)', fontFamily: THEME.fontMono }}
-                >
-                  supportsynth@gmail.com
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Copyright bar */}
+      <main className="flex flex-col">
+        {/* ── Hero — green bleeds down into black ── */}
+        <div className="relative">
+          <Hero3D onDownload={handleDownload} downloadLabel={installed ? 'Installed' : 'Download app'} />
+          {/* Green dissolves INTO black at the bottom — the hero section fades out, not the dark fading in */}
           <div
-            className="px-5 sm:px-10 py-5 text-[11px]"
-            style={{
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.35)',
-              fontFamily: THEME.fontMono,
-            }}
-          >
-            © 2026 synth. All rights reserved.
-          </div>
-        </footer>
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-48"
+            style={{ background: 'linear-gradient(to bottom, transparent 0%, #000000 100%)' }}
+          />
+        </div>
+
+        {/* ── How it works + live demo ── */}
+        <HowItWorksSection />
+
+        {/* ── Signup / Beta ── */}
+        <SignupSection />
+
+        {/* ── Footer ── */}
+        <Footer />
       </main>
 
-      {/* ── iOS install instructions modal ── */}
+      {/* ── iOS install modal ── */}
       <AnimatePresence>
         {showIosTip && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-5"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => setShowIosTip(false)}
           >
-            <button
-              type="button"
-              aria-label="Close install instructions"
+            <div
               className="absolute inset-0"
-              style={{ background: 'rgba(12,10,9,0.55)', backdropFilter: 'blur(6px)' }}
-              onClick={() => setShowIosTip(false)}
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
             />
             <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-label="iOS install instructions"
+              className="relative w-full max-w-sm rounded-2xl border p-6"
+              style={{ background: CARD, borderColor: BORDER_HI }}
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
-              className="relative w-full max-w-[440px] rounded-2xl p-6"
-              style={{ background: THEME.white, border: `1px solid ${THEME.border}` }}
+              onClick={e => e.stopPropagation()}
             >
               <div
-                className="text-[10px] font-semibold uppercase tracking-[0.2em]"
-                style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
+                className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em]"
+                style={{ fontFamily: THEME.fontMono, color: GREEN }}
               >
-                Install on {isIos ? 'iOS' : 'this browser'}
+                Install synth.
               </div>
-              <h3 className="mt-1 text-[20px] font-semibold" style={{ color: THEME.textPrimary }}>
-                Add synth. to your home screen
-              </h3>
-              <ol className="mt-4 flex flex-col gap-3 text-[13px]" style={{ color: THEME.textSecondary }}>
-                {isIos ? (
-                  <>
-                    <li>1. Tap the <strong>Share</strong> button in Safari's toolbar.</li>
-                    <li>2. Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-                    <li>3. Tap <strong>Add</strong>. synth. will appear as a standalone app.</li>
-                  </>
-                ) : (
-                  <>
-                    <li>Your browser doesn't expose the install prompt to us right now. Look for an "Install" option in your browser's address bar or menu.</li>
-                    <li>On Chrome/Edge/Brave: click the <strong>+</strong> icon in the address bar.</li>
-                    <li>On Firefox / Safari desktop: use <strong>File → Add to Dock</strong>.</li>
-                  </>
-                )}
-              </ol>
+              <p className="text-[14px] leading-relaxed text-white mb-1">
+                Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> in Safari to install synth. as an app.
+              </p>
+              <p className="text-[12px]" style={{ color: T2 }}>Works on iPhone, iPad, and Mac.</p>
               <button
                 type="button"
                 onClick={() => setShowIosTip(false)}
-                className="mt-5 rounded-full px-5 py-2 text-[11px] font-semibold uppercase tracking-wider"
-                style={{
-                  background: THEME.primary,
-                  color: THEME.white,
-                  fontFamily: THEME.fontMono,
-                }}
+                className="mt-5 w-full rounded-full py-2.5 text-[12px] font-semibold uppercase tracking-wider"
+                style={{ background: GREEN, color: '#050505', fontFamily: THEME.fontMono }}
               >
                 Got it
               </button>

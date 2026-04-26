@@ -17,7 +17,7 @@ export function MobileTopBar() {
     <header
       className="flex h-14 shrink-0 items-center justify-between border-b px-3 md:hidden"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         fontFamily: THEME.fontSans,
       }}
@@ -27,7 +27,7 @@ export function MobileTopBar() {
         type="button"
         onClick={openDrawer}
         aria-label="Open menu"
-        className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-zinc-100"
+        className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-surface-raised)]"
         style={{ color: THEME.textPrimary }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">

@@ -77,7 +77,7 @@ export function SkeletonStatTile() {
     <div
       className="rounded-xl border p-4"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         borderLeft: `3px solid ${THEME.border}`,
       }}
@@ -94,7 +94,7 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
   return (
     <div
       className={`rounded-xl border p-4 ${className}`}
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <div className="flex items-center gap-3">
         <SkeletonCircle size={36} />
@@ -116,7 +116,7 @@ export function SkeletonChart({ height = 200 }: { height?: number }) {
   return (
     <div
       className="rounded-xl border p-4"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <SkeletonLine width={120} height={10} />
       <SkeletonBlock
@@ -132,7 +132,7 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
     <div
       className="rounded-xl border overflow-hidden"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       {/* Header row */}
       <div

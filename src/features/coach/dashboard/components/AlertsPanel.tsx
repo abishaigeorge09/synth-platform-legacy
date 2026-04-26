@@ -26,7 +26,7 @@ export function AlertsPanel() {
     return (
       <div
         className="rounded-2xl border p-5"
-        style={{ background: THEME.white, borderColor: THEME.border }}
+        style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
       >
         <SkeletonLine width={80} height={8} />
         <SkeletonLine width={160} height={16} className="mt-2" />
@@ -50,7 +50,7 @@ export function AlertsPanel() {
       transition={{ duration: 0.4 }}
       className="rounded-2xl border p-5"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
       }}

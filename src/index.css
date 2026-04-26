@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Enable Tailwind dark: variants based on the .dark class on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Fix root font size so rem units never drift */
+html { font-size: 16px; }
+
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
@@ -41,6 +47,14 @@
   --purple-primary: #8b5cf6;
   --purple-subtle: rgba(139, 92, 246, 0.1);
 }
+
+/* Theme-aware utility classes so components don't need inline ternaries */
+.theme-surface { background: var(--bg-primary); }
+.theme-surface-raised { background: var(--bg-surface-raised); }
+.theme-text { color: var(--text-primary); }
+.theme-text-secondary { color: var(--text-secondary); }
+.theme-border { border-color: var(--border-default); }
+.theme-hover-surface:hover { background: var(--bg-surface-raised); }
 
 html,
 body,
@@ -115,13 +129,33 @@ body {
   contain-intrinsic-size: auto 600px;
 }
 
+/* Dark-mode hover overrides — zinc hover classes stay light without these */
+.dark .hover\:bg-zinc-100:hover,
+.dark .hover\:bg-zinc-50:hover {
+  background-color: var(--bg-surface-raised) !important;
+}
+.dark .hover\:bg-white:hover {
+  background-color: var(--bg-surface) !important;
+}
+
+/* Dark-mode aware scrollbar */
+.dark .synth-scroll {
+  scrollbar-color: #3f3f46 transparent;
+}
+.dark .synth-scroll::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+.dark .synth-scroll::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
 /* Athlete chat typing indicator */
 .typing-dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
   display: inline-block;
-  background: rgba(82, 82, 91, 0.9);
+  background: var(--text-secondary);
   animation: typingBounce 0.9s infinite ease-in-out;
 }
 

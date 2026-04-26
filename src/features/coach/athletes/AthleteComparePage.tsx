@@ -221,7 +221,7 @@ function ErgBarChart({
   return (
     <div
       className="mb-4 rounded-2xl border p-5"
-      style={{ borderColor: THEME.border, background: THEME.white }}
+      style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
     >
       <div
         className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em]"
@@ -258,7 +258,7 @@ function ErgBarChart({
               return value >= 100 ? [`${value}`, label] : [fmtSplit(value), label]
             }}
             contentStyle={{
-              background: THEME.white,
+              background: 'var(--bg-primary)',
               border: `1px solid ${THEME.border}`,
               borderRadius: 8,
               fontSize: 11,
@@ -379,7 +379,7 @@ function CoachNoteSection({ nameA, nameB }: { nameA: string; nameB: string }) {
 
   return (
     <CompareSection title="Coach Note">
-      <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div
           className="mb-2 text-[11px]"
           style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
@@ -495,7 +495,7 @@ function AthleteSelector({
         className="rounded-lg border px-3 py-2.5 text-[12px] outline-none"
         style={{
           borderColor: THEME.border,
-          background: THEME.white,
+          background: 'var(--bg-primary)',
           color: THEME.textPrimary,
           fontFamily: THEME.fontMono,
           minWidth: 200,
@@ -524,7 +524,7 @@ function ProfileCard({
   const statusColor =
     athlete.status === 'active' ? THEME.primary : athlete.status === 'injured' ? THEME.red : THEME.textMuted
   return (
-    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="flex items-center gap-3">
         <div
           className="flex h-10 w-10 items-center justify-center rounded-full text-[14px] font-bold"
@@ -591,7 +591,7 @@ function ErgCard({
     )
   }
   return (
-    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="mb-3 text-[12px] font-semibold" style={{ color }}>
         {name}
       </div>
@@ -655,7 +655,7 @@ function ErgDelta({
 
 function DeltaCell({ label, value, favors }: { label: string; value: string; favors: string | null }) {
   return (
-    <div className="rounded-xl border px-3 py-2.5" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-xl border px-3 py-2.5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div
         className="text-[8px] font-semibold uppercase tracking-[0.16em]"
         style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
@@ -726,7 +726,7 @@ function avgWellness(
 
 function WellnessCard({ name, color, avg }: { name: string; color: string; avg: WellnessAvg }) {
   return (
-    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="mb-3 text-[12px] font-semibold" style={{ color }}>
         {name}
       </div>
@@ -788,7 +788,7 @@ function YoyCard({
   }
   const improved = yoy.deltaSec < 0
   return (
-    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="mb-3 text-[12px] font-semibold" style={{ color }}>
         {name}
       </div>

@@ -1,15 +1,60 @@
 import { useState, useMemo } from 'react'
 import { THEME } from '../../../../../lib/theme'
-import { HISTORY_ENTRIES } from '../data/demoLineupData'
+import { HISTORY_ENTRIES, DEMO_ATHLETES } from '../data/demoLineupData'
+import type { HistoryEntry } from '../data/demoLineupData'
+import { useLineupsStore } from '../../../../../shared/store/useLineupsStore'
+import type { PublishedLineup, BoatLineup } from '../../../../../shared/data/seeds/lineups'
+
+// Build a lookup from athleteId → name using the demo roster
+const ATHLETE_NAME: Record<string, string> = {}
+DEMO_ATHLETES.forEach((a) => { ATHLETE_NAME[a.id] = a.name })
+
+function boatToLineupV(boat: BoatLineup): HistoryEntry['lineup1V'] {
+  return boat.seats
+    .filter((s) => s.athleteId)
+    .map((s) => ({
+      seat: s.isCox ? 'Cox' : s.seatNumber === 1 ? '1 · BOW' : s.seatNumber === boat.size ? `${s.seatNumber} · STR` : String(s.seatNumber),
+      name: ATHLETE_NAME[s.athleteId!] ?? s.athleteId ?? '—',
+    }))
+}
+
+function toHistoryEntry(pub: PublishedLineup): HistoryEntry {
+  const dateObj = new Date(pub.publishedAt ?? pub.date)
+  const month = dateObj.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+  const dateLabel = dateObj.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+  return {
+    id: pub.id,
+    date: dateLabel,
+    month,
+    sessionTitle: pub.sessionTitle,
+    boats: pub.boats.map((b) => ({ name: b.name, time: pub.date })),
+    lineup1V: pub.boats[0] ? boatToLineupV(pub.boats[0]) : [],
+    lineup2V: pub.boats[1] ? boatToLineupV(pub.boats[1]) : [],
+    swaps: null,
+    runImpact: pub.note,
+  }
+}
 
 export function HistoryTab() {
+  const storePublished = useLineupsStore((s) => s.published)
   const [month, setMonth] = useState('April 2026')
   const [boat, setBoat] = useState('all')
   const [search, setSearch] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
+  // Convert store entries and prepend to static history
+  const allEntries = useMemo<HistoryEntry[]>(() => {
+    const fromStore = storePublished.map(toHistoryEntry)
+    // Deduplicate: static entries already have ids that differ from store pub-* ids
+    const staticFiltered = HISTORY_ENTRIES.filter(
+      (e) => !fromStore.some((f) => f.id === e.id),
+    )
+    return [...fromStore, ...staticFiltered]
+  }, [storePublished])
+
   const filtered = useMemo(() => {
-    let list = HISTORY_ENTRIES
+    let list = allEntries
 
     // Month filter
     list = list.filter((e) => e.month === month)
@@ -35,7 +80,7 @@ export function HistoryTab() {
     }
 
     return list
-  }, [month, boat, search])
+  }, [allEntries, month, boat, search])
 
   function toggleExpand(id: string) {
     setExpandedIds((prev) => {
@@ -46,10 +91,16 @@ export function HistoryTab() {
     })
   }
 
-  const monthCounts: Record<string, number> = {}
-  HISTORY_ENTRIES.forEach((e) => {
-    monthCounts[e.month] = (monthCounts[e.month] ?? 0) + 1
-  })
+  const { monthCounts, monthOptions } = useMemo(() => {
+    const counts: Record<string, number> = {}
+    allEntries.forEach((e) => {
+      counts[e.month] = (counts[e.month] ?? 0) + 1
+    })
+    const options = Object.keys(counts).sort(
+      (a, b) => new Date(`1 ${b}`).getTime() - new Date(`1 ${a}`).getTime(),
+    )
+    return { monthCounts: counts, monthOptions: options }
+  }, [allEntries])
 
   return (
     <div style={{ padding: '16px 24px', paddingBottom: 40, fontFamily: THEME.fontSans }}>
@@ -88,10 +139,9 @@ export function HistoryTab() {
               cursor: 'pointer',
             }}
           >
-            <option value="April 2026">April 2026 ({monthCounts['April 2026'] ?? 0})</option>
-            <option value="March 2026">March 2026 ({monthCounts['March 2026'] ?? 0})</option>
-            <option value="February 2026">February 2026 (0)</option>
-            <option value="January 2026">January 2026 (0)</option>
+            {monthOptions.map((m) => (
+              <option key={m} value={m}>{m} ({monthCounts[m] ?? 0})</option>
+            ))}
           </select>
 
           {/* Boat dropdown */}

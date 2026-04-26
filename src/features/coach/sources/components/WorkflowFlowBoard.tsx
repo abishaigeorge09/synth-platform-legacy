@@ -94,7 +94,7 @@ const CustomNode = memo(function CustomNode({ data }: NodeProps) {
   const d = data as { label: string; detail: string; kind: NodeKind; color?: string }
   return (
     <div
-      className="rounded-lg border bg-white px-2 py-1.5"
+      className="rounded-lg border bg-[var(--bg-primary)] px-2 py-1.5"
       style={{
         width: NODE_W,
         minHeight: NODE_H,
@@ -132,7 +132,7 @@ export function WorkflowFlowBoard() {
   const [edges, , onEdgesChange] = useEdgesState(toFlowEdges())
 
   return (
-    <div className="rounded-lg border" style={{ borderColor: THEME.border, background: THEME.white, height: 'calc(70vh - 80px)', minHeight: 520 }}>
+    <div className="rounded-lg border" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', height: 'calc(70vh - 80px)', minHeight: 520 }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}

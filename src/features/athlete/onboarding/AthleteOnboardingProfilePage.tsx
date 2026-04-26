@@ -35,7 +35,7 @@ export function AthleteOnboardingProfilePage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="rounded-xl border px-4 py-3 text-[14px] outline-none"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }}
         />
       </label>
       <label className="mt-4 grid gap-1.5">
@@ -47,7 +47,7 @@ export function AthleteOnboardingProfilePage() {
           onChange={(e) => setTarget2k(e.target.value)}
           placeholder="6:44.0"
           className="rounded-xl border px-4 py-3 text-[14px] outline-none"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }}
         />
       </label>
 

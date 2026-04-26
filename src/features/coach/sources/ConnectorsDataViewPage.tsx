@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   BarChart,
@@ -250,7 +250,7 @@ function StravaTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4"
-        style={{ borderColor: THEME.border, background: THEME.white }}>
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>Strava</span>
@@ -267,7 +267,7 @@ function StravaTab() {
           </div>
         </div>
       </div>
-      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           Recent activity distances (km)
         </div>
@@ -282,7 +282,7 @@ function StravaTab() {
       </div>
       <div className="space-y-2">
         {STRAVA_ACTIVITIES.map((a) => (
-          <div key={a.id} className="rounded-2xl border px-4 py-3" style={{ borderColor: THEME.border, background: THEME.white, borderLeft: `3px solid #FC4C02` }}>
+          <div key={a.id} className="rounded-2xl border px-4 py-3" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', borderLeft: `3px solid #FC4C02` }}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <ActivityBadge type={a.type} />
@@ -315,7 +315,7 @@ function AppleHealthTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4"
-        style={{ borderColor: THEME.border, background: THEME.white }}>
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>Apple Health</span>
@@ -329,7 +329,7 @@ function AppleHealthTab() {
       </div>
 
       {/* Sleep chart */}
-      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           Sleep (hrs) — 14 days
         </div>
@@ -351,7 +351,7 @@ function AppleHealthTab() {
       </div>
 
       {/* HRV chart */}
-      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           HRV (ms) — 14 days
         </div>
@@ -368,7 +368,7 @@ function AppleHealthTab() {
       </div>
 
       {/* Resting HR chart */}
-      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border px-5 pb-3 pt-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           Resting HR (bpm) — 14 days
         </div>
@@ -414,7 +414,7 @@ function WhoopTab() {
           </button>
         </div>
       </div>
-      <div className="rounded-2xl border px-5 py-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border px-5 py-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           Last synced snapshot (reconnect to view live data)
         </div>
@@ -443,7 +443,7 @@ function GoogleCalendarTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4"
-        style={{ borderColor: THEME.border, background: THEME.white }}>
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>Practice Calendar</span>
@@ -457,7 +457,7 @@ function GoogleCalendarTab() {
       </div>
 
       {/* Week grid */}
-      <div className="rounded-2xl border overflow-hidden" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border overflow-hidden" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="grid" style={{ gridTemplateColumns: `repeat(5, 1fr)`, borderBottom: `1px solid ${THEME.border}` }}>
           {WEEK_DAYS.map((d) => (
             <div key={d} className="px-3 py-2 text-[11px] font-semibold text-center"
@@ -526,7 +526,7 @@ function BridgeTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4"
-        style={{ borderColor: THEME.border, background: THEME.white }}>
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>Bridge Athletics</span>
@@ -540,7 +540,7 @@ function BridgeTab() {
       <div className="space-y-3">
         {sessions.map((s) => (
           <div key={s.id} className="rounded-2xl border px-5 py-4"
-            style={{ borderColor: THEME.border, background: THEME.white, borderLeft: '3px solid #4A90D9' }}>
+            style={{ borderColor: THEME.border, background: 'var(--bg-primary)', borderLeft: '3px solid #4A90D9' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
                 {s.athleteId.replace('athlete-', '').split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')}
@@ -597,7 +597,7 @@ function TrainingPeaksTab() {
       </div>
 
       {/* Weekly compliance bar */}
-      <div className="rounded-2xl border px-5 py-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border px-5 py-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Weekly plan compliance
@@ -622,7 +622,7 @@ function TrainingPeaksTab() {
         </div>
       </div>
 
-      <div className="rounded-2xl border px-5 py-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="rounded-2xl border px-5 py-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           Once connected, you'll see
         </div>
@@ -690,7 +690,7 @@ function AiImportTab() {
       </div>
       {AI_IMPORTS.map((item) => (
         <div key={item.id} className="rounded-2xl border p-4"
-          style={{ borderColor: THEME.border, background: THEME.white, borderLeft: '3px solid #8B5CF6' }}>
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', borderLeft: '3px solid #8B5CF6' }}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.14em] mb-1" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
@@ -712,7 +712,7 @@ function AiImportTab() {
 
 function GarminOuraTab({ label }: { label: string }) {
   return (
-    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
         {label}
       </div>
@@ -732,6 +732,7 @@ function GarminOuraTab({ label }: { label: string }) {
 
 function FloatingAiButton({ tab }: { tab: DataViewTabId }) {
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
   const suggestions = TAB_SUGGESTIONS[tab] ?? ['Ask about this data source', 'Summarize recent activity']
   const tabLabel = SOURCE_TABS.find((t) => t.id === tab)?.label ?? tab
   return (
@@ -760,7 +761,7 @@ function FloatingAiButton({ tab }: { tab: DataViewTabId }) {
               <button key={s} type="button"
                 className="w-full rounded-xl border px-3 py-2 text-left text-[12px]"
                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-surface-raised)', color: 'var(--text-primary)', fontFamily: THEME.fontSans, cursor: 'pointer' }}
-                onClick={() => toast(`Demo: "${s}"`, 'info')}>
+                onClick={() => navigate('/coach/ai')}>
                 {s}
               </button>
             ))}
@@ -790,7 +791,7 @@ function Concept2Tab() {
       </div>
       {CONCEPT2_ROWS.map((r) => (
         <div key={r.athlete + r.date} className="rounded-2xl border p-4"
-          style={{ borderColor: THEME.border, background: THEME.white, borderLeft: '3px solid #1A1A2E' }}>
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', borderLeft: '3px solid #1A1A2E' }}>
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <div className="text-[15px] font-bold" style={{ color: THEME.textPrimary }}>{r.athlete}</div>
@@ -843,6 +844,15 @@ export function ConnectorsDataViewPage() {
   const tabParam = params.get('tab')
   const athleteParam = params.get('athlete')
   const [athleteQuery, setAthleteQuery] = useState('')
+  const [syncingId, setSyncingId] = useState<string | null>(null)
+
+  function handleSync(sourceId: string, sourceName: string) {
+    setSyncingId(sourceId)
+    setTimeout(() => {
+      setSyncingId(null)
+      toast(`${sourceName} synced — ${Math.floor(Math.random() * 50 + 10)} new records`, 'success')
+    }, 1800)
+  }
 
   const tab = useMemo<DataViewTabId>(() => {
     const valid = SOURCE_TABS.some((t) => t.id === tabParam)
@@ -875,7 +885,7 @@ export function ConnectorsDataViewPage() {
 
       {/* Athlete filter row */}
       <div className="flex flex-wrap items-center gap-3 px-5 sm:px-10 pb-3 pt-1">
-        <div className="rounded-xl border px-3 py-2" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-xl border px-3 py-2" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div className="text-[9px] font-semibold uppercase tracking-[0.18em]"
             style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Athlete filter</div>
           <div className="mt-2 flex items-center gap-2">
@@ -898,7 +908,7 @@ export function ConnectorsDataViewPage() {
         <div className="ml-auto flex items-center gap-2">
           <Link to="/coach/sources/connectors"
             className="rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-wider"
-            style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
+            style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
             Connectors
           </Link>
           <span className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>|</span>
@@ -960,7 +970,7 @@ export function ConnectorsDataViewPage() {
               </summary>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
                 {/* Source Health */}
-                <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+                <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
                   <div className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-4"
                     style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Source health summary</div>
                   <div className="grid gap-2">
@@ -981,17 +991,19 @@ export function ConnectorsDataViewPage() {
                           {s.status === 'failed' && (
                             <button type="button"
                               className="text-[11px] font-semibold"
-                              style={{ color: THEME.red, fontFamily: THEME.fontMono, background: 'none', border: 'none', cursor: 'pointer' }}
-                              onClick={(e) => { e.stopPropagation(); toast(`Reconnecting ${s.name}…`, 'info') }}>
-                              Reconnect →
+                              disabled={syncingId === s.id}
+                              style={{ color: THEME.red, fontFamily: THEME.fontMono, background: 'none', border: 'none', cursor: syncingId === s.id ? 'not-allowed' : 'pointer', opacity: syncingId === s.id ? 0.6 : 1 }}
+                              onClick={(e) => { e.stopPropagation(); handleSync(s.id, s.name) }}>
+                              {syncingId === s.id ? '⟳ Reconnecting…' : 'Reconnect →'}
                             </button>
                           )}
                           {s.status === 'stale' && (
                             <button type="button"
                               className="text-[11px] font-semibold"
-                              style={{ color: THEME.amber, fontFamily: THEME.fontMono, background: 'none', border: 'none', cursor: 'pointer' }}
-                              onClick={(e) => { e.stopPropagation(); toast(`Sync requested for ${s.name}`, 'info') }}>
-                              Sync now
+                              disabled={syncingId === s.id}
+                              style={{ color: THEME.amber, fontFamily: THEME.fontMono, background: 'none', border: 'none', cursor: syncingId === s.id ? 'not-allowed' : 'pointer', opacity: syncingId === s.id ? 0.6 : 1 }}
+                              onClick={(e) => { e.stopPropagation(); handleSync(s.id, s.name) }}>
+                              {syncingId === s.id ? '⟳ Syncing…' : 'Sync now'}
                             </button>
                           )}
                           {s.status === 'pending' && (
@@ -1009,7 +1021,7 @@ export function ConnectorsDataViewPage() {
                 </div>
 
                 {/* Inference Log */}
-                <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: THEME.white }}>
+                <div className="rounded-2xl border p-5" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.2em]"
                       style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Inference log</div>

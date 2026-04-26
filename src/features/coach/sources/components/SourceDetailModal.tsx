@@ -28,7 +28,7 @@ export function SourceDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-5 py-10">
       <button className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.35)' }} onClick={onClose} aria-label="Close" />
-      <div className="relative w-full max-w-[680px] rounded-3xl border p-6" style={{ borderColor: THEME.border, background: THEME.white }}>
+      <div className="relative w-full max-w-[680px] rounded-3xl border p-6" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
@@ -82,14 +82,14 @@ export function SourceDetailModal({
               <Link
                 to={source ? `/coach/sources/connectors?source=${encodeURIComponent(source.id)}` : '/coach/sources/connectors'}
                 className="rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-wider"
-                style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono, background: THEME.white }}
+                style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono, background: 'var(--bg-primary)' }}
               >
                 Open in connectors
               </Link>
               <Link
                 to="/coach/sources/data-view"
                 className="rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-wider"
-                style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono, background: THEME.white }}
+                style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono, background: 'var(--bg-primary)' }}
               >
                 Data view
               </Link>
@@ -98,7 +98,7 @@ export function SourceDetailModal({
         </div>
 
         {scanLogs && scanLogs.length > 0 ? (
-          <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+          <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
             <div className="flex items-center justify-between">
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
                 Recent scans

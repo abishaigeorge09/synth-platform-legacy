@@ -80,6 +80,10 @@ const AthleteScopedChatPage = lazyNamed(
   () => import('../features/coach/ai/AthleteScopedChatPage'),
   'AthleteScopedChatPage',
 )
+const AthleteComparePage = lazyNamed(
+  () => import('../features/coach/athletes/AthleteComparePage'),
+  'AthleteComparePage',
+)
 const SettingsPage = lazyNamed(
   () => import('../features/coach/settings/SettingsPage'),
   'SettingsPage',
@@ -158,6 +162,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <Navigate to="/coach/dashboard" replace /> },
       { path: 'dashboard', element: withSuspense(<DashboardPage />, 'Dashboard') },
       { path: 'athletes', element: withSuspense(<AthletesPage />, 'Athletes') },
+      { path: 'athletes/compare', element: withSuspense(<AthleteComparePage />, 'Compare athletes') },
       { path: 'athletes/:athleteId', element: withSuspense(<AthleteProfilePage />, 'Athlete profile') },
       { path: 'athletes/:athleteId/ai', element: withSuspense(<AthleteScopedChatPage />, 'Athlete AI') },
       { path: 'sources', element: <Navigate to="/coach/sources/connectors" replace /> },

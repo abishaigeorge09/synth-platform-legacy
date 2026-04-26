@@ -63,7 +63,7 @@ export function DashboardDateRangePicker() {
       </span>
       <div
         className="flex overflow-hidden rounded-lg border"
-        style={{ borderColor: THEME.border, background: THEME.white }}
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
       >
         {(Object.keys(RANGE_LABELS) as DateRangeKey[]).map((key) => (
           <button

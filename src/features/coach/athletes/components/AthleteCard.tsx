@@ -81,7 +81,7 @@ export function AthleteCard({
       transition={{ duration: 0.2 }}
       className="overflow-hidden rounded-xl border flex flex-col"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         borderLeft: flagColor ? `3px solid ${flagColor}` : undefined,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 16px 32px -24px rgba(24,24,27,0.18)',
@@ -101,7 +101,7 @@ export function AthleteCard({
             className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full border"
             style={{
               borderColor: isSelected ? THEME.primary : THEME.border,
-              background: isSelected ? `${THEME.primary}14` : THEME.white,
+              background: isSelected ? `${THEME.primary}14` : 'var(--bg-primary)',
               color: isSelected ? THEME.primary : THEME.textMuted,
             }}
             aria-hidden

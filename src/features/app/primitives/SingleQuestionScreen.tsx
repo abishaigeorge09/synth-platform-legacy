@@ -36,10 +36,10 @@ export function SingleQuestionScreen({
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-1 flex-col"
+      className="flex min-h-0 flex-1 flex-col"
       style={{ background: APP_THEME.canvas }}
     >
-      <div className="flex items-center gap-3 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-3">
+      <div className="flex shrink-0 items-center gap-3 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         <button
           type="button"
           onClick={onBack}
@@ -67,28 +67,30 @@ export function SingleQuestionScreen({
         )}
       </div>
 
-      <div className="synth-scroll flex flex-1 flex-col justify-center overflow-y-auto px-6 pb-4 pt-4">
-        <div className="mx-auto w-full max-w-[420px]">
-          <h1
-            className="text-center text-[28px] font-semibold leading-[1.15]"
-            style={{ fontFamily: APP_THEME.fontSerif, color: APP_THEME.text }}
-          >
-            {title}
-          </h1>
-          {helper ? (
-            <p
-              className="mx-auto mt-2 max-w-[340px] text-center text-[14px] leading-[1.5]"
-              style={{ fontFamily: APP_THEME.fontSans, color: APP_THEME.textMuted }}
+      <div className="synth-scroll min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-h-full flex-col justify-center px-6 py-6">
+          <div className="mx-auto w-full max-w-[420px]">
+            <h1
+              className="text-center text-[28px] font-semibold leading-[1.15]"
+              style={{ fontFamily: APP_THEME.fontSerif, color: APP_THEME.text }}
             >
-              {helper}
-            </p>
-          ) : null}
-          <div className="mt-7">{children}</div>
+              {title}
+            </h1>
+            {helper ? (
+              <p
+                className="mx-auto mt-2 max-w-[340px] text-center text-[14px] leading-[1.5]"
+                style={{ fontFamily: APP_THEME.fontSans, color: APP_THEME.textMuted }}
+              >
+                {helper}
+              </p>
+            ) : null}
+            <div className="mt-7">{children}</div>
+          </div>
         </div>
       </div>
 
       <div
-        className="px-5 pb-[max(env(safe-area-inset-bottom),16px)] pt-4"
+        className="shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),16px)] pt-4"
         style={{ background: APP_THEME.canvas }}
       >
         <button

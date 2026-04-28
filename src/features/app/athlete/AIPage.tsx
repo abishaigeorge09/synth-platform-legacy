@@ -1,212 +1,346 @@
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Menu, ChevronDown, Plus, Mic, AudioLines } from 'lucide-react'
+import { ChevronLeft, Menu, Sliders } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
-import { ComingSoonSheet } from '../primitives/SettingsSheets'
-import { APP_MOCK_ATHLETES } from '../data/mockTeam'
+import {
+  AIThread,
+  AIComposer,
+  AddToChatSheet,
+  ChatHistorySheet,
+  CustomizeChatSheet,
+  type ChatMessage,
+  type ChatPart,
+  type ChartPoint,
+  type ChatHistoryEntry,
+  type ScopeOption,
+  type StyleKey,
+  type ChatCustomization,
+} from '../primitives/AIChat'
+import { timeAwareGreeting, DEFAULT_CUSTOMIZATION } from '../primitives/aiChatUtil'
+import { APP_MOCK_ATHLETES, buildErgHistory, fmtErgTime } from '../data/mockTeam'
+
+const SEED_HISTORY: ChatHistoryEntry[] = [
+  { id: 'h-1', title: 'Race-day warm-up', updatedAgo: 'yesterday', pinned: true },
+  { id: 'h-2', title: 'Sleep + erg trend last week', updatedAgo: '4h ago' },
+]
 
 export function AIPage() {
   const navigate = useNavigate()
   const me = APP_MOCK_ATHLETES[0]
+  const scopeLabel = me.name
+
+  const scopeOptions: ScopeOption[] = useMemo(
+    () => [{ id: me.id, label: `Just ${me.name.split(' ')[0]}` }],
+    [me.id, me.name],
+  )
+
   const [text, setText] = useState('')
+  const [attachment, setAttachment] = useState<{ name: string; ext: string } | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [history, setHistory] = useState<ChatHistoryEntry[]>(SEED_HISTORY)
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [scopeOpen, setScopeOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [style, setStyle] = useState<StyleKey>('synthesized')
+  const [custom, setCustom] = useState<ChatCustomization>(DEFAULT_CUSTOMIZATION)
+  const streamingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const onPickFiles = (files: FileList | null) => {
+    const f = files?.[0]
+    if (!f) return
+    const dot = f.name.lastIndexOf('.')
+    const ext = dot >= 0 ? f.name.slice(dot + 1).toUpperCase() : 'FILE'
+    const name = dot >= 0 ? f.name.slice(0, dot) : f.name
+    setAttachment({ name: name.length > 24 ? `${name.slice(0, 24)}…` : name, ext })
+  }
+
+  const stopStreaming = () => {
+    if (streamingTimer.current) {
+      clearTimeout(streamingTimer.current)
+      streamingTimer.current = null
+    }
+    setIsStreaming(false)
+    setMessages((m) => m.filter((msg) => msg.role !== 'thinking'))
+  }
+
+  const send = () => {
+    const trimmed = text.trim()
+    if (!trimmed && !attachment) return
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
+      role: 'user',
+      text: trimmed,
+      ts: Date.now(),
+      attachment: attachment ?? undefined,
+    }
+    const thinking: ChatMessage = { id: `t-${Date.now()}`, role: 'thinking' }
+    setMessages((m) => [...m, userMsg, thinking])
+    setText('')
+    setAttachment(null)
+    setIsStreaming(true)
+
+    if (!activeChatId) {
+      const newId = `h-${Date.now()}`
+      const title = trimmed || 'New chat'
+      setHistory((h) => [
+        { id: newId, title: title.length > 48 ? `${title.slice(0, 48)}…` : title, updatedAgo: 'just now' },
+        ...h,
+      ])
+      setActiveChatId(newId)
+    }
+
+    streamingTimer.current = setTimeout(() => {
+      setMessages((m) => {
+        const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
+        return [
+          ...withoutThinking,
+          {
+            id: `a-${Date.now()}`,
+            role: 'ai',
+            parts: mockSelfResponse(me, trimmed, style, custom),
+            ts: Date.now(),
+          },
+        ]
+      })
+      setIsStreaming(false)
+      streamingTimer.current = null
+    }, 1300)
+  }
+
+  const onPickHistoryEntry = (id: string) => {
+    setActiveChatId(id)
+    setMessages([])
+    setHistoryOpen(false)
+  }
+  const startNewChat = () => {
+    setMessages([])
+    setActiveChatId(null)
+    setHistoryOpen(false)
+  }
+  const onPin = (id: string) => {
+    setHistory((h) => h.map((e) => (e.id === id ? { ...e, pinned: !e.pinned } : e)))
+  }
+  const onRename = (id: string) => {
+    const next = window.prompt('Rename chat')
+    if (!next) return
+    setHistory((h) => h.map((e) => (e.id === id ? { ...e, title: next } : e)))
+  }
+  const onDelete = (id: string) => {
+    setHistory((h) => h.filter((e) => e.id !== id))
+    if (activeChatId === id) {
+      setActiveChatId(null)
+      setMessages([])
+    }
+  }
+
+  const greeting = useMemo(() => timeAwareGreeting(), [])
+  const placeholder = messages.length > 0 ? 'Reply to synth.' : 'Ask synth. about your training'
+  const customizationActive =
+    custom.tone !== 'normal' ||
+    custom.instructions.trim().length > 0 ||
+    custom.references.length > 0
 
   return (
     <SwipeBackPage to="/app/athlete/home">
-    <div className="flex flex-1 flex-col" style={{ fontFamily: SYNTH.font }}>
-      <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(true)}
-          aria-label="Chat history"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            border: `1px solid ${SYNTH.glassBorder}`,
-            color: SYNTH.inkOnBrand,
-          }}
-        >
-          <Menu size={16} strokeWidth={2.2} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setScopeOpen(true)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            border: `1px solid ${SYNTH.glassBorder}`,
-          }}
-        >
-          <span
-            className="text-[13px] font-semibold"
-            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+      <div
+        className="flex flex-1 flex-col"
+        style={{ background: SYNTH.aiCanvas, fontFamily: SYNTH.font }}
+      >
+        <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),32px)] pb-3">
+          <HeaderIconButton ariaLabel="Back" onClick={() => navigate('/app/athlete/home')}>
+            <ChevronLeft size={18} strokeWidth={2.4} />
+          </HeaderIconButton>
+          <div
+            className="flex flex-1 items-center justify-center rounded-full border px-3 py-2"
+            style={{ background: SYNTH.sheet, borderColor: SYNTH.aiBorder, color: SYNTH.ink }}
           >
-            Just me
-          </span>
-          <ChevronDown size={14} color={SYNTH.inkOnBrandMuted} strokeWidth={2.2} />
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/app/athlete/settings')}
-          aria-label="Settings"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          style={{
-            background: `linear-gradient(135deg, ${SYNTH.accentEmerald}, #047857)`,
-            color: '#FFFFFF',
-            fontFamily: SYNTH.font,
-            fontWeight: 700,
-            fontSize: 11,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {me.initials}
-        </button>
-      </header>
-
-      <ComingSoonSheet
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        title="Chat history"
-        body="Past conversations + pinned chats land in the next AI release. Today, each visit starts a fresh thread scoped to you."
-      />
-      <ComingSoonSheet
-        open={scopeOpen}
-        onClose={() => setScopeOpen(false)}
-        title="Switch scope"
-        body="synth chats stay scoped to you. Coach-shared insights about you appear inline as citations from your sources."
-      />
-
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6">
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <DotMark />
-        </motion.div>
-        <motion.h1
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-6 max-w-[320px] text-center text-[28px] font-bold leading-[1.15] tracking-[-0.01em]"
-          style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-        >
-          synth ai ·
-          <br />
-          <span style={{ color: SYNTH.accentEmerald }}>ask anything about your training.</span>
-        </motion.h1>
-        <p
-          className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em]"
-          style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
-        >
-          Scoped · {me.position}
-        </p>
-      </div>
-
-      <div className="px-4 pb-[120px] pt-2">
-        <div
-          className="rounded-3xl px-4 pb-3 pt-3"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            border: `1px solid ${SYNTH.glassBorder}`,
-            boxShadow: `inset 0 1px 0 ${SYNTH.glassInset}`,
-          }}
-        >
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={1}
-            placeholder="Ask synth. about your training"
-            className="block w-full resize-none bg-transparent text-[15px] outline-none placeholder:opacity-60"
-            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font, minHeight: 24 }}
-          />
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Attach"
-              className="flex h-9 w-9 items-center justify-center rounded-full"
-              style={{ color: SYNTH.inkOnBrandMuted }}
-            >
-              <Plus size={18} strokeWidth={2.2} />
-            </button>
-            <span className="flex-1" />
-            <button
-              type="button"
-              aria-label="Transcribe"
-              className="flex h-9 w-9 items-center justify-center rounded-full"
-              style={{ color: SYNTH.inkOnBrandMuted }}
-            >
-              <Mic size={18} strokeWidth={2} />
-            </button>
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.94 }}
-              aria-label={text.trim() ? 'Send' : 'Voice mode'}
-              className="flex h-10 w-10 items-center justify-center rounded-full"
-              style={{
-                background: SYNTH.accentBlack,
-                color: SYNTH.inkOnBrand,
-                boxShadow: SYNTH.shadow.actionCircle,
-              }}
-            >
-              {text.trim() ? <SendArrow /> : <AudioLines size={18} strokeWidth={2.2} />}
-            </motion.button>
+            <span className="text-[14px] font-semibold" style={{ fontFamily: SYNTH.font }}>
+              Just me
+            </span>
           </div>
+          <HeaderIconButton ariaLabel="Chat history" onClick={() => setHistoryOpen(true)}>
+            <Menu size={16} strokeWidth={2.2} />
+          </HeaderIconButton>
+          <HeaderIconButton
+            ariaLabel="Customize chat"
+            onClick={() => setCustomizeOpen(true)}
+            badge={customizationActive}
+          >
+            <Sliders size={16} strokeWidth={2.2} />
+          </HeaderIconButton>
+        </header>
+
+        <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-2">
+          <AIThread
+            messages={messages}
+            emptyHeadline={greeting}
+            emptyHint={`Scoped · ${scopeLabel}`}
+            scopeLabel={scopeLabel}
+          />
         </div>
+
+        <div className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+          <AIComposer
+            value={text}
+            onChange={setText}
+            onSubmit={send}
+            onStop={stopStreaming}
+            onAttach={() => setAddOpen(true)}
+            attachment={attachment}
+            onClearAttachment={() => setAttachment(null)}
+            isStreaming={isStreaming}
+            placeholder={placeholder}
+          />
+        </div>
+
+        <AddToChatSheet
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onPickFiles={onPickFiles}
+          scopeOptions={scopeOptions}
+          scopeId={me.id}
+          onScopeChange={() => {
+            /* athletes scoped to themselves */
+          }}
+          style={style}
+          onStyleChange={setStyle}
+        />
+
+        <CustomizeChatSheet
+          open={customizeOpen}
+          onClose={() => setCustomizeOpen(false)}
+          value={custom}
+          onChange={setCustom}
+        />
+
+        <ChatHistorySheet
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entries={history}
+          activeId={activeChatId}
+          onPick={onPickHistoryEntry}
+          onPin={onPin}
+          onRename={onRename}
+          onDelete={onDelete}
+          onNew={startNewChat}
+        />
       </div>
-    </div>
     </SwipeBackPage>
   )
 }
 
-function DotMark() {
-  const rings = [
-    { r: 6, count: 1 },
-    { r: 18, count: 8 },
-    { r: 30, count: 12 },
-    { r: 42, count: 18 },
-  ]
+function HeaderIconButton({
+  ariaLabel,
+  onClick,
+  badge,
+  children,
+}: {
+  ariaLabel: string
+  onClick: () => void
+  badge?: boolean
+  children: React.ReactNode
+}) {
   return (
-    <svg width={108} height={108} viewBox="-54 -54 108 108" aria-hidden>
-      {rings.map((ring) =>
-        Array.from({ length: ring.count }).map((_, i) => {
-          const angle = (i / ring.count) * Math.PI * 2
-          const x = Math.cos(angle) * ring.r
-          const y = Math.sin(angle) * ring.r
-          return (
-            <circle
-              key={`${ring.r}-${i}`}
-              cx={x}
-              cy={y}
-              r={ring.r === 6 ? 2.6 : 1.6}
-              fill={ring.r === 6 ? SYNTH.accentEmerald : 'rgba(255,255,255,0.55)'}
-            />
-          )
-        }),
-      )}
-    </svg>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+      style={{ background: SYNTH.sheet, border: `1px solid ${SYNTH.aiBorder}`, color: SYNTH.ink }}
+    >
+      {children}
+      {badge ? (
+        <span
+          className="absolute right-1 top-1 h-2 w-2 rounded-full"
+          style={{ background: SYNTH.accentEmerald, border: `1.5px solid ${SYNTH.sheet}` }}
+        />
+      ) : null}
+    </button>
   )
 }
 
-function SendArrow() {
-  return (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke="#FFFFFF"
-        strokeWidth={2.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
+const TONE_PREFIX: Record<ChatCustomization['tone'], string> = {
+  normal: '',
+  coach: 'Coach mode — ',
+  raceday: 'Race-day prep — ',
+  recovery: 'Recovery focus — ',
+}
+
+function mockSelfResponse(
+  me: typeof APP_MOCK_ATHLETES[number],
+  prompt: string,
+  style: StyleKey,
+  custom: ChatCustomization,
+): ChatPart[] {
+  const today = new Date().toISOString().slice(0, 10)
+  const tonePrefix = TONE_PREFIX[custom.tone]
+  const lower = prompt.toLowerCase()
+
+  if (style === 'raw') {
+    return [
+      { kind: 'text', text: `${tonePrefix}Best 2K ${fmtErgTime(me.twoKBestSeconds)} · 30d avg ${fmtErgTime(me.twoKAvg30dSeconds)} · recovery ${me.recoveryScore} · streak ${me.streakDays}d · weekly ${(me.weeklyVolumeMeters / 1000).toFixed(0)}km. ` },
+      { kind: 'chip', source: me.primarySource, subject: me.name, date: today },
+    ]
+  }
+
+  if (/split|2k|erg|pace|time/.test(lower)) {
+    const points: ChartPoint[] = buildErgHistory(me.id)
+      .slice(-14)
+      .map((p) => ({ label: p.date, value: p.seconds }))
+    return [
+      { kind: 'text', text: `${tonePrefix}Your 2K trend over the last 14 days. ` },
+      {
+        kind: 'chart',
+        title: '2K time · last 14 days',
+        data: points,
+        yFormatter: (v) => fmtErgTime(v),
+        accent: SYNTH.accentEmerald,
+        provenance: 'Concept2 · 14 days · synced 4m ago',
+      },
+      { kind: 'text', text: `30-day average ${fmtErgTime(me.twoKAvg30dSeconds)}, best ${fmtErgTime(me.twoKBestSeconds)} ` },
+      { kind: 'chip', source: me.primarySource, subject: me.name, date: today },
+      { kind: 'text', text: `. ` },
+      {
+        kind: 'callout',
+        tone: 'info',
+        title: 'Pattern',
+        text: 'Faster days follow nights with 7+ hours of sleep. Worth pairing pacing work with bedtime targets.',
+      },
+      { kind: 'text', text: `Want me to break down where you're losing seconds — pacing strategy or stroke rate?` },
+    ]
+  }
+
+  if (/recover|sleep|hrv|wellness/.test(lower)) {
+    return [
+      { kind: 'text', text: `${tonePrefix}Recovery is sitting at ${me.recoveryScore} ` },
+      { kind: 'chip', source: 'WHOOP', subject: me.name, date: today },
+      { kind: 'text', text: `, on a ${me.streakDays}-day check-in streak. ` },
+      { kind: 'illustration', glyph: 'heart', caption: `Recovery · ${me.recoveryScore}` },
+      {
+        kind: 'callout',
+        tone: 'success',
+        title: 'Strong block',
+        text: 'Sleep average up 0.6h vs last week. HRV trending up. Keep the bedtime routine going.',
+      },
+    ]
+  }
+
+  if (/race|cup|heat|regatta/.test(lower)) {
+    return [
+      { kind: 'illustration', glyph: 'trophy', caption: 'Cal Cup heat · 9 days out' },
+      { kind: 'text', text: `${tonePrefix}You're 9 days out. Plan your taper around your pattern: longer Z2 work this week, sharpening at race pace next week. ` },
+      { kind: 'chip', source: 'TrainingPeaks', subject: me.name, date: today },
+      { kind: 'text', text: `Want a day-by-day breakdown?` },
+    ]
+  }
+
+  // default
+  return [
+    { kind: 'text', text: `${tonePrefix}You're recovered at ${me.recoveryScore} today, on a ${me.streakDays}-day streak ` },
+    { kind: 'chip', source: 'WHOOP', subject: me.name, date: today },
+    { kind: 'text', text: `. Weekly volume is ${(me.weeklyVolumeMeters / 1000).toFixed(0)}km — solid block. Want a session-by-session breakdown, or a recovery view?` },
+  ]
 }

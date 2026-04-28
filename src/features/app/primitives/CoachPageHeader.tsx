@@ -14,7 +14,7 @@ export function CoachPageHeader({ title, subtitle, back, rightSlot }: Props) {
   const navigate = useNavigate()
 
   return (
-    <header className="flex items-start gap-3 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-3">
+    <header className="flex items-start gap-3 px-5 pt-[max(env(safe-area-inset-top),32px)] pb-4">
       {back !== undefined ? (
         <button
           type="button"

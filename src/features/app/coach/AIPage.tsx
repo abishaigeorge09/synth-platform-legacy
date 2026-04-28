@@ -1,224 +1,545 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Menu, ChevronDown, Plus, Mic, AudioLines } from 'lucide-react'
+import { ChevronLeft, ChevronDown, Menu, Sliders } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
-import { ComingSoonSheet } from '../primitives/SettingsSheets'
-import { APP_MOCK_ATHLETES, APP_MOCK_TEAM } from '../data/mockTeam'
+import { SheetShell } from '../primitives/SheetShell'
+import {
+  AIThread,
+  AIComposer,
+  AddToChatSheet,
+  ChatHistorySheet,
+  CustomizeChatSheet,
+  type ChatMessage,
+  type ChatPart,
+  type ChartPoint,
+  type ScopeOption,
+  type StyleKey,
+  type ChatHistoryEntry,
+  type ChatCustomization,
+} from '../primitives/AIChat'
+import { timeAwareGreeting, DEFAULT_CUSTOMIZATION } from '../primitives/aiChatUtil'
+import {
+  APP_MOCK_ATHLETES,
+  APP_MOCK_TEAM,
+  APP_MOCK_ATTENTION,
+  buildErgHistory,
+  fmtErgTime,
+  fmtAgo,
+} from '../data/mockTeam'
+
+const SEED_HISTORY: ChatHistoryEntry[] = [
+  { id: 'h-1', title: 'Race plan for Cal Cup heat', updatedAgo: '3 days ago', pinned: true },
+  { id: 'h-2', title: "Why is Star Miller's split slipping?", updatedAgo: '6h ago' },
+  { id: 'h-3', title: 'Wednesday lineup analysis', updatedAgo: 'yesterday' },
+]
 
 export function AIPage() {
   const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const athleteId = params.get('athlete')
+  const [params, setParams] = useSearchParams()
+  const athleteIdFromUrl = params.get('athlete')
+  const scopeId = athleteIdFromUrl ?? 'team'
+
+  const scopeAthlete = useMemo(
+    () => APP_MOCK_ATHLETES.find((a) => a.id === scopeId) ?? null,
+    [scopeId],
+  )
+  const scopeLabel = scopeAthlete ? scopeAthlete.name : APP_MOCK_TEAM.name
+
   const [text, setText] = useState('')
+  const [attachment, setAttachment] = useState<{ name: string; ext: string } | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [history, setHistory] = useState<ChatHistoryEntry[]>(SEED_HISTORY)
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [scopeOpen, setScopeOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [style, setStyle] = useState<StyleKey>('synthesized')
+  const [custom, setCustom] = useState<ChatCustomization>(DEFAULT_CUSTOMIZATION)
+  const streamingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const athlete = useMemo(
-    () => (athleteId ? APP_MOCK_ATHLETES.find((a) => a.id === athleteId) : null),
-    [athleteId],
+  const scopeOptions: ScopeOption[] = useMemo(
+    () => [
+      { id: 'team', label: APP_MOCK_TEAM.name },
+      ...APP_MOCK_ATHLETES.map((a) => ({ id: a.id, label: a.name })),
+    ],
+    [],
   )
-  const scopeLabel = athlete ? athlete.name : APP_MOCK_TEAM.name
-  const scopeHint = athlete ? athlete.position : `${APP_MOCK_TEAM.athleteCount} athletes`
+
+  const onScopeChange = (id: string) => {
+    if (id === 'team') {
+      setParams({}, { replace: true })
+    } else {
+      setParams({ athlete: id }, { replace: true })
+    }
+  }
+
+  const onPickFiles = (files: FileList | null) => {
+    const f = files?.[0]
+    if (!f) return
+    const dot = f.name.lastIndexOf('.')
+    const ext = dot >= 0 ? f.name.slice(dot + 1).toUpperCase() : 'FILE'
+    const name = dot >= 0 ? f.name.slice(0, dot) : f.name
+    setAttachment({ name: name.length > 24 ? `${name.slice(0, 24)}…` : name, ext })
+  }
+
+  const stopStreaming = () => {
+    if (streamingTimer.current) {
+      clearTimeout(streamingTimer.current)
+      streamingTimer.current = null
+    }
+    setIsStreaming(false)
+    setMessages((m) => m.filter((msg) => msg.role !== 'thinking'))
+  }
+
+  const send = () => {
+    const trimmed = text.trim()
+    if (!trimmed && !attachment) return
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
+      role: 'user',
+      text: trimmed,
+      ts: Date.now(),
+      attachment: attachment ?? undefined,
+    }
+    const thinking: ChatMessage = { id: `t-${Date.now()}`, role: 'thinking' }
+    setMessages((m) => [...m, userMsg, thinking])
+    setText('')
+    setAttachment(null)
+    setIsStreaming(true)
+
+    if (!activeChatId) {
+      const newId = `h-${Date.now()}`
+      const title = trimmed || `New chat`
+      setHistory((h) => [
+        { id: newId, title: title.length > 48 ? `${title.slice(0, 48)}…` : title, updatedAgo: 'just now' },
+        ...h,
+      ])
+      setActiveChatId(newId)
+    }
+
+    streamingTimer.current = setTimeout(() => {
+      const aiParts = mockResponse({ scopeAthlete, scopeLabel, prompt: trimmed, style, custom })
+      setMessages((m) => {
+        const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
+        return [
+          ...withoutThinking,
+          { id: `a-${Date.now()}`, role: 'ai', parts: aiParts, ts: Date.now() },
+        ]
+      })
+      setIsStreaming(false)
+      streamingTimer.current = null
+    }, 1300)
+  }
+
+  const onPickHistoryEntry = (id: string) => {
+    setActiveChatId(id)
+    setMessages([])
+    setHistoryOpen(false)
+  }
+  const startNewChat = () => {
+    setMessages([])
+    setActiveChatId(null)
+    setHistoryOpen(false)
+  }
+  const onPin = (id: string) => {
+    setHistory((h) => h.map((e) => (e.id === id ? { ...e, pinned: !e.pinned } : e)))
+  }
+  const onRename = (id: string) => {
+    const next = window.prompt('Rename chat')
+    if (!next) return
+    setHistory((h) => h.map((e) => (e.id === id ? { ...e, title: next } : e)))
+  }
+  const onDelete = (id: string) => {
+    setHistory((h) => h.filter((e) => e.id !== id))
+    if (activeChatId === id) {
+      setActiveChatId(null)
+      setMessages([])
+    }
+  }
+
+  const greeting = useMemo(() => timeAwareGreeting(), [])
+  const placeholder = messages.length > 0 ? 'Reply to synth.' : `Ask synth. about ${scopeLabel}`
+  const customizationActive =
+    custom.tone !== 'normal' ||
+    custom.instructions.trim().length > 0 ||
+    custom.references.length > 0
 
   return (
     <SwipeBackPage to="/app/coach/home">
-    <div
-      className="flex flex-1 flex-col"
-      style={{ fontFamily: SYNTH.font }}
-    >
-      <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(true)}
-          aria-label="Chat history"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            border: `1px solid ${SYNTH.glassBorder}`,
-            color: SYNTH.inkOnBrand,
-          }}
-        >
-          <Menu size={16} strokeWidth={2.2} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setScopeOpen(true)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            border: `1px solid ${SYNTH.glassBorder}`,
-          }}
-        >
-          <span
-            className="text-[13px] font-semibold"
-            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+      <div
+        className="flex flex-1 flex-col"
+        style={{ background: SYNTH.aiCanvas, fontFamily: SYNTH.font }}
+      >
+        <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),32px)] pb-3">
+          <HeaderIconButton
+            ariaLabel="Back"
+            onClick={() => navigate('/app/coach/home')}
           >
-            {scopeLabel}
-          </span>
-          <ChevronDown size={14} color={SYNTH.inkOnBrandMuted} strokeWidth={2.2} />
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/app/coach/settings')}
-          aria-label="Settings"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          style={{
-            background: `linear-gradient(135deg, ${SYNTH.accentAmber}, #D87B3A)`,
-            color: SYNTH.inkOnBrand,
-            fontFamily: SYNTH.font,
-            fontWeight: 700,
-            fontSize: 11,
-            letterSpacing: '0.04em',
-          }}
-        >
-          CO
-        </button>
-      </header>
+            <ChevronLeft size={18} strokeWidth={2.4} />
+          </HeaderIconButton>
+          <button
+            type="button"
+            onClick={() => setScopeOpen(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border px-3 py-2"
+            style={{ background: SYNTH.sheet, borderColor: SYNTH.aiBorder, color: SYNTH.ink }}
+          >
+            <span className="truncate text-[14px] font-semibold" style={{ fontFamily: SYNTH.font }}>
+              {scopeLabel}
+            </span>
+            <ChevronDown size={14} color={SYNTH.aiTextMuted} strokeWidth={2.2} />
+          </button>
+          <HeaderIconButton ariaLabel="Chat history" onClick={() => setHistoryOpen(true)}>
+            <Menu size={16} strokeWidth={2.2} />
+          </HeaderIconButton>
+          <HeaderIconButton
+            ariaLabel="Customize chat"
+            onClick={() => setCustomizeOpen(true)}
+            badge={customizationActive}
+          >
+            <Sliders size={16} strokeWidth={2.2} />
+          </HeaderIconButton>
+        </header>
 
-      <ComingSoonSheet
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        title="Chat history"
-        body="Past conversations, pinned chats, and an artifacts library land in the next AI release. Today, each visit starts a fresh thread scoped to whatever you tap into."
-      />
-      <ComingSoonSheet
-        open={scopeOpen}
-        onClose={() => setScopeOpen(false)}
-        title="Switch scope"
-        body="Coming next: pick a different athlete, lineup, or source to scope this chat. For now, scope is set when you open synth from a profile or the team home."
-      />
-
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6">
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <DotMark />
-        </motion.div>
-        <motion.h1
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-6 max-w-[320px] text-center text-[28px] font-bold leading-[1.15] tracking-[-0.01em]"
-          style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-        >
-          synth ai ·
-          <br />
-          <span style={{ color: SYNTH.accentAmber }}>ask anything about {athlete ? 'this athlete' : 'your team'}.</span>
-        </motion.h1>
-        <p
-          className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em]"
-          style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
-        >
-          Scoped · {scopeHint}
-        </p>
-      </div>
-
-      <div className="px-4 pb-[120px] pt-2">
-        <div
-          className="rounded-3xl px-4 pb-3 pt-3"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            border: `1px solid ${SYNTH.glassBorder}`,
-            boxShadow: `inset 0 1px 0 ${SYNTH.glassInset}`,
-          }}
-        >
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={1}
-            placeholder={`Ask synth. about ${scopeLabel}`}
-            className="block w-full resize-none bg-transparent text-[15px] outline-none placeholder:opacity-60"
-            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font, minHeight: 24 }}
+        <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-2">
+          <AIThread
+            messages={messages}
+            emptyHeadline={greeting}
+            emptyHint={`Scoped · ${scopeLabel}`}
+            scopeLabel={scopeLabel}
           />
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Attach"
-              className="flex h-9 w-9 items-center justify-center rounded-full"
-              style={{ color: SYNTH.inkOnBrandMuted }}
-            >
-              <Plus size={18} strokeWidth={2.2} />
-            </button>
-            <span className="flex-1" />
-            <button
-              type="button"
-              aria-label="Transcribe"
-              className="flex h-9 w-9 items-center justify-center rounded-full"
-              style={{ color: SYNTH.inkOnBrandMuted }}
-            >
-              <Mic size={18} strokeWidth={2} />
-            </button>
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.94 }}
-              aria-label={text.trim() ? 'Send' : 'Voice mode'}
-              className="flex h-10 w-10 items-center justify-center rounded-full"
-              style={{
-                background: SYNTH.accentBlack,
-                color: SYNTH.inkOnBrand,
-                boxShadow: SYNTH.shadow.actionCircle,
-              }}
-            >
-              {text.trim() ? <SendArrow /> : <AudioLines size={18} strokeWidth={2.2} />}
-            </motion.button>
-          </div>
         </div>
+
+        <div className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+          <AIComposer
+            value={text}
+            onChange={setText}
+            onSubmit={send}
+            onStop={stopStreaming}
+            onAttach={() => setAddOpen(true)}
+            attachment={attachment}
+            onClearAttachment={() => setAttachment(null)}
+            isStreaming={isStreaming}
+            placeholder={placeholder}
+          />
+        </div>
+
+        <AddToChatSheet
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onPickFiles={onPickFiles}
+          scopeOptions={scopeOptions}
+          scopeId={scopeId}
+          onScopeChange={onScopeChange}
+          style={style}
+          onStyleChange={setStyle}
+        />
+
+        <ScopePickerSheet
+          open={scopeOpen}
+          onClose={() => setScopeOpen(false)}
+          options={scopeOptions}
+          activeId={scopeId}
+          onPick={(id) => {
+            onScopeChange(id)
+            setScopeOpen(false)
+          }}
+        />
+
+        <CustomizeChatSheet
+          open={customizeOpen}
+          onClose={() => setCustomizeOpen(false)}
+          value={custom}
+          onChange={setCustom}
+        />
+
+        <ChatHistorySheet
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entries={history}
+          activeId={activeChatId}
+          onPick={onPickHistoryEntry}
+          onPin={onPin}
+          onRename={onRename}
+          onDelete={onDelete}
+          onNew={startNewChat}
+        />
       </div>
-    </div>
     </SwipeBackPage>
   )
 }
 
-function DotMark() {
-  // Concentric rings of dots — translates Plan 9's loading mark for a "thinking" feel
-  const rings = [
-    { r: 6, count: 1 },
-    { r: 18, count: 8 },
-    { r: 30, count: 12 },
-    { r: 42, count: 18 },
-  ]
+function HeaderIconButton({
+  ariaLabel,
+  onClick,
+  badge,
+  children,
+}: {
+  ariaLabel: string
+  onClick: () => void
+  badge?: boolean
+  children: React.ReactNode
+}) {
   return (
-    <svg width={108} height={108} viewBox="-54 -54 108 108" aria-hidden>
-      {rings.map((ring) =>
-        Array.from({ length: ring.count }).map((_, i) => {
-          const angle = (i / ring.count) * Math.PI * 2
-          const x = Math.cos(angle) * ring.r
-          const y = Math.sin(angle) * ring.r
-          return (
-            <circle
-              key={`${ring.r}-${i}`}
-              cx={x}
-              cy={y}
-              r={ring.r === 6 ? 2.6 : 1.6}
-              fill={ring.r === 6 ? SYNTH.accentAmber : 'rgba(255,255,255,0.55)'}
-            />
-          )
-        }),
-      )}
-    </svg>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+      style={{ background: SYNTH.sheet, border: `1px solid ${SYNTH.aiBorder}`, color: SYNTH.ink }}
+    >
+      {children}
+      {badge ? (
+        <span
+          className="absolute right-1 top-1 h-2 w-2 rounded-full"
+          style={{ background: SYNTH.accentEmerald, border: `1.5px solid ${SYNTH.sheet}` }}
+        />
+      ) : null}
+    </button>
   )
 }
 
-function SendArrow() {
+function ScopePickerSheet({
+  open,
+  onClose,
+  options,
+  activeId,
+  onPick,
+}: {
+  open: boolean
+  onClose: () => void
+  options: ScopeOption[]
+  activeId: string
+  onPick: (id: string) => void
+}) {
   return (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke="#FFFFFF"
-        strokeWidth={2.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <SheetShell open={open} onClose={onClose} title="Scope this chat">
+      <p className="text-[12px]" style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}>
+        synth answers from this scope's data only.
+      </p>
+      <div
+        className="overflow-hidden rounded-2xl"
+        style={{ background: SYNTH.aiCard, border: `1px solid ${SYNTH.aiBorder}` }}
+      >
+        {options.map((o, i) => {
+          const active = o.id === activeId
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => onPick(o.id)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left active:opacity-70"
+              style={{
+                borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.aiBorder}`,
+                background: active ? SYNTH.aiBubble : 'transparent',
+                fontFamily: SYNTH.font,
+              }}
+            >
+              <span className="text-[14px] font-semibold" style={{ color: SYNTH.ink }}>
+                {o.label}
+              </span>
+              {active ? (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  style={{ background: SYNTH.accentEmerald, color: SYNTH.inkOnBrand }}
+                >
+                  Active
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+    </SheetShell>
   )
+}
+
+// — Mock response with rich content —
+
+const TONE_PREFIX: Record<ChatCustomization['tone'], string> = {
+  normal: '',
+  coach: 'Coach mode — ',
+  raceday: 'Race-day prep — ',
+  recovery: 'Recovery focus — ',
+}
+
+function ergSeriesFor(athleteId: string): { points: ChartPoint[]; provenance: string } {
+  const history = buildErgHistory(athleteId).slice(-14)
+  return {
+    points: history.map((p) => ({ label: p.date, value: p.seconds })),
+    provenance: `Concept2 · 14 days · synced 4m ago`,
+  }
+}
+
+function recoveryTeamSeries(): { points: ChartPoint[]; provenance: string } {
+  // Mock 7-day average recovery for the team
+  const today = new Date()
+  const points = Array.from({ length: 7 }).map((_, i) => {
+    const dayOffset = 6 - i
+    const d = new Date(today)
+    d.setDate(d.getDate() - dayOffset)
+    const drift = Math.sin(i * 0.7) * 6 + (i - 3) * 1.5
+    return { label: d.toISOString().slice(5, 10), value: Math.round(70 + drift) }
+  })
+  return { points, provenance: 'WHOOP · 7 days · synced 6m ago' }
+}
+
+function mockResponse({
+  scopeAthlete,
+  scopeLabel,
+  prompt,
+  style,
+  custom,
+}: {
+  scopeAthlete: typeof APP_MOCK_ATHLETES[number] | null
+  scopeLabel: string
+  prompt: string
+  style: StyleKey
+  custom: ChatCustomization
+}): ChatPart[] {
+  const today = new Date().toISOString().slice(0, 10)
+  const tonePrefix = TONE_PREFIX[custom.tone]
+  const lower = prompt.toLowerCase()
+
+  // Raw mode — short, citation-heavy, no chart
+  if (style === 'raw') {
+    if (scopeAthlete) {
+      return [
+        { kind: 'text', text: `${tonePrefix}${scopeAthlete.name}, last 14 days, raw:\n` },
+        { kind: 'text', text: `2K best ${fmtErgTime(scopeAthlete.twoKBestSeconds)}, 30d avg ${fmtErgTime(scopeAthlete.twoKAvg30dSeconds)}. Recovery ${scopeAthlete.recoveryScore}. Streak ${scopeAthlete.streakDays}d. Weekly ${(scopeAthlete.weeklyVolumeMeters / 1000).toFixed(0)}km. ` },
+        { kind: 'chip', source: scopeAthlete.primarySource, subject: scopeAthlete.name, date: today },
+      ]
+    }
+    return [
+      { kind: 'text', text: `${tonePrefix}${scopeLabel} — raw weekly: ${APP_MOCK_TEAM.activeToday}/${APP_MOCK_TEAM.athleteCount} active, avg recovery ${APP_MOCK_TEAM.avgRecovery}, ${APP_MOCK_TEAM.attentionCount} flagged, ${APP_MOCK_TEAM.sessionsToday} sessions today. ` },
+      { kind: 'chip', source: 'synth.', subject: APP_MOCK_TEAM.name, date: today },
+    ]
+  }
+
+  // Synthesized — pick scenario based on prompt keywords
+  if (scopeAthlete) {
+    if (/split|2k|erg|pace|time/.test(lower)) {
+      const { points, provenance } = ergSeriesFor(scopeAthlete.id)
+      return [
+        { kind: 'text', text: `${tonePrefix}${scopeAthlete.name}'s 2K trend over the last 14 days. ` },
+        {
+          kind: 'chart',
+          title: '2K time · last 14 days',
+          data: points,
+          yFormatter: (v) => fmtErgTime(v),
+          accent: SYNTH.accentEmerald,
+          provenance,
+        },
+        { kind: 'text', text: `Best is ${fmtErgTime(scopeAthlete.twoKBestSeconds)}, average ${fmtErgTime(scopeAthlete.twoKAvg30dSeconds)} ` },
+        { kind: 'chip', source: scopeAthlete.primarySource, subject: scopeAthlete.name, date: today },
+        { kind: 'text', text: `.` },
+        {
+          kind: 'callout',
+          tone: 'warn',
+          title: 'Likely cause',
+          text: 'Two short-sleep nights this block. Splits drift 2–4s the day after a sub-6h night.',
+        },
+        { kind: 'text', text: `Want me to overlay sleep on this chart, or pull the by-day breakdown?` },
+      ]
+    }
+    if (/recover|sleep|hrv|wellness/.test(lower)) {
+      return [
+        { kind: 'text', text: `${tonePrefix}${scopeAthlete.name}'s recovery sits at ${scopeAthlete.recoveryScore} ` },
+        { kind: 'chip', source: 'WHOOP', subject: scopeAthlete.name, date: today },
+        { kind: 'text', text: `.` },
+        {
+          kind: 'illustration',
+          glyph: 'heart',
+          caption: `Recovery · ${scopeAthlete.recoveryScore}`,
+        },
+        {
+          kind: 'callout',
+          tone: 'success',
+          title: 'On track',
+          text: `Sleep average is steady at 7.4h. HRV trending up. Streak: ${scopeAthlete.streakDays} days.`,
+        },
+      ]
+    }
+    if (/lineup|boat|seat/.test(lower)) {
+      return [
+        { kind: 'illustration', glyph: 'boat', caption: 'V8 — published 06:42' },
+        { kind: 'text', text: `${tonePrefix}${scopeAthlete.name} is at ${scopeAthlete.position}. ` },
+        { kind: 'chip', source: 'synth.', subject: scopeAthlete.name, date: today },
+        { kind: 'text', text: ` Want me to show alternative lineups that keep stroke timing tight?` },
+      ]
+    }
+    // default for athlete scope
+    const { points, provenance } = ergSeriesFor(scopeAthlete.id)
+    return [
+      { kind: 'text', text: `${tonePrefix}Looking at ${scopeAthlete.name}'s last block. ` },
+      {
+        kind: 'chart',
+        title: '2K time · last 14 days',
+        data: points,
+        yFormatter: (v) => fmtErgTime(v),
+        accent: SYNTH.accentEmerald,
+        provenance,
+      },
+      { kind: 'text', text: `Best 2K is ${fmtErgTime(scopeAthlete.twoKBestSeconds)}, recovery is ${scopeAthlete.recoveryScore}, on a ${scopeAthlete.streakDays}-day streak. ` },
+      { kind: 'chip', source: scopeAthlete.primarySource, subject: scopeAthlete.name, date: today },
+      { kind: 'text', text: `Where do you want to dig in — splits, sleep, or volume?` },
+    ]
+  }
+
+  // Team scope
+  if (/flag|attention|need|eye/.test(lower)) {
+    return [
+      { kind: 'text', text: `${tonePrefix}${APP_MOCK_TEAM.attentionCount} flagged today.` },
+      {
+        kind: 'bulletList',
+        items: APP_MOCK_ATTENTION.map((a) => ({
+          label: a.athleteName,
+          sub: a.signal,
+          severity: a.severity,
+        })),
+      },
+      { kind: 'text', text: `Most recent sync: ` },
+      { kind: 'chip', source: APP_MOCK_ATTENTION[0].source, subject: APP_MOCK_ATTENTION[0].athleteName, date: fmtAgo(APP_MOCK_ATTENTION[0].syncedMinutesAgo) },
+      { kind: 'text', text: `. Tap any name in attention for the underlying data.` },
+    ]
+  }
+  if (/recover|sleep|hrv|wellness/.test(lower)) {
+    const { points, provenance } = recoveryTeamSeries()
+    return [
+      { kind: 'text', text: `${tonePrefix}Team-average recovery, last 7 days. ` },
+      {
+        kind: 'chart',
+        title: 'Avg recovery · 7 days',
+        data: points,
+        yFormatter: (v) => `${v}`,
+        accent: SYNTH.accentAmber,
+        provenance,
+      },
+      {
+        kind: 'callout',
+        tone: 'info',
+        title: 'Trend',
+        text: `Up 3 points week-over-week. Two athletes still under 50: Isla Park (42), Coral Mendez (58).`,
+      },
+    ]
+  }
+  // default team summary
+  const { points, provenance } = recoveryTeamSeries()
+  const example = APP_MOCK_ATTENTION[0]
+  return [
+    { kind: 'text', text: `${tonePrefix}${APP_MOCK_TEAM.activeToday} of ${APP_MOCK_TEAM.athleteCount} synced today, ${APP_MOCK_TEAM.attentionCount} flagged. ` },
+    {
+      kind: 'chart',
+      title: 'Avg recovery · 7 days',
+      data: points,
+      yFormatter: (v) => `${v}`,
+      accent: SYNTH.accentAmber,
+      provenance,
+    },
+    { kind: 'text', text: `${example.athleteName}: ${example.signal} ` },
+    { kind: 'chip', source: example.source, subject: example.athleteName, date: fmtAgo(example.syncedMinutesAgo) },
+    { kind: 'text', text: `. ${prompt ? `On your question — ` : ''}I can drill into any athlete, or pull lineup readiness if you want a higher-altitude view.` },
+  ]
 }

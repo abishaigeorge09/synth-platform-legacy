@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
-import { Home, Bell, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
+import { Home, AlertTriangle, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 
 export type FloatingTabItem = {
@@ -126,7 +126,7 @@ const COACH_TABS_INTERNAL: FloatingTabItem[] = [
     label: 'Attention',
     to: '/app/coach/attention',
     match: (p) => p.startsWith('/app/coach/attention') || p.startsWith('/app/coach/athlete'),
-    icon: <Bell size={18} strokeWidth={2.2} />,
+    icon: <AlertTriangle size={18} strokeWidth={2.2} />,
   },
   {
     key: 'ai',

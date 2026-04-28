@@ -23,6 +23,7 @@ import { RevealPage as AppOnboardingRevealPage } from '../features/app/onboardin
 import { AppCoachShell } from '../features/app/coach/AppCoachShell'
 import { HomePage as AppCoachHomePage } from '../features/app/coach/HomePage'
 import { AttentionPage as AppCoachAttentionPage } from '../features/app/coach/AttentionPage'
+import { RosterPage as AppCoachRosterPage } from '../features/app/coach/RosterPage'
 import { AthleteDetailPage as AppCoachAthleteDetailPage } from '../features/app/coach/AthleteDetailPage'
 import { AIPage as AppCoachAIPage } from '../features/app/coach/AIPage'
 import { CapturePage as AppCoachCapturePage } from '../features/app/coach/CapturePage'
@@ -269,6 +270,7 @@ export const routes: RouteObject[] = [
           { index: true, element: <Navigate to="/app/coach/home" replace /> },
           { path: 'home', element: withSuspense(<AppCoachHomePage />, 'Coach home') },
           { path: 'attention', element: withSuspense(<AppCoachAttentionPage />, 'Attention') },
+          { path: 'roster', element: withSuspense(<AppCoachRosterPage />, 'Roster') },
           { path: 'athlete/:athleteId', element: withSuspense(<AppCoachAthleteDetailPage />, 'Athlete') },
           { path: 'capture', element: withSuspense(<AppCoachCapturePage />, 'Capture') },
           { path: 'ai', element: withSuspense(<AppCoachAIPage />, 'Coach AI') },

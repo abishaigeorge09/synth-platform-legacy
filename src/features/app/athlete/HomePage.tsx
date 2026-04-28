@@ -1,8 +1,9 @@
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Flame, ArrowUpRight, BarChart3 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_ATHLETES, fmtErgTime, fmtAgo } from '../data/mockTeam'
 import { APP_MOCK_NOTES } from '../data/mockNotes'
 
@@ -14,6 +15,7 @@ export function HomePage() {
   const me = APP_MOCK_ATHLETES[0] // Star Miller as the demo athlete
   const greeting = greetingForNow()
   const sharedNotes = APP_MOCK_NOTES.filter((n) => n.athleteId === me.id || n.visibleToAthlete).slice(0, 3)
+  const [statsOpen, setStatsOpen] = useState(false)
 
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[120px]">
@@ -29,7 +31,8 @@ export function HomePage() {
         </span>
         <button
           type="button"
-          aria-label="Quick stats"
+          aria-label="My week"
+          onClick={() => setStatsOpen(true)}
           className="flex h-9 items-center gap-1.5 rounded-full px-3"
           style={{
             background: SYNTH.glass,
@@ -42,6 +45,20 @@ export function HomePage() {
           <BarChart3 size={14} strokeWidth={2.2} />
         </button>
       </header>
+
+      <QuickStatsSheet
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        title="My week"
+        stats={[
+          { label: 'Best 2K', value: fmtErgTime(me.twoKBestSeconds), source: 'Concept2', syncedAgo: '4m' },
+          { label: 'Recovery', value: `${me.recoveryScore}`, delta: { direction: 'up', value: '+5' }, source: 'WHOOP', syncedAgo: '6m' },
+          { label: 'Streak', value: `${me.streakDays}`, unit: 'd', source: 'synth.', syncedAgo: 'live' },
+          { label: 'Volume', value: `${(me.weeklyVolumeMeters / 1000).toFixed(0)}k`, unit: 'm', delta: { direction: 'up', value: '+12%' }, source: 'Concept2', syncedAgo: '4m' },
+          { label: 'Sleep avg', value: '7.2', unit: 'h', source: 'WHOOP', syncedAgo: '8h' },
+          { label: 'HRV', value: '64', unit: 'ms', source: 'WHOOP', syncedAgo: '8h' },
+        ]}
+      />
 
       <motion.h1
         initial={{ opacity: 0, y: 8 }}

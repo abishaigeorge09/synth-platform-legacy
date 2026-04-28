@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Sparkles, MessageSquare } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { TwoPaneChartSheet, type RangeKey, type ChartPoint } from '../primitives/TwoPaneChartSheet'
+import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import {
   APP_MOCK_ATHLETES,
   buildErgHistory,
@@ -48,6 +49,7 @@ export function AthleteDetailPage() {
   const deltaText = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}s vs prev`
 
   return (
+    <SwipeBackPage>
     <TwoPaneChartSheet
       title={athlete.name}
       subtitle={athlete.position}
@@ -137,6 +139,7 @@ export function AthleteDetailPage() {
         </div>
       </div>
     </TwoPaneChartSheet>
+    </SwipeBackPage>
   )
 }
 

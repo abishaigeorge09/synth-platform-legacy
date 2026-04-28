@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Menu, ChevronDown, Plus, Mic, AudioLines } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import { APP_MOCK_ATHLETES } from '../data/mockTeam'
 
 export function AIPage() {
@@ -11,6 +12,7 @@ export function AIPage() {
   const [text, setText] = useState('')
 
   return (
+    <SwipeBackPage to="/app/athlete/home">
     <div className="flex flex-1 flex-col" style={{ fontFamily: SYNTH.font }}>
       <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         <button
@@ -144,6 +146,7 @@ export function AIPage() {
         </div>
       </div>
     </div>
+    </SwipeBackPage>
   )
 }
 

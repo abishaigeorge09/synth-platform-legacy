@@ -2,9 +2,16 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { CoachFloatingTabBar } from '../primitives/FloatingTabBar'
 import { SYNTH } from '../lib/theme'
 
+const HIDE_TAB_BAR_PREFIXES = [
+  '/app/coach/ai',
+  '/app/coach/attention',
+  '/app/coach/athlete/',
+]
+
 export function AppCoachShell() {
   const { pathname } = useLocation()
   const isAI = pathname.startsWith('/app/coach/ai')
+  const hideTabBar = HIDE_TAB_BAR_PREFIXES.some((p) => pathname.startsWith(p))
 
   return (
     <div
@@ -19,7 +26,7 @@ export function AppCoachShell() {
       <main className="flex flex-1 flex-col overflow-hidden">
         <Outlet />
       </main>
-      <CoachFloatingTabBar />
+      {hideTabBar ? null : <CoachFloatingTabBar />}
     </div>
   )
 }

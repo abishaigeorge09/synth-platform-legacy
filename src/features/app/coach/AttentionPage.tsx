@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { TwoPaneChartSheet, type ChartPoint } from '../primitives/TwoPaneChartSheet'
+import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import { APP_MOCK_ATTENTION, fmtAgo } from '../data/mockTeam'
 
 const SEVERITY_VALUE: Record<'high' | 'med' | 'low', number> = {
@@ -36,6 +37,7 @@ export function AttentionPage() {
   const others = APP_MOCK_ATTENTION.filter((it) => it.id !== selected.id)
 
   return (
+    <SwipeBackPage to="/app/coach/home">
     <TwoPaneChartSheet
       title="Attention"
       subtitle={`${APP_MOCK_ATTENTION.length} flagged today`}
@@ -161,5 +163,6 @@ export function AttentionPage() {
         </div>
       </div>
     </TwoPaneChartSheet>
+    </SwipeBackPage>
   )
 }

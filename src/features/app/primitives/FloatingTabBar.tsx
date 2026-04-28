@@ -49,11 +49,14 @@ function GlassCapsule({ children }: { children: ReactNode }) {
         height: 64,
         padding: 8,
         borderRadius: SYNTH.radius.capsule,
-        background: SYNTH.glass,
-        backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-        WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-        border: `1px solid ${SYNTH.glassBorder}`,
-        boxShadow: `${SYNTH.shadow.glass}, inset 0 1px 0 ${SYNTH.glassInset}`,
+        // Dark navy-gray glass overlay so the bar reads against any backdrop —
+        // cobalt canvas, white sheet, or candy card.
+        background: 'rgba(15, 18, 42, 0.62)',
+        backdropFilter: 'blur(28px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+        border: '1px solid rgba(255, 255, 255, 0.16)',
+        boxShadow:
+          '0 14px 36px rgba(8,8,40,0.35), 0 2px 6px rgba(8,8,40,0.18), inset 0 1px 0 rgba(255,255,255,0.20)',
       }}
     >
       {children}
@@ -75,9 +78,9 @@ function TabCell({ tab }: { tab: FloatingTabItem }) {
         aria-current={active ? 'page' : undefined}
         className="relative flex h-12 w-12 items-center justify-center rounded-full"
         style={{
-          background: active ? SYNTH.glassActive : 'transparent',
-          border: active ? `1px solid ${SYNTH.glassBorder}` : '1px solid transparent',
-          color: active ? SYNTH.inkOnBrand : SYNTH.inkOnBrandMuted,
+          background: active ? 'rgba(255,255,255,0.16)' : 'transparent',
+          border: active ? '1px solid rgba(255,255,255,0.22)' : '1px solid transparent',
+          color: active ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
         }}
       >
         <motion.span whileTap={{ scale: 0.92 }} className="flex items-center justify-center">

@@ -33,9 +33,11 @@ export const SYNTH = {
   inlineCard: 'rgba(255,255,255,0.10)',
   inlineCardBorder: 'rgba(255,255,255,0.16)',
 
-  // Detail sheet — paper-white pinned bottom on chart drill-ins
-  sheet: '#FFFFFF',
-  sheetMuted: '#F4F4F8',
+  // Detail sheet — soft cream pinned bottom on chart drill-ins.
+  // Not paper-white: a warm off-white that harmonizes with the candy palette
+  // and doesn't read as a clinical foreign surface against the cobalt canvas.
+  sheet: '#F4EEDB',
+  sheetMuted: '#E8E0C8',
 
   // Ink
   ink: '#0A0A12',

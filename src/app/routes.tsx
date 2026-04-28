@@ -30,15 +30,14 @@ import { LineupsPage as AppCoachLineupsPage } from '../features/app/coach/Lineup
 import { NotesPage as AppCoachNotesPage } from '../features/app/coach/NotesPage'
 import { SourcesPage as AppCoachSourcesPage } from '../features/app/coach/SourcesPage'
 import { SettingsPage as AppCoachSettingsPage } from '../features/app/coach/SettingsPage'
-import {
-  AppAthleteHomePage,
-  AppAthleteCapturePage,
-  AppAthleteErgPacerPage,
-  AppAthleteAIPage,
-  AppAthleteNotesPage,
-  AppAthleteSourcesPage,
-  AppAthleteSettingsPage,
-} from '../features/app/AppStubs'
+import { AppAthleteShell } from '../features/app/athlete/AppAthleteShell'
+import { HomePage as AppAthleteHomePage } from '../features/app/athlete/HomePage'
+import { AIPage as AppAthleteAIPage } from '../features/app/athlete/AIPage'
+import { ErgPacerPage as AppAthleteErgPacerPage } from '../features/app/athlete/ErgPacerPage'
+import { CapturePage as AppAthleteCapturePage } from '../features/app/athlete/CapturePage'
+import { NotesPage as AppAthleteNotesPage } from '../features/app/athlete/NotesPage'
+import { SourcesPage as AppAthleteSourcesPage } from '../features/app/athlete/SourcesPage'
+import { SettingsPage as AppAthleteSettingsPage } from '../features/app/athlete/SettingsPage'
 
 // Phase 12 — route-level code splitting. Each feature page becomes its own
 // chunk that's only fetched when the route is visited. Keeps the landing /
@@ -279,14 +278,20 @@ export const routes: RouteObject[] = [
           { path: 'settings', element: withSuspense(<AppCoachSettingsPage />, 'Settings') },
         ],
       },
-      { path: 'athlete', element: <Navigate to="/app/athlete/home" replace /> },
-      { path: 'athlete/home', element: withSuspense(<AppAthleteHomePage />, 'Athlete home') },
-      { path: 'athlete/capture', element: withSuspense(<AppAthleteCapturePage />, 'Capture') },
-      { path: 'athlete/erg-pacer', element: withSuspense(<AppAthleteErgPacerPage />, 'Erg pacer') },
-      { path: 'athlete/ai', element: withSuspense(<AppAthleteAIPage />, 'synth. AI') },
-      { path: 'athlete/notes', element: withSuspense(<AppAthleteNotesPage />, 'Notes') },
-      { path: 'athlete/sources', element: withSuspense(<AppAthleteSourcesPage />, 'Sources') },
-      { path: 'athlete/settings', element: withSuspense(<AppAthleteSettingsPage />, 'Settings') },
+      {
+        path: 'athlete',
+        element: <AppAthleteShell />,
+        children: [
+          { index: true, element: <Navigate to="/app/athlete/home" replace /> },
+          { path: 'home', element: withSuspense(<AppAthleteHomePage />, 'Athlete home') },
+          { path: 'capture', element: withSuspense(<AppAthleteCapturePage />, 'Capture') },
+          { path: 'erg-pacer', element: withSuspense(<AppAthleteErgPacerPage />, 'Erg pacer') },
+          { path: 'ai', element: withSuspense(<AppAthleteAIPage />, 'synth. AI') },
+          { path: 'notes', element: withSuspense(<AppAthleteNotesPage />, 'Notes') },
+          { path: 'sources', element: withSuspense(<AppAthleteSourcesPage />, 'Sources') },
+          { path: 'settings', element: withSuspense(<AppAthleteSettingsPage />, 'Settings') },
+        ],
+      },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

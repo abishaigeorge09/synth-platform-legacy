@@ -1,14 +1,25 @@
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Check, AlertCircle, RefreshCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import { COACH_CONNECTORS } from '../data/mockConnectors'
+import {
+  AddSourceSheet,
+  SourceDetailSheet,
+  type ConnectorMeta,
+} from '../primitives/SourcesSheets'
 import { SYNTH } from '../lib/theme'
 
 type Status = 'synced' | 'syncing' | 'error'
 
-const MOCK_STATUS: { id: string; status: Status; lastSync: string }[] = [
+type Row = {
+  id: string
+  status: Status
+  lastSync: string
+}
+
+const SEED_ROWS: Row[] = [
   { id: 'concept2', status: 'synced', lastSync: '4m ago' },
   { id: 'strava', status: 'synced', lastSync: '12m ago' },
   { id: 'trainingpeaks', status: 'syncing', lastSync: 'now' },
@@ -18,23 +29,81 @@ const MOCK_STATUS: { id: string; status: Status; lastSync: string }[] = [
 ]
 
 export function SourcesPage() {
-  const navigate = useNavigate()
+  const [rows, setRows] = useState<Row[]>(SEED_ROWS)
+  const [openDetailId, setOpenDetailId] = useState<string | null>(null)
+  const [openAdd, setOpenAdd] = useState(false)
+  const [syncingAll, setSyncingAll] = useState(false)
+  const [lastSyncCount, setLastSyncCount] = useState('4m')
 
-  const rows = MOCK_STATUS.map((s) => {
-    const meta = COACH_CONNECTORS.find((c) => c.id === s.id)
-    return { ...s, meta }
-  }).filter((r) => r.meta)
+  const enriched = useMemo(
+    () =>
+      rows
+        .map((r) => {
+          const meta = COACH_CONNECTORS.find((c) => c.id === r.id)
+          if (!meta) return null
+          return { ...r, meta }
+        })
+        .filter((r): r is Row & { meta: typeof COACH_CONNECTORS[number] } => r !== null),
+    [rows],
+  )
+
+  const available: ConnectorMeta[] = COACH_CONNECTORS.filter(
+    (c) => !rows.some((r) => r.id === c.id),
+  ).map((c) => ({
+    id: c.id,
+    name: c.name,
+    category: c.category,
+    brandColor: c.brandColor,
+  }))
+
+  const onSyncAll = () => {
+    if (syncingAll) return
+    setSyncingAll(true)
+    setRows((r) => r.map((row) => (row.status === 'error' ? row : { ...row, status: 'syncing', lastSync: 'now' })))
+    setTimeout(() => {
+      setRows((r) =>
+        r.map((row) => (row.status === 'error' ? row : { ...row, status: 'synced', lastSync: 'just now' })),
+      )
+      setLastSyncCount('0m')
+      setSyncingAll(false)
+    }, 1400)
+  }
+
+  const onAdd = (id: string) => {
+    setRows((r) => [...r, { id, status: 'synced', lastSync: 'just now' }])
+    setOpenAdd(false)
+  }
+
+  const detailSource = enriched.find((r) => r.id === openDetailId)
+
+  const onPause = () => {
+    if (!openDetailId) return
+    setRows((r) =>
+      r.map((row) =>
+        row.id === openDetailId
+          ? { ...row, status: row.status === 'syncing' ? 'synced' : 'syncing' }
+          : row,
+      ),
+    )
+  }
+
+  const onDisconnect = () => {
+    if (!openDetailId) return
+    setRows((r) => r.filter((row) => row.id !== openDetailId))
+    setOpenDetailId(null)
+  }
 
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
       <CoachPageHeader
         title="Sources"
-        subtitle={`${rows.length} connected`}
+        subtitle={`${enriched.length} connected`}
         back="/app/coach/home"
         rightSlot={
           <button
             type="button"
             aria-label="Add source"
+            onClick={() => setOpenAdd(true)}
             className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
             style={{
               background: SYNTH.glass,
@@ -42,9 +111,6 @@ export function SourcesPage() {
               WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
               border: `1px solid ${SYNTH.glassBorder}`,
               color: SYNTH.inkOnBrand,
-            }}
-            onClick={() => {
-              /* would open add-source flow */
             }}
           >
             <Plus size={18} strokeWidth={2.4} />
@@ -57,10 +123,7 @@ export function SourcesPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32 }}
         className="mx-5 mt-2 rounded-3xl p-5"
-        style={{
-          background: SYNTH.cardSky,
-          boxShadow: SYNTH.shadow.card,
-        }}
+        style={{ background: SYNTH.cardSky, boxShadow: SYNTH.shadow.card }}
       >
         <p
           className="text-[10px] font-semibold uppercase tracking-[0.18em]"
@@ -71,28 +134,40 @@ export function SourcesPage() {
         <div className="mt-2 flex items-baseline gap-3">
           <span
             className="text-[36px] font-bold leading-none tracking-[-0.02em]"
-            style={{ color: SYNTH.ink, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
+            style={{
+              color: SYNTH.ink,
+              fontFamily: SYNTH.font,
+              fontVariantNumeric: 'tabular-nums',
+            }}
           >
-            4m
+            {syncingAll ? '—' : lastSyncCount}
           </span>
           <span
             className="text-[12px] font-semibold"
             style={{ color: SYNTH.ink, opacity: 0.6, fontFamily: SYNTH.font }}
           >
-            ago · all sources healthy
+            {syncingAll ? 'pulling fresh data…' : 'ago · all sources healthy'}
           </span>
         </div>
         <button
           type="button"
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]"
+          onClick={onSyncAll}
+          disabled={syncingAll}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] disabled:opacity-50"
           style={{
             background: SYNTH.accentBlack,
             color: SYNTH.inkOnBrand,
             fontFamily: SYNTH.font,
           }}
         >
-          <RefreshCw size={11} strokeWidth={2.4} />
-          Sync now
+          <motion.span
+            animate={syncingAll ? { rotate: 360 } : { rotate: 0 }}
+            transition={syncingAll ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 0.2 }}
+            className="flex"
+          >
+            <RefreshCw size={11} strokeWidth={2.4} />
+          </motion.span>
+          {syncingAll ? 'Syncing' : 'Sync now'}
         </button>
       </motion.section>
 
@@ -110,21 +185,44 @@ export function SourcesPage() {
             border: `1px solid ${SYNTH.inlineCardBorder}`,
           }}
         >
-          {rows.map((row, i) => (
+          {enriched.map((row, i) => (
             <SourceRow
               key={row.id}
-              brandColor={row.meta!.brandColor}
-              initial={row.meta!.name.charAt(0)}
-              name={row.meta!.name}
-              category={row.meta!.category}
+              brandColor={row.meta.brandColor}
+              initial={row.meta.name.charAt(0)}
+              name={row.meta.name}
+              category={row.meta.category}
               status={row.status}
               lastSync={row.lastSync}
               isFirst={i === 0}
-              onClick={() => navigate(`/app/coach/sources?id=${row.id}`)}
+              onClick={() => setOpenDetailId(row.id)}
             />
           ))}
         </div>
       </section>
+
+      <AddSourceSheet
+        open={openAdd}
+        onClose={() => setOpenAdd(false)}
+        available={available}
+        onAdd={onAdd}
+      />
+      {detailSource ? (
+        <SourceDetailSheet
+          open={!!openDetailId}
+          onClose={() => setOpenDetailId(null)}
+          source={{
+            id: detailSource.id,
+            name: detailSource.meta.name,
+            category: detailSource.meta.category,
+            brandColor: detailSource.meta.brandColor,
+            status: detailSource.status,
+            lastSync: detailSource.lastSync,
+          }}
+          onPause={onPause}
+          onDisconnect={onDisconnect}
+        />
+      ) : null}
     </div>
   )
 }
@@ -176,7 +274,11 @@ function SourceRow({
         </p>
         <p
           className="mt-0.5 text-[11px] uppercase tracking-[0.12em]"
-          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
+          style={{
+            color: SYNTH.inkOnBrandMuted,
+            fontFamily: SYNTH.font,
+            fontVariantNumeric: 'tabular-nums',
+          }}
         >
           {category} · {lastSync}
         </p>

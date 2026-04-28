@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
-import { APP_MOCK_ATHLETES } from '../data/mockTeam'
+import { ComingSoonSheet } from '../primitives/SettingsSheets'
+import { APP_MOCK_ATHLETES, APP_MOCK_TEAM } from '../data/mockTeam'
 import { SYNTH } from '../lib/theme'
 
 const TODAY_LINEUP = [
@@ -17,6 +19,28 @@ const TODAY_LINEUP = [
 
 export function LineupsPage() {
   const navigate = useNavigate()
+  const [editOpen, setEditOpen] = useState(false)
+  const [shareToast, setShareToast] = useState<string | null>(null)
+
+  const onShare = async () => {
+    const text = `${APP_MOCK_TEAM.name} · V8 — Wednesday AM\n8 × 500m at 22 spm — water at 06:30.`
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: 'Today’s lineup', text })
+        return
+      } catch {
+        /* user cancelled or share unavailable — fall through to clipboard */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setShareToast('Lineup copied')
+      setTimeout(() => setShareToast(null), 1800)
+    } catch {
+      setShareToast('Sharing not available')
+      setTimeout(() => setShareToast(null), 1800)
+    }
+  }
 
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
@@ -54,9 +78,10 @@ export function LineupsPage() {
         >
           8 × 500m at 22 spm — water at 06:30.
         </p>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setEditOpen(true)}
             className="rounded-full px-4 py-2 text-[12px] font-semibold"
             style={{
               background: SYNTH.accentBlack,
@@ -69,6 +94,7 @@ export function LineupsPage() {
           </button>
           <button
             type="button"
+            onClick={onShare}
             className="rounded-full border px-4 py-2 text-[12px] font-semibold"
             style={{
               background: 'transparent',
@@ -80,8 +106,26 @@ export function LineupsPage() {
           >
             Share
           </button>
+          {shareToast ? (
+            <motion.span
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="ml-1 text-[11px] font-semibold uppercase tracking-[0.12em]"
+              style={{ color: SYNTH.ink, opacity: 0.55, fontFamily: SYNTH.font }}
+            >
+              {shareToast}
+            </motion.span>
+          ) : null}
         </div>
       </motion.section>
+
+      <ComingSoonSheet
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Lineup builder"
+        body="Drag-and-drop seat editing on mobile lands next sprint. For now, edit on the desktop coach surface and the change syncs here automatically."
+      />
 
       <BoatVisual />
 

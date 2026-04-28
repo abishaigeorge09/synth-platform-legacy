@@ -4,12 +4,15 @@ import { motion } from 'framer-motion'
 import { Menu, ChevronDown, Plus, Mic, AudioLines } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
+import { ComingSoonSheet } from '../primitives/SettingsSheets'
 import { APP_MOCK_ATHLETES } from '../data/mockTeam'
 
 export function AIPage() {
   const navigate = useNavigate()
   const me = APP_MOCK_ATHLETES[0]
   const [text, setText] = useState('')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [scopeOpen, setScopeOpen] = useState(false)
 
   return (
     <SwipeBackPage to="/app/athlete/home">
@@ -17,8 +20,8 @@ export function AIPage() {
       <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         <button
           type="button"
-          onClick={() => navigate('/app/athlete/home')}
-          aria-label="Open menu"
+          onClick={() => setHistoryOpen(true)}
+          aria-label="Chat history"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           style={{
             background: SYNTH.glass,
@@ -32,6 +35,7 @@ export function AIPage() {
         </button>
         <button
           type="button"
+          onClick={() => setScopeOpen(true)}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2"
           style={{
             background: SYNTH.glass,
@@ -50,7 +54,8 @@ export function AIPage() {
         </button>
         <button
           type="button"
-          aria-label="Profile"
+          onClick={() => navigate('/app/athlete/settings')}
+          aria-label="Settings"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           style={{
             background: `linear-gradient(135deg, ${SYNTH.accentEmerald}, #047857)`,
@@ -64,6 +69,19 @@ export function AIPage() {
           {me.initials}
         </button>
       </header>
+
+      <ComingSoonSheet
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        title="Chat history"
+        body="Past conversations + pinned chats land in the next AI release. Today, each visit starts a fresh thread scoped to you."
+      />
+      <ComingSoonSheet
+        open={scopeOpen}
+        onClose={() => setScopeOpen(false)}
+        title="Switch scope"
+        body="synth chats stay scoped to you. Coach-shared insights about you appear inline as citations from your sources."
+      />
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6">
         <motion.div

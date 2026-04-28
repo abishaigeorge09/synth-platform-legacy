@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -11,14 +12,22 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
+import {
+  NotificationsSheet,
+  SynthAISheet,
+  PrivacySheet,
+} from '../primitives/SettingsSheets'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import { APP_MOCK_TEAM } from '../data/mockTeam'
 import { SYNTH } from '../lib/theme'
+
+type OpenSheet = 'notifications' | 'synth-ai' | 'privacy' | null
 
 export function SettingsPage() {
   const navigate = useNavigate()
   const user = useAppAuthStore((s) => s.user)
   const signOut = useAppAuthStore((s) => s.signOut)
+  const [openSheet, setOpenSheet] = useState<OpenSheet>(null)
 
   const onSignOut = async () => {
     await signOut()
@@ -85,9 +94,7 @@ export function SettingsPage() {
           icon={<Users size={18} />}
           label="Roster"
           sub={`${APP_MOCK_TEAM.athleteCount} athletes`}
-          onClick={() => {
-            /* navigate to a roster screen — Phase F */
-          }}
+          onClick={() => navigate('/app/coach/roster')}
         />
         <Row
           icon={<Database size={18} />}
@@ -102,18 +109,25 @@ export function SettingsPage() {
           icon={<Bell size={18} />}
           label="Notifications"
           sub="Daily summary, attention alerts"
+          onClick={() => setOpenSheet('notifications')}
         />
         <Row
           icon={<Sparkles size={18} />}
           label="synth AI"
           sub="Model + scope defaults"
+          onClick={() => setOpenSheet('synth-ai')}
         />
         <Row
           icon={<Shield size={18} />}
           label="Privacy &amp; sharing"
           sub="What athletes can see by default"
+          onClick={() => setOpenSheet('privacy')}
         />
       </Section>
+
+      <NotificationsSheet open={openSheet === 'notifications'} onClose={() => setOpenSheet(null)} />
+      <SynthAISheet open={openSheet === 'synth-ai'} onClose={() => setOpenSheet(null)} />
+      <PrivacySheet open={openSheet === 'privacy'} onClose={() => setOpenSheet(null)} role="coach" />
 
       <section className="mx-5 mt-6">
         <button

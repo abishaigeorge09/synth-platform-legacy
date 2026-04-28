@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -11,15 +12,24 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
+import {
+  NotificationsSheet,
+  PrivacySheet,
+  CoachVisibilitySheet,
+  PersonalInfoSheet,
+} from '../primitives/SettingsSheets'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import { APP_MOCK_ATHLETES, fmtErgTime } from '../data/mockTeam'
 import { SYNTH } from '../lib/theme'
+
+type OpenSheet = 'notifications' | 'visibility' | 'privacy' | 'personal' | null
 
 export function SettingsPage() {
   const navigate = useNavigate()
   const user = useAppAuthStore((s) => s.user)
   const signOut = useAppAuthStore((s) => s.signOut)
   const me = APP_MOCK_ATHLETES[0]
+  const [openSheet, setOpenSheet] = useState<OpenSheet>(null)
 
   const onSignOut = async () => {
     await signOut()
@@ -92,15 +102,45 @@ export function SettingsPage() {
       </motion.section>
 
       <Section title="Profile">
-        <Row icon={<User size={18} />} label="Personal info" sub="Height, weight, DOB" />
-        <Row icon={<Database size={18} />} label="My sources" sub="5 connected · 4m last sync" onClick={() => navigate('/app/athlete/sources')} />
+        <Row
+          icon={<User size={18} />}
+          label="Personal info"
+          sub="Height, weight, DOB"
+          onClick={() => setOpenSheet('personal')}
+        />
+        <Row
+          icon={<Database size={18} />}
+          label="My sources"
+          sub="5 connected · 4m last sync"
+          onClick={() => navigate('/app/athlete/sources')}
+        />
       </Section>
 
       <Section title="Preferences">
-        <Row icon={<Bell size={18} />} label="Notifications" sub="Coach notes, daily check-in" />
-        <Row icon={<Eye size={18} />} label="What coach can see" sub="Manage shared data" />
-        <Row icon={<Shield size={18} />} label="Privacy" sub="Your data stays yours" />
+        <Row
+          icon={<Bell size={18} />}
+          label="Notifications"
+          sub="Coach notes, daily check-in"
+          onClick={() => setOpenSheet('notifications')}
+        />
+        <Row
+          icon={<Eye size={18} />}
+          label="What coach can see"
+          sub="Manage shared data"
+          onClick={() => setOpenSheet('visibility')}
+        />
+        <Row
+          icon={<Shield size={18} />}
+          label="Privacy"
+          sub="Your data stays yours"
+          onClick={() => setOpenSheet('privacy')}
+        />
       </Section>
+
+      <NotificationsSheet open={openSheet === 'notifications'} onClose={() => setOpenSheet(null)} />
+      <CoachVisibilitySheet open={openSheet === 'visibility'} onClose={() => setOpenSheet(null)} />
+      <PrivacySheet open={openSheet === 'privacy'} onClose={() => setOpenSheet(null)} role="athlete" />
+      <PersonalInfoSheet open={openSheet === 'personal'} onClose={() => setOpenSheet(null)} />
 
       <section className="mx-5 mt-6">
         <button

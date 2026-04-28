@@ -1,13 +1,16 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_TEAM, APP_MOCK_ATTENTION, APP_MOCK_ATHLETES, fmtAgo } from '../data/mockTeam'
 
 export function HomePage() {
   const navigate = useNavigate()
   const greeting = greetingForNow()
   const topAttention = APP_MOCK_ATTENTION.slice(0, 3)
+  const [statsOpen, setStatsOpen] = useState(false)
 
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[120px]">
@@ -24,6 +27,7 @@ export function HomePage() {
         <button
           type="button"
           aria-label="Quick stats"
+          onClick={() => setStatsOpen(true)}
           className="flex h-9 items-center gap-1.5 rounded-full px-3"
           style={{
             background: SYNTH.glass,
@@ -36,6 +40,20 @@ export function HomePage() {
           <BarChart3 size={14} strokeWidth={2.2} />
         </button>
       </header>
+
+      <QuickStatsSheet
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        title="Team at a glance"
+        stats={[
+          { label: 'Active today', value: `${APP_MOCK_TEAM.activeToday}`, unit: `/${APP_MOCK_TEAM.athleteCount}`, source: 'synth.', syncedAgo: 'just now' },
+          { label: 'Avg recovery', value: `${APP_MOCK_TEAM.avgRecovery}`, delta: { direction: 'up', value: '+3' }, source: 'WHOOP', syncedAgo: '6m' },
+          { label: 'Attention', value: `${APP_MOCK_TEAM.attentionCount}`, source: 'synth.', syncedAgo: 'live' },
+          { label: 'Sessions today', value: `${APP_MOCK_TEAM.sessionsToday}`, source: 'Concept2', syncedAgo: '4m' },
+          { label: 'Avg 2K (30d)', value: '7:14', source: 'Concept2', syncedAgo: '4m' },
+          { label: 'Volume (wk)', value: '142k', unit: 'm', delta: { direction: 'up', value: '+8%' }, source: 'Concept2', syncedAgo: '4m' },
+        ]}
+      />
 
       <motion.h1
         initial={{ opacity: 0, y: 8 }}

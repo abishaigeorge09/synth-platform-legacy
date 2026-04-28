@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Menu, ChevronDown, Plus, Mic, AudioLines } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
+import { ComingSoonSheet } from '../primitives/SettingsSheets'
 import { APP_MOCK_ATHLETES, APP_MOCK_TEAM } from '../data/mockTeam'
 
 export function AIPage() {
@@ -11,6 +12,8 @@ export function AIPage() {
   const [params] = useSearchParams()
   const athleteId = params.get('athlete')
   const [text, setText] = useState('')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [scopeOpen, setScopeOpen] = useState(false)
 
   const athlete = useMemo(
     () => (athleteId ? APP_MOCK_ATHLETES.find((a) => a.id === athleteId) : null),
@@ -28,8 +31,8 @@ export function AIPage() {
       <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         <button
           type="button"
-          onClick={() => navigate('/app/coach/home')}
-          aria-label="Open menu"
+          onClick={() => setHistoryOpen(true)}
+          aria-label="Chat history"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           style={{
             background: SYNTH.glass,
@@ -43,6 +46,7 @@ export function AIPage() {
         </button>
         <button
           type="button"
+          onClick={() => setScopeOpen(true)}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2"
           style={{
             background: SYNTH.glass,
@@ -61,7 +65,8 @@ export function AIPage() {
         </button>
         <button
           type="button"
-          aria-label="Profile"
+          onClick={() => navigate('/app/coach/settings')}
+          aria-label="Settings"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           style={{
             background: `linear-gradient(135deg, ${SYNTH.accentAmber}, #D87B3A)`,
@@ -75,6 +80,19 @@ export function AIPage() {
           CO
         </button>
       </header>
+
+      <ComingSoonSheet
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        title="Chat history"
+        body="Past conversations, pinned chats, and an artifacts library land in the next AI release. Today, each visit starts a fresh thread scoped to whatever you tap into."
+      />
+      <ComingSoonSheet
+        open={scopeOpen}
+        onClose={() => setScopeOpen(false)}
+        title="Switch scope"
+        body="Coming next: pick a different athlete, lineup, or source to scope this chat. For now, scope is set when you open synth from a profile or the team home."
+      />
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6">
         <motion.div

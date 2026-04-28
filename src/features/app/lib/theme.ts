@@ -33,11 +33,12 @@ export const SYNTH = {
   inlineCard: 'rgba(255,255,255,0.10)',
   inlineCardBorder: 'rgba(255,255,255,0.16)',
 
-  // Detail sheet — soft cream pinned bottom on chart drill-ins.
-  // Not paper-white: a warm off-white that harmonizes with the candy palette
-  // and doesn't read as a clinical foreign surface against the cobalt canvas.
-  sheet: '#F4EEDB',
-  sheetMuted: '#E8E0C8',
+  // Detail sheet — pure paper white, bleeds to the viewport bottom.
+  // Pages that show this sheet (Attention, AthleteDetail) hide the floating
+  // tab bar entirely, so there's no glass-on-white visibility conflict —
+  // those pages use a swipe-back gesture instead.
+  sheet: '#FFFFFF',
+  sheetMuted: '#F2F2F6',
 
   // Ink
   ink: '#0A0A12',

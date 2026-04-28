@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Menu, ChevronDown, Plus, Mic, AudioLines } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import { APP_MOCK_ATHLETES, APP_MOCK_TEAM } from '../data/mockTeam'
 
 export function AIPage() {
@@ -19,6 +20,7 @@ export function AIPage() {
   const scopeHint = athlete ? athlete.position : `${APP_MOCK_TEAM.athleteCount} athletes`
 
   return (
+    <SwipeBackPage to="/app/coach/home">
     <div
       className="flex flex-1 flex-col"
       style={{ fontFamily: SYNTH.font }}
@@ -155,6 +157,7 @@ export function AIPage() {
         </div>
       </div>
     </div>
+    </SwipeBackPage>
   )
 }
 

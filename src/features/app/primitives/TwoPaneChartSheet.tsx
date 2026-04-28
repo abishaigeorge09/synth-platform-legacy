@@ -41,7 +41,7 @@ export function TwoPaneChartSheet({
   children,
 }: Props) {
   return (
-    <div className="flex flex-1 flex-col" style={{ paddingBottom: 96 }}>
+    <div className="flex flex-1 flex-col">
       <header className="flex items-start gap-3 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         {onBack ? <BackButton onClick={onBack} /> : <div className="h-10 w-10 shrink-0" />}
         <div className="min-w-0 flex-1 pt-1">
@@ -136,7 +136,7 @@ export function TwoPaneChartSheet({
         style={{
           background: SYNTH.sheet,
           borderRadius: `${SYNTH.radius.sheet}px ${SYNTH.radius.sheet}px 0 0`,
-          padding: '8px 20px 32px',
+          padding: '8px 20px max(env(safe-area-inset-bottom), 24px)',
           boxShadow: SYNTH.shadow.sheet,
           color: SYNTH.ink,
           fontFamily: SYNTH.font,

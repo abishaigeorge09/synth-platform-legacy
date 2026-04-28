@@ -131,9 +131,11 @@ export function HomePage() {
             </div>
           ) : (
             sharedNotes.map((note, i) => (
-              <div
+              <button
+                type="button"
                 key={note.id}
-                className="px-4 py-3.5"
+                onClick={() => navigate('/app/athlete/notes')}
+                className="block w-full px-4 py-3.5 text-left active:opacity-80"
                 style={{ borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.inlineCardBorder}` }}
               >
                 <p
@@ -152,7 +154,7 @@ export function HomePage() {
                 >
                   Coach Geri · {fmtAgo(note.minutesAgo)}
                 </p>
-              </div>
+              </button>
             ))
           )}
         </div>

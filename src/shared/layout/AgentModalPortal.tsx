@@ -162,7 +162,7 @@ function AgentModalInner({ close }: { close: () => void }) {
         exit={{ opacity: 0, y: 24, scale: 0.97 }}
         transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
         className="relative flex max-h-[86dvh] w-full max-w-[1080px] flex-col overflow-hidden rounded-2xl shadow-2xl"
-        style={{ background: THEME.white, border: `1px solid ${THEME.border}` }}
+        style={{ background: 'var(--bg-primary)', border: `1px solid ${THEME.border}` }}
       >
             <header
               className="flex items-start justify-between border-b px-6 py-4"
@@ -188,7 +188,7 @@ function AgentModalInner({ close }: { close: () => void }) {
               <button
                 type="button"
                 onClick={close}
-                className="flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-zinc-50"
+                className="flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-[var(--bg-surface)]"
                 style={{ borderColor: THEME.border, color: THEME.textPrimary }}
                 aria-label="Close"
               >
@@ -310,7 +310,7 @@ function SourcesTab() {
                 className="rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-all disabled:opacity-70"
                 style={{
                   border: `1px solid ${state === 'done' ? THEME.primary : THEME.border}`,
-                  background: state === 'done' ? THEME.primary : THEME.white,
+                  background: state === 'done' ? THEME.primary : 'var(--bg-primary)',
                   color: state === 'done' ? THEME.white : THEME.textPrimary,
                   fontFamily: THEME.fontMono,
                 }}
@@ -359,7 +359,7 @@ function ScansTab() {
           <div
             key={log.id}
             className="rounded-lg border p-4"
-            style={{ borderColor: THEME.border, background: THEME.white }}
+            style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -426,7 +426,7 @@ function AddSourceTab() {
             className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors"
             style={{
               border: `1px solid ${sub === key ? THEME.primary : THEME.border}`,
-              background: sub === key ? THEME.primary : THEME.white,
+              background: sub === key ? THEME.primary : 'var(--bg-primary)',
               color: sub === key ? THEME.white : THEME.textPrimary,
               fontFamily: THEME.fontMono,
             }}
@@ -494,7 +494,7 @@ function OfficialConnectorsFlow() {
                 className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
                 style={{
                   border: `1px solid ${connected ? THEME.border : THEME.primary}`,
-                  background: connected ? THEME.white : THEME.primary,
+                  background: connected ? 'var(--bg-primary)' : THEME.primary,
                   color: connected ? THEME.textSecondary : THEME.white,
                   fontFamily: THEME.fontMono,
                 }}
@@ -554,7 +554,7 @@ function AiImportFlow() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-2 sm:grid-cols-3">
-        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
             Upload screenshot
           </div>
@@ -578,7 +578,7 @@ function AiImportFlow() {
             type="button"
             onClick={() => fileRef.current?.click()}
             className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
-            style={{ background: THEME.white, color: THEME.primary, border: `1px solid ${THEME.primary}`, fontFamily: THEME.fontMono }}
+            style={{ background: 'var(--bg-primary)', color: THEME.primary, border: `1px solid ${THEME.primary}`, fontFamily: THEME.fontMono }}
           >
             Choose file
           </button>
@@ -589,7 +589,7 @@ function AiImportFlow() {
           )}
         </div>
 
-        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
             Voice note
           </div>
@@ -611,7 +611,7 @@ function AiImportFlow() {
               disabled={!recording}
               onClick={stopVoice}
               className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider disabled:opacity-50"
-              style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+              style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }}
             >
               Stop
             </button>
@@ -623,7 +623,7 @@ function AiImportFlow() {
           )}
         </div>
 
-        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>
             Paste text
           </div>
@@ -634,7 +634,7 @@ function AiImportFlow() {
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
             placeholder="Paste here…"
-            className="mt-3 min-h-[92px] w-full resize-none rounded-lg border bg-white px-3 py-2 text-[12px] outline-none"
+            className="mt-3 min-h-[92px] w-full resize-none rounded-lg border bg-[var(--bg-primary)] px-3 py-2 text-[12px] outline-none"
             style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textPrimary }}
           />
           <button
@@ -682,7 +682,7 @@ function ExtensionWaitlistBanner() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="coach@school.edu"
-          className="min-w-0 flex-1 rounded-lg border bg-white px-3 py-2 text-[13px] outline-none"
+          className="min-w-0 flex-1 rounded-lg border bg-[var(--bg-primary)] px-3 py-2 text-[13px] outline-none"
           style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textPrimary }}
           aria-label="Email for extension waitlist"
         />
@@ -751,7 +751,7 @@ function ManualFlow() {
           type="button"
           className="mt-4 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
           style={{
-            background: THEME.white,
+            background: 'var(--bg-primary)',
             color: THEME.primary,
             border: `1px solid ${THEME.primary}`,
             fontFamily: THEME.fontMono,

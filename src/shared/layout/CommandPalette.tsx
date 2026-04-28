@@ -538,7 +538,7 @@ function CommandPaletteInner({ onClose, mode }: { onClose: () => void; mode: Pal
         role="dialog"
         aria-label="Command palette"
         className="relative flex w-full max-w-[640px] flex-col overflow-hidden rounded-2xl shadow-2xl"
-        style={{ background: THEME.white, border: `1px solid ${THEME.border}` }}
+        style={{ background: 'var(--bg-primary)', border: `1px solid ${THEME.border}` }}
       >
         {/* Search input */}
         <div
@@ -722,7 +722,7 @@ function HintKey({ label, text }: { label: string; text: string }) {
         className="rounded border px-1.5 py-0.5 text-[9px] font-semibold"
         style={{
           borderColor: THEME.border,
-          background: THEME.white,
+          background: 'var(--bg-primary)',
           color: THEME.textSecondary,
         }}
       >

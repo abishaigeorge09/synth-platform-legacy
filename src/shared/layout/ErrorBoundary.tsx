@@ -57,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
       >
         <div
           className="w-full max-w-[440px] rounded-2xl border p-8 shadow-sm"
-          style={{ background: THEME.white, borderColor: THEME.border }}
+          style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
         >
           <div
             className="mb-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em]"
@@ -115,7 +115,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 borderColor: THEME.border,
                 color: THEME.textPrimary,
                 fontFamily: THEME.fontMono,
-                background: THEME.white,
+                background: 'var(--bg-primary)',
               }}
             >
               Back to home

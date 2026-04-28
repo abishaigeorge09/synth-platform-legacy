@@ -36,7 +36,7 @@ export function RosterPanel({
     <aside
       className="flex h-full flex-col rounded-2xl border"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
       }}
@@ -68,7 +68,7 @@ export function RosterPanel({
               className="flex-1 rounded-md border px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors"
               style={{
                 borderColor: side === s ? THEME.primary : THEME.border,
-                background: side === s ? 'rgba(5,150,105,0.08)' : THEME.white,
+                background: side === s ? 'rgba(5,150,105,0.08)' : 'var(--bg-primary)',
                 color: side === s ? THEME.primary : THEME.textSecondary,
                 fontFamily: THEME.fontMono,
               }}

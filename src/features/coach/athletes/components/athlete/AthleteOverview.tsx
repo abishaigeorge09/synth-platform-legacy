@@ -43,7 +43,7 @@ export function AthleteOverview({ athleteId }: { athleteId: string }) {
   return (
     <div className="px-5 sm:px-10">
       <div className="mx-auto max-w-[1320px] space-y-4">
-        <section className="rounded-xl border border-zinc-200 bg-white p-4">
+        <section className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)] p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
@@ -117,7 +117,7 @@ export function AthleteOverview({ athleteId }: { athleteId: string }) {
       </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-xl border border-zinc-200 bg-white p-4 lg:col-span-2">
+        <section className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)] p-4 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
@@ -138,7 +138,7 @@ export function AthleteOverview({ athleteId }: { athleteId: string }) {
                   className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
                   style={{
                     borderColor: THEME.border,
-                    background: range === k ? `${THEME.primary}14` : THEME.white,
+                    background: range === k ? `${THEME.primary}14` : 'var(--bg-primary)',
                     color: range === k ? THEME.primary : THEME.textMuted,
                     fontFamily: THEME.fontMono,
                   }}
@@ -180,7 +180,7 @@ export function AthleteOverview({ athleteId }: { athleteId: string }) {
                 />
                 <Tooltip
                   contentStyle={{
-                    background: THEME.white,
+                    background: 'var(--bg-primary)',
                     border: `1px solid ${THEME.border}`,
                     borderRadius: 10,
                     fontFamily: THEME.fontMono,
@@ -237,7 +237,7 @@ function LegendPill({ label, color, on, onToggle }: { label: string; color: stri
       className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
       style={{
         borderColor: THEME.border,
-        background: on ? `${color}14` : THEME.white,
+        background: on ? `${color}14` : 'var(--bg-primary)',
         color: on ? color : THEME.textMuted,
         fontFamily: THEME.fontMono,
       }}
@@ -269,7 +269,7 @@ function HeadlineTile({
 }) {
   const src = SOURCE_CONFIG[sourceId]
   return (
-    <div className="rounded-xl border bg-white p-3" style={{ borderColor: THEME.border }}>
+    <div className="rounded-xl border bg-[var(--bg-primary)] p-3" style={{ borderColor: THEME.border }}>
       <div className="flex items-start justify-between gap-2">
         <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
           {label}
@@ -323,7 +323,7 @@ function SourceChip({
       className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px]"
       style={{
         borderColor: THEME.border,
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         color: connected ? THEME.textPrimary : THEME.textMuted,
         fontFamily: THEME.fontSans,
       }}
@@ -352,7 +352,7 @@ function RecoveryCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview
   const hrvDeltaPct = ((d.hrvMs - d.hrvBaselineMs) / d.hrvBaselineMs) * 100
   const hrDeltaPct = ((d.restingHrBpm - d.restingHrBaselineBpm) / d.restingHrBaselineBpm) * 100
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)] p-4">
       <div>
         <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
           Recovery
@@ -386,7 +386,7 @@ function RecoveryCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview
         </div>
         <div className="mt-2 space-y-1">
           {demo.wellnessCheckins.map((c) => (
-            <div key={c.date} className="flex items-center justify-between rounded-lg border px-3 py-2 text-[12px]" style={{ borderColor: THEME.border, background: THEME.white }}>
+            <div key={c.date} className="flex items-center justify-between rounded-lg border px-3 py-2 text-[12px]" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
               <span className="font-semibold" style={{ color: THEME.textPrimary }}>
                 {c.date}
               </span>
@@ -404,7 +404,7 @@ function RecoveryCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview
 
 function GymCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview> }) {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
@@ -418,7 +418,7 @@ function GymCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview> }) 
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textMuted, fontFamily: THEME.fontMono }}>
+          <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textMuted, fontFamily: THEME.fontMono }}>
             {demo.gym.compliance}
           </span>
         </div>
@@ -428,7 +428,7 @@ function GymCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview> }) 
         {demo.gym.sessions.map((s) => {
           const src = SOURCE_CONFIG[s.sourceId]
           return (
-            <div key={s.date} className="rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: THEME.white }}>
+            <div key={s.date} className="rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
               <div className="flex items-center justify-between">
                 <div className="text-[11px] font-semibold" style={{ color: THEME.textPrimary }}>
                   {s.date} · <span style={{ color: src.color }}>{src.label}</span>
@@ -444,7 +444,7 @@ function GymCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview> }) 
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         {demo.gym.keyLifts.map((k) => (
-          <div key={k.lift} className="rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: THEME.white }}>
+          <div key={k.lift} className="rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
             <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
               {k.lift}
             </div>
@@ -477,7 +477,7 @@ function GymCard({ demo }: { demo: ReturnType<typeof getDemoAthleteOverview> }) 
 function CoachNotesCard({ notes, athleteName }: { notes: Array<{ date: string; transcript: string; extracted: string; tags: string[] }>; athleteName: string }) {
   const [draft, setDraft] = useState('')
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)] p-4">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
         Coach notes & voice memos
       </div>
@@ -494,12 +494,12 @@ function CoachNotesCard({ notes, athleteName }: { notes: Array<{ date: string; t
           onChange={(e) => setDraft(e.target.value)}
           placeholder={`Add note for ${athleteName.split(' ')[0]}…`}
           className="h-9 flex-1 rounded-lg border px-3 text-[12px] outline-none"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }}
         />
         <button
           type="button"
           className="h-9 rounded-lg border px-3 text-[11px] font-semibold"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textSecondary, fontFamily: THEME.fontMono }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textSecondary, fontFamily: THEME.fontMono }}
         >
           Mic
         </button>
@@ -515,7 +515,7 @@ function CoachNotesCard({ notes, athleteName }: { notes: Array<{ date: string; t
 
       <div className="mt-3 space-y-2">
         {notes.map((n) => (
-          <div key={n.date} className="flex items-start gap-2 rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: THEME.white }}>
+          <div key={n.date} className="flex items-start gap-2 rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
             <span className="mt-0.5 text-[12px]" style={{ color: THEME.textMuted }}>
               ▶
             </span>
@@ -535,7 +535,7 @@ function AddDataBar({ athleteName }: { athleteName: string }) {
   const [text, setText] = useState('')
   return (
     <section
-      className="rounded-xl border border-zinc-200 bg-white/95 p-4 backdrop-blur"
+      className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)]/95 p-4 backdrop-blur"
       style={{ boxShadow: '0 18px 40px -30px rgba(24,24,27,0.45)' }}
     >
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
@@ -550,12 +550,12 @@ function AddDataBar({ athleteName }: { athleteName: string }) {
           onChange={(e) => setText(e.target.value)}
           placeholder="Paste text for AI parsing…"
           className="h-9 flex-1 min-w-[260px] rounded-lg border px-3 text-[12px] outline-none"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }}
         />
-        <button type="button" className="h-9 rounded-lg border px-3 text-[11px] font-semibold" style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
+        <button type="button" className="h-9 rounded-lg border px-3 text-[11px] font-semibold" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
           Mic note
         </button>
-        <button type="button" className="h-9 rounded-lg border px-3 text-[11px] font-semibold" style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
+        <button type="button" className="h-9 rounded-lg border px-3 text-[11px] font-semibold" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
           Photo upload
         </button>
         <button
@@ -573,7 +573,7 @@ function AddDataBar({ athleteName }: { athleteName: string }) {
 
 function MiniStat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-lg border px-3 py-2" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
         {label}
       </div>
@@ -589,7 +589,7 @@ function MiniStat({ label, value, sub }: { label: string; value: string; sub: st
 
 function SmallPill({ label }: { label: string }) {
   return (
-    <span className="rounded-full border px-2.5 py-1 text-[10px]" style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
+    <span className="rounded-full border px-2.5 py-1 text-[10px]" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
       {label}
     </span>
   )
@@ -597,7 +597,7 @@ function SmallPill({ label }: { label: string }) {
 
 function ScheduleCard({ items, conflict }: { items: Array<{ date: string; items: string; flagged: boolean }>; conflict: string }) {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Schedule</div>

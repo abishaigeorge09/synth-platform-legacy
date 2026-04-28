@@ -48,7 +48,7 @@ export function AthleteBottomTabs() {
         aria-label="Athlete tabs"
         className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t md:hidden"
         style={{
-          background: THEME.white,
+          background: 'var(--bg-primary)',
           borderColor: THEME.border,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           boxShadow: '0 -10px 30px -18px rgba(24,24,27,0.25)',

@@ -7,6 +7,7 @@ import {
   useErgScores,
   getAthleteRecovery,
   type BoatLineup,
+  type SeatAssignment,
 } from '../../../../shared/data/queries'
 import { QueryError } from '../../../../shared/components/QueryError'
 import { SkeletonBlock, SkeletonLine } from '../../../../shared/components/Skeleton'
@@ -19,6 +20,7 @@ import { RaceTimerTab } from './components/RaceTimerTab'
 import { SessionsTab } from './components/SessionsTab'
 import { HistoryTab } from './components/HistoryTab'
 import type { DemoAthlete } from './data/demoLineupData'
+import { SUGGESTED_1V } from './data/demoLineupData'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,6 +103,39 @@ export function LineupsPage() {
     setTab(id)
   }
 
+  function applySuggested() {
+    // Build a name→id map from the live demo roster
+    const nameToId: Record<string, string> = {}
+    demoRoster.forEach((a) => { nameToId[a.name] = a.id })
+
+    setBoats((prev) => {
+      const updated = prev.map((boat, idx) => {
+        // Only fill the 1V (first boat)
+        if (idx !== 0) return boat
+
+        // SUGGESTED_1V: { seat: string; name: string; warn: boolean }[]
+        // Seat labels: 'Cox', '8 · STR', '7', '6', '5', '4', '3', '2', '1 · BOW'
+        const newSeats: SeatAssignment[] = boat.seats.map((seat) => {
+          if (seat.isCox) {
+            const suggestion = SUGGESTED_1V.find((s) => s.seat === 'Cox')
+            return suggestion ? { ...seat, athleteId: nameToId[suggestion.name] ?? null } : seat
+          }
+          const seatNum = seat.seatNumber
+          const suggestion = SUGGESTED_1V.find((s) => {
+            if (s.seat === `${seatNum}`) return true
+            if (seatNum === boat.size && s.seat === `${seatNum} · STR`) return true
+            if (seatNum === 1 && s.seat === '1 · BOW') return true
+            return false
+          })
+          return suggestion ? { ...seat, athleteId: nameToId[suggestion.name] ?? null } : seat
+        })
+        return { ...boat, seats: newSeats }
+      })
+      return updated
+    })
+    switchTab('builder')
+  }
+
   function addBoat() {
     setBoats((prev) => [
       ...prev,
@@ -151,7 +186,7 @@ export function LineupsPage() {
                 padding: '8px 16px',
                 borderRadius: 8,
                 border: `1px solid ${THEME.border}`,
-                background: THEME.white,
+                background: 'var(--bg-primary)',
                 color: THEME.textPrimary,
                 fontFamily: THEME.fontMono,
                 fontSize: 12,
@@ -185,21 +220,24 @@ export function LineupsPage() {
 
       {/* SubTab bar */}
       <div
-        className="sticky top-0 z-10 border-b px-5 sm:px-10"
+        className="sticky top-0 z-10 border-b"
         style={{
           borderColor: THEME.border,
           background: 'color-mix(in srgb, var(--surface, #fff) 95%, transparent)',
           backdropFilter: 'blur(8px)',
         }}
       >
-        <div style={{ display: 'flex', gap: 0 }}>
+        <div
+          className="synth-scroll flex gap-0 overflow-x-auto px-5 sm:px-10"
+          style={{ scrollbarWidth: 'none' }}
+        >
           {SUBTABS.map((s) => (
             <button
               key={s.id}
               type="button"
               onClick={() => switchTab(s.id)}
               style={{
-                padding: '14px 18px',
+                padding: '14px 16px',
                 fontSize: 13,
                 fontWeight: tab === s.id ? 700 : 500,
                 fontFamily: tab === s.id ? THEME.fontMono : THEME.fontSans,
@@ -210,6 +248,8 @@ export function LineupsPage() {
                 cursor: 'pointer',
                 transition: 'border-color 0.15s, color 0.15s',
                 letterSpacing: tab === s.id ? '0.02em' : 0,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               {s.label}
@@ -233,7 +273,7 @@ export function LineupsPage() {
 
       {tab === 'insights' && (
         <InsightsTab
-          onApplySuggested={() => switchTab('builder')}
+          onApplySuggested={applySuggested}
           onGoHistory={() => switchTab('history')}
         />
       )}

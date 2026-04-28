@@ -42,7 +42,7 @@ export function AthleteSidebar() {
   return (
     <aside
       aria-label="Athlete sidebar"
-      className="hidden h-full w-[260px] shrink-0 flex-col border-r md:flex"
+      className="relative hidden h-full w-[280px] shrink-0 flex-col border-r md:flex"
       style={{
         background: THEME.darkDeep,
         borderColor: 'rgba(255,255,255,0.06)',
@@ -50,6 +50,19 @@ export function AthleteSidebar() {
       }}
     >
       <AthleteSidebarContent />
+      {/* Subtle gradient right-edge to soften the dark/light cut */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: 1,
+          background: 'linear-gradient(to bottom, rgba(16,185,129,0.3), rgba(16,185,129,0.05), transparent)',
+          pointerEvents: 'none',
+        }}
+      />
     </aside>
   )
 }
@@ -128,12 +141,13 @@ function AthleteSidebarContent() {
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: 'rgba(228,228,231,0.6)' }}>
           {DEMO_ATHLETE_PROFILE.team}
         </div>
-        <div className="mt-1 text-[13px] font-semibold" style={{ color: THEME.white }}>
+        <div className="mt-1 text-[15px] font-bold" style={{ color: THEME.white }}>
           {DEMO_ATHLETE_PROFILE.name}
         </div>
-        <div className="mt-1 text-[11px]" style={{ fontFamily: THEME.fontMono, color: 'rgba(228,228,231,0.7)' }}>
+        <div className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ fontFamily: THEME.fontMono, color: 'rgba(228,228,231,0.7)' }}>
           {DEMO_ATHLETE_PROFILE.year} • {DEMO_ATHLETE_PROFILE.side}
           <span style={{ color: 'rgba(228,228,231,0.5)' }}> • </span>
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: THEME.accent }} />
           Last sync: {TODAY_META.dateLabel}
         </div>
       </div>

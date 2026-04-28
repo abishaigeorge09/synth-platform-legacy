@@ -203,7 +203,7 @@ export function ChatView({
       </AnimatePresence>
 
       <div className="mx-5 flex flex-1 flex-col overflow-hidden rounded-2xl border sm:mx-10"
-        style={{ background: THEME.white, borderColor: THEME.border, minHeight: 520 }}
+        style={{ background: 'var(--bg-primary)', borderColor: THEME.border, minHeight: 520 }}
       >
         <div ref={scrollRef} className="synth-scroll flex-1 overflow-y-auto px-6 py-6">
           {messages.length === 0 ? (
@@ -260,7 +260,7 @@ export function ChatView({
             }
             className="flex-1 rounded-full border px-4 py-2.5 text-[13px] outline-none"
             style={{
-              background: THEME.white,
+              background: 'var(--bg-primary)',
               borderColor: THEME.border,
               color: THEME.textPrimary,
             }}
@@ -324,7 +324,7 @@ function EmptyState({
             className="rounded-full border px-4 py-2 text-[11px] transition-colors hover:bg-zinc-50"
             style={{
               borderColor: THEME.border,
-              background: THEME.white,
+              background: 'var(--bg-primary)',
               color: THEME.textPrimary,
               fontFamily: THEME.fontMono,
             }}
@@ -365,7 +365,7 @@ function Message({ msg }: { msg: ChatMsg }) {
                 key={i}
                 className="rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
                 style={{
-                  background: isUser ? 'rgba(255,255,255,0.1)' : THEME.white,
+                  background: isUser ? 'rgba(255,255,255,0.1)' : 'var(--bg-primary)',
                   borderColor: isUser ? 'rgba(255,255,255,0.22)' : THEME.border,
                   color: isUser ? 'rgba(255,255,255,0.9)' : THEME.textSecondary,
                   fontFamily: THEME.fontMono,
@@ -408,7 +408,7 @@ function ThreadHistory({
     <div className="mx-5 mb-3 sm:mx-10">
       <div
         className="rounded-xl border p-3"
-        style={{ background: THEME.white, borderColor: THEME.border }}
+        style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
       >
         <div
           className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em]"

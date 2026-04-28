@@ -146,7 +146,7 @@ export function SettingsPage() {
       <div className="flex items-center gap-3 px-5 sm:px-10 pb-4">
         <div
           className="inline-flex items-center rounded-full border p-0.5"
-          style={{ borderColor: THEME.border, background: THEME.white }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
         >
           <button
             type="button"
@@ -171,6 +171,18 @@ export function SettingsPage() {
             }}
           >
             Dark
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme('system')}
+            className="theme-hover-surface rounded-full border border-transparent px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+            style={{
+              fontFamily: THEME.fontMono,
+              background: theme === 'system' ? THEME.primary : 'transparent',
+              color: theme === 'system' ? THEME.white : THEME.textSecondary,
+            }}
+          >
+            System
           </button>
         </div>
         <button
@@ -344,7 +356,7 @@ function SettingsCard({
     <div
       className="rounded-2xl border p-5"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
       }}

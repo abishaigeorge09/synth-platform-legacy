@@ -23,9 +23,14 @@ export default defineConfig({
         theme_color: '#059669',
         background_color: '#fafaf9',
         display: 'standalone',
-        orientation: 'any',
+        orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/app',
+        shortcuts: [
+          { name: 'Open mobile app', short_name: 'Mobile', url: '/app' },
+          { name: 'Coach dashboard', short_name: 'Coach', url: '/coach/dashboard' },
+          { name: 'Athlete view', short_name: 'Athlete', url: '/athlete/today' },
+        ],
         icons: [
           {
             src: '/logos/icon-192.png',
@@ -62,28 +67,10 @@ export default defineConfig({
     }),
   ],
   build: {
-    // Phase 12 — bundle optimization. Heavy vendor libraries are split into
-    // their own chunks so the landing page / auth surface don't ship Recharts
-    // or dnd-kit, and route-level React.lazy chunks stay small.
+    // Keep chunking on Vite/Rollup defaults.
+    // Our previous manualChunks strategy created circular chunks
+    // (e.g. vendor -> vendor-react -> vendor) which can lead to runtime
+    // "React is undefined" style crashes in production.
     chunkSizeWarningLimit: 700,
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (!id.includes('node_modules')) return undefined
-          if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts'
-          if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) {
-            return 'vendor-motion'
-          }
-          if (id.includes('@dnd-kit')) return 'vendor-dnd'
-          if (id.includes('react-router')) return 'vendor-router'
-          if (id.includes('lucide-react')) return 'vendor-icons'
-          if (id.includes('zustand')) return 'vendor-state'
-          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) {
-            return 'vendor-react'
-          }
-          return 'vendor'
-        },
-      },
-    },
   },
 })

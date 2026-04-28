@@ -4,7 +4,10 @@ import { AgentModalPortal } from './AgentModalPortal'
 import { CommandPalette } from './CommandPalette'
 import { MobileSidebarDrawer } from './MobileSidebarDrawer'
 import { MobileTopBar } from './MobileTopBar'
+import { CoachProfileModal } from './CoachProfileModal'
+import { RequestToolModal } from './RequestToolModal'
 import { WritebackConfirmBar } from '../components/WritebackConfirmBar'
+import { RightPanel } from './RightPanel'
 import { THEME } from '../../lib/theme'
 
 export function CoachLayout() {
@@ -17,7 +20,7 @@ export function CoachLayout() {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:px-4 focus:py-2 focus:text-[13px] focus:font-semibold focus:shadow-lg"
         style={{
-          background: THEME.white,
+          background: 'var(--bg-primary)',
           color: THEME.primary,
           fontFamily: THEME.fontMono,
           outline: `2px solid ${THEME.primary}`,
@@ -51,7 +54,15 @@ export function CoachLayout() {
           per-page wiring. */}
       <CommandPalette />
 
+      {/* Coach profile (top-right avatar button) and Request-tool (sidebar)
+          modals — wired so those buttons actually do something visible. */}
+      <CoachProfileModal />
+      <RequestToolModal />
+
       <WritebackConfirmBar />
+
+      {/* Right-side analysis drawer — Athlete AI + Session Compare */}
+      <RightPanel />
     </div>
   )
 }

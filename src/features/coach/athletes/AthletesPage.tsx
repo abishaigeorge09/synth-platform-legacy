@@ -166,7 +166,7 @@ export function AthletesPage() {
           fontFamily: THEME.fontMono,
           color: selectMode ? THEME.primary : THEME.textSecondary,
           borderColor: selectMode ? THEME.primary : THEME.border,
-          background: selectMode ? 'rgba(5,150,105,0.06)' : THEME.white,
+          background: selectMode ? 'rgba(5,150,105,0.06)' : 'var(--bg-primary)',
         }}
       >
         {selectMode ? 'Cancel' : 'Select'}
@@ -174,7 +174,7 @@ export function AthletesPage() {
       <button
         onClick={exportCsv}
         className="rounded-md border px-3 py-1.5 text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-emerald-50"
-        style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary, borderColor: THEME.border, background: THEME.white }}
+        style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary, borderColor: THEME.border, background: 'var(--bg-primary)' }}
       >
         Export CSV
       </button>
@@ -199,7 +199,7 @@ export function AthletesPage() {
       <div className="mt-4 flex flex-wrap items-center gap-3 px-5 sm:px-10">
         <div
           className="flex w-full items-center gap-2 rounded-lg border px-3 py-2 sm:w-auto"
-          style={{ background: THEME.white, borderColor: THEME.border }}
+          style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
         >
           <span className="text-[11px] uppercase tracking-[0.16em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Search
@@ -297,7 +297,7 @@ export function AthletesPage() {
           >
             <div
               className="mx-5 sm:mx-10 mb-4 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
-              style={{ background: THEME.white, borderColor: THEME.primary, boxShadow: `0 0 0 1px ${THEME.primary}22` }}
+              style={{ background: 'var(--bg-primary)', borderColor: THEME.primary, boxShadow: `0 0 0 1px ${THEME.primary}22` }}
             >
               <span
                 className="text-[11px] font-semibold"
@@ -414,7 +414,7 @@ function ButtonGroup({
       </span>
       <div
         className="flex overflow-hidden rounded-lg border"
-        style={{ borderColor: THEME.border, background: THEME.white }}
+        style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
       >
         {options.map((opt) => (
           <button

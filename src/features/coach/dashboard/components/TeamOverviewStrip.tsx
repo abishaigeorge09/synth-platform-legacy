@@ -98,7 +98,7 @@ export function TeamOverviewStrip() {
             transition={{ duration: 0.35, delay: i * 0.05, ease: [0.2, 0.8, 0.2, 1] }}
             className={`rounded-xl border p-4${t.link ? ' transition-shadow hover:shadow-md' : ''}`}
             style={{
-              background: THEME.white,
+              background: 'var(--bg-primary)',
               borderColor: THEME.border,
               borderLeft: `3px solid ${t.accent}`,
               boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 10px 30px -20px rgba(24,24,27,0.18)',

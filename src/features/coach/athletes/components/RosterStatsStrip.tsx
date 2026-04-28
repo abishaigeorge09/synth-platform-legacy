@@ -40,7 +40,7 @@ export function RosterStatsStrip() {
           <div
             key={t.label}
             className="rounded-2xl border p-4"
-            style={{ borderColor: THEME.border, background: THEME.white }}
+            style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
           >
             <div
               className="text-[9px] font-semibold uppercase tracking-[0.18em]"
@@ -60,7 +60,7 @@ export function RosterStatsStrip() {
 
       <div
         className="flex flex-wrap items-center gap-5 rounded-xl border px-4 py-3"
-        style={{ background: THEME.white, borderColor: THEME.border }}
+        style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
       >
         <HealthDot color={THEME.primary} count={healthy} label="healthy" />
         <span style={{ color: THEME.border }}>·</span>

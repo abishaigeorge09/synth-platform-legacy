@@ -13,7 +13,7 @@ export function WritebackConfirmBar() {
     <div
       className="fixed bottom-0 left-0 right-0 z-40 border-t px-4 py-3 shadow-lg md:left-[260px]"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
       }}

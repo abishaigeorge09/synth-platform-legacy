@@ -43,7 +43,7 @@ export function BoatTimerCard({
     <div
       className="flex flex-col overflow-hidden rounded-2xl border"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 30px 60px -36px rgba(24,24,27,0.25)',
       }}
@@ -59,7 +59,7 @@ export function BoatTimerCard({
             className="w-full rounded-lg border px-3 py-2 text-[15px] font-semibold outline-none"
             style={{
               borderColor: THEME.border,
-              background: THEME.white,
+              background: 'var(--bg-primary)',
               color: THEME.textPrimary,
               fontFamily: THEME.fontSans,
             }}
@@ -250,7 +250,7 @@ function ActionButton({
       disabled={disabled}
       className="rounded-full px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] transition-all disabled:opacity-40"
       style={{
-        background: primary ? accent ?? THEME.primary : THEME.white,
+        background: primary ? accent ?? THEME.primary : 'var(--bg-primary)',
         color: primary ? THEME.white : THEME.textPrimary,
         border: `1px solid ${primary ? accent ?? THEME.primary : THEME.border}`,
         fontFamily: THEME.fontMono,

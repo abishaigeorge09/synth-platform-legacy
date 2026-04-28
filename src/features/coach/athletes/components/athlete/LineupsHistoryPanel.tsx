@@ -48,7 +48,7 @@ export function LineupsHistoryPanel({ athleteId }: { athleteId: string }) {
   }, [filtered.length, raw.length, range])
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--bg-primary)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Lineups</div>
@@ -59,7 +59,7 @@ export function LineupsHistoryPanel({ athleteId }: { athleteId: string }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex overflow-hidden rounded-lg border" style={{ borderColor: THEME.border, background: THEME.white }}>
+          <div className="flex overflow-hidden rounded-lg border" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
             {(Object.keys(RANGE_LABELS) as RangeKey[]).map((k) => (
               <button
                 key={k}
@@ -81,7 +81,7 @@ export function LineupsHistoryPanel({ athleteId }: { athleteId: string }) {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search date (YYYY-MM-DD)…"
             className="h-8 w-[220px] rounded-lg border px-3 text-[12px] outline-none"
-            style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontSans }}
+            style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontSans }}
           />
         </div>
       </div>

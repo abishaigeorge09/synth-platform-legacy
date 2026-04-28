@@ -28,7 +28,7 @@ export function OnboardingShell({
   return (
     <div
       className="grid min-h-dvh w-full grid-cols-1 md:grid-cols-2"
-      style={{ background: `linear-gradient(180deg, ${THEME.white} 0%, ${THEME.light} 100%)` }}
+      style={{ background: `linear-gradient(180deg, var(--bg-primary) 0%, ${THEME.light} 100%)` }}
     >
       <div className="order-2 flex flex-col justify-center px-6 py-10 md:order-1 md:px-10 lg:px-16">
         <div className="mx-auto w-full max-w-md">
@@ -38,7 +38,7 @@ export function OnboardingShell({
                 type="button"
                 onClick={() => navigate(backTo)}
                 className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
-                style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono, background: THEME.white }}
+                style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono, background: 'var(--bg-primary)' }}
               >
                 Back
               </button>

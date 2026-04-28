@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useCoachNotesStore } from '../../../shared/store/useCoachNotesStore'
 import {
   Line,
   LineChart,
@@ -67,7 +68,7 @@ export function AthleteProfilePage() {
   if (!athlete) {
     return (
       <div className="flex min-h-full w-full items-center justify-center p-10">
-        <div className="rounded-2xl border p-6" style={{ borderColor: THEME.border, background: THEME.white }}>
+        <div className="rounded-2xl border p-6" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
           <div
             className="text-[10px] uppercase tracking-[0.2em]"
             style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
@@ -241,7 +242,7 @@ function ProfileHeader({ name, subtitle, athleteId }: { name: string; subtitle: 
           <Avatar id={athleteId} name={name} size={80} fallbackColor={THEME.primary} />
           <label
             className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
-            style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono, background: THEME.white }}
+            style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono, background: 'var(--bg-primary)' }}
           >
             Upload
             <input
@@ -342,7 +343,7 @@ function CardShell({ kicker, title, children }: { kicker: string; title: string;
     <div
       className="rounded-2xl border p-5"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
       }}
@@ -411,7 +412,7 @@ function SessionComparisonCard({ athleteId }: { athleteId: string }) {
             />
             <Tooltip
               contentStyle={{
-                background: THEME.white,
+                background: 'var(--bg-primary)',
                 border: `1px solid ${THEME.border}`,
                 borderRadius: 8,
                 fontFamily: THEME.fontMono,
@@ -423,9 +424,6 @@ function SessionComparisonCard({ athleteId }: { athleteId: string }) {
             <Line type="monotone" dataKey="bestSplit" stroke={THEME.cyan} strokeWidth={2.0} dot={false} />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      <div className="mt-3 text-[11px]" style={{ color: THEME.textSecondary }}>
-        Click-to-compare will open the right-side analysis drawer (coming next).
       </div>
     </CardShell>
   )
@@ -474,7 +472,7 @@ function StrokeRateCard({ athleteId }: { athleteId: string }) {
             />
             <Tooltip
               contentStyle={{
-                background: THEME.white,
+                background: 'var(--bg-primary)',
                 border: `1px solid ${THEME.border}`,
                 borderRadius: 8,
                 fontFamily: THEME.fontMono,
@@ -485,9 +483,6 @@ function StrokeRateCard({ athleteId }: { athleteId: string }) {
             <Line type="monotone" dataKey="spm" stroke={THEME.purple} strokeWidth={2.6} dot={false} />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      <div className="mt-3 text-[11px]" style={{ color: THEME.textSecondary }}>
-        Rate distributions per piece will be part of the session compare drawer.
       </div>
     </CardShell>
   )
@@ -503,7 +498,7 @@ function AthleteAiButton({ name, athleteId }: { name: string; athleteId: string 
       type="button"
       className="flex items-center gap-3 rounded-full border px-4 py-2.5 transition-colors hover:bg-zinc-50"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: THEME.border,
         boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 12px 28px -22px rgba(5,150,105,0.45)',
       }}
@@ -529,7 +524,7 @@ function SessionsCard({ athleteId }: { athleteId: string }) {
   return (
     <div
       className="rounded-2xl border p-5"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <div
         className="text-[9px] font-semibold uppercase tracking-[0.18em]"
@@ -574,7 +569,7 @@ function SessionsCard({ athleteId }: { athleteId: string }) {
                   className="rounded-md border px-2 py-0.5 text-[10px] font-semibold"
                   style={{
                     borderColor: THEME.border,
-                    background: THEME.white,
+                    background: 'var(--bg-primary)',
                     fontFamily: THEME.fontMono,
                     color: THEME.textPrimary,
                   }}
@@ -607,7 +602,7 @@ function LineupHistoryCard({ athleteId }: { athleteId: string }) {
   return (
     <div
       className="rounded-2xl border p-5"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <div
         className="text-[9px] font-semibold uppercase tracking-[0.18em]"
@@ -692,7 +687,7 @@ function WellnessCard({ athleteId }: { athleteId: string }) {
   return (
     <div
       className="rounded-2xl border p-5"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <div className="flex items-start justify-between">
         <div>
@@ -734,7 +729,7 @@ function WellnessCard({ athleteId }: { athleteId: string }) {
             />
             <Tooltip
               contentStyle={{
-                background: THEME.white,
+                background: 'var(--bg-primary)',
                 border: `1px solid ${THEME.border}`,
                 borderRadius: 8,
                 fontFamily: THEME.fontMono,
@@ -852,7 +847,7 @@ function CompareMetricCard({
   label: string; a: string; b: string; aName: string; bName: string; delta: string
 }) {
   return (
-    <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: THEME.white }}>
+    <div className="rounded-xl border p-4" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
       <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
         {label}
       </div>
@@ -875,27 +870,62 @@ function CompareMetricCard({
 
 // ─── Notes Tab ──────────────────────────────────────────────────────────────
 
+const NOTE_TAG_OPTIONS = ['Technique', 'Fitness', 'Positive', 'Concern', 'Lineup']
+
 function NotesTab({ athleteId }: { athleteId: string }) {
-  const { data: notes } = useAthleteCoachNotes(athleteId)
+  const { data: seedNotes } = useAthleteCoachNotes(athleteId)
+  const storeNotes = useCoachNotesStore((s) => s.notes.filter((n) => n.athleteId === athleteId))
+  const addNote = useCoachNotesStore((s) => s.add)
+
   const [searchQ, setSearchQ] = useState('')
   const [tagFilter, setTagFilter] = useState('all')
-  const [newNote, setNewNote] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [draftTags, setDraftTags] = useState<string[]>([])
+
+  // Merge store notes (newest first) with seed notes
+  const allNotes = useMemo(() => {
+    // Map store notes to the same shape as seed notes
+    const mapped = storeNotes.map((n) => ({
+      id: n.id,
+      athleteId: n.athleteId,
+      date: n.date,
+      text: n.content,
+      tags: n.tags,
+      isTranscription: false as const,
+    }))
+    return [...mapped, ...seedNotes]
+  }, [storeNotes, seedNotes])
 
   const allTags = useMemo(() => {
     const tags = new Set<string>()
-    notes.forEach((n) => n.tags.forEach((t) => tags.add(t)))
+    allNotes.forEach((n) => n.tags.forEach((t) => tags.add(t)))
     return ['all', ...Array.from(tags)]
-  }, [notes])
+  }, [allNotes])
 
   const filtered = useMemo(() => {
-    let list = notes
+    let list = allNotes
     if (tagFilter !== 'all') list = list.filter((n) => n.tags.includes(tagFilter))
     if (searchQ.trim()) {
       const q = searchQ.toLowerCase()
       list = list.filter((n) => n.text.toLowerCase().includes(q))
     }
     return list
-  }, [notes, tagFilter, searchQ])
+  }, [allNotes, tagFilter, searchQ])
+
+  const handleSave = () => {
+    if (!draft.trim()) return
+    addNote({
+      athleteId,
+      date: new Date().toLocaleDateString(),
+      content: draft.trim(),
+      tags: draftTags,
+      coachName: 'Coach',
+    })
+    setDraft('')
+    setDraftTags([])
+    setAdding(false)
+  }
 
   return (
     <div className="space-y-4">
@@ -918,26 +948,82 @@ function NotesTab({ athleteId }: { athleteId: string }) {
               <option key={t} value={t}>{t === 'all' ? 'All tags' : t}</option>
             ))}
           </select>
-        </div>
-
-        <div className="mb-4 flex gap-2">
-          <input
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Add a quick note..."
-            className="flex-1 rounded-lg border px-3 py-2 text-[12px] outline-none"
-            style={{ background: THEME.white, borderColor: THEME.border, color: THEME.textPrimary }}
-          />
           <button
             type="button"
-            onClick={() => setNewNote('')}
-            disabled={!newNote.trim()}
-            className="rounded-lg px-4 py-2 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-40"
-            style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
+            onClick={() => { setAdding(!adding); setDraft(''); setDraftTags([]) }}
+            className="rounded-lg px-4 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors"
+            style={{
+              background: adding ? THEME.light : THEME.primary,
+              color: adding ? THEME.textPrimary : THEME.white,
+              borderColor: THEME.border,
+              border: adding ? `1px solid ${THEME.border}` : 'none',
+              fontFamily: THEME.fontMono,
+            }}
           >
-            Add note
+            {adding ? 'Cancel' : '+ Add note'}
           </button>
         </div>
+
+        {/* Add note form */}
+        {adding && (
+          <div
+            className="mb-4 rounded-xl border p-4 space-y-3"
+            style={{ borderColor: THEME.primary + '40', background: `${THEME.primary}08` }}
+          >
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Write your note..."
+              rows={4}
+              className="w-full rounded-lg border px-3 py-2 text-[13px] outline-none resize-none"
+              style={{ background: 'var(--bg-primary)', borderColor: THEME.border, color: THEME.textPrimary }}
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {NOTE_TAG_OPTIONS.map((tag) => {
+                const active = draftTags.includes(tag)
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() =>
+                      setDraftTags((ts) =>
+                        active ? ts.filter((t) => t !== tag) : [...ts, tag]
+                      )
+                    }
+                    className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors"
+                    style={{
+                      fontFamily: THEME.fontMono,
+                      background: active ? `${THEME.primary}18` : 'var(--bg-primary)',
+                      borderColor: active ? THEME.primary : THEME.border,
+                      color: active ? THEME.primary : THEME.textSecondary,
+                    }}
+                  >
+                    {tag}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!draft.trim()}
+                className="rounded-lg px-4 py-2 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-40"
+                style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAdding(false); setDraft(''); setDraftTags([]) }}
+                className="rounded-lg border px-4 py-2 text-[10px] font-semibold uppercase tracking-wider"
+                style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="synth-scroll flex max-h-[400px] flex-col gap-2 overflow-y-auto pr-1">
           {filtered.map((note) => (
@@ -963,8 +1049,8 @@ function NotesTab({ athleteId }: { athleteId: string }) {
                       key={tag}
                       className="rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-wider"
                       style={{
-                        background: tag.includes('Positive') ? `${THEME.primary}14` : tag.includes('Flag') ? `${THEME.red}14` : `${THEME.blue}14`,
-                        color: tag.includes('Positive') ? THEME.primary : tag.includes('Flag') ? THEME.red : THEME.blue,
+                        background: tag.includes('Positive') ? `${THEME.primary}14` : tag.includes('Flag') || tag.includes('Concern') ? `${THEME.red}14` : `${THEME.blue}14`,
+                        color: tag.includes('Positive') ? THEME.primary : tag.includes('Flag') || tag.includes('Concern') ? THEME.red : THEME.blue,
                         fontFamily: THEME.fontMono,
                       }}
                     >

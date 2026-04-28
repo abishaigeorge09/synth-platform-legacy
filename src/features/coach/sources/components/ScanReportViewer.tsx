@@ -118,7 +118,7 @@ export function ScanReportViewer({
     return (
       <div
         className="flex h-full min-h-[320px] items-center justify-center rounded-2xl border p-8"
-        style={{ background: THEME.white, borderColor: THEME.border }}
+        style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
       >
         <div className="text-center">
           <div
@@ -145,7 +145,7 @@ export function ScanReportViewer({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       className="flex h-full flex-col overflow-hidden rounded-2xl border"
-      style={{ background: THEME.white, borderColor: THEME.border }}
+      style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
     >
       <header
         className="flex items-center justify-between border-b px-5 py-4"

@@ -153,7 +153,7 @@ export function SourcesPage() {
       <div className="mt-8 grid gap-4 px-5 sm:px-10 xl:grid-cols-[320px_1fr]">
         <section
           className="rounded-2xl border p-4"
-          style={{ background: THEME.white, borderColor: THEME.border }}
+          style={{ background: 'var(--bg-primary)', borderColor: THEME.border }}
         >
           <div className="mb-3 flex items-baseline justify-between">
             <div

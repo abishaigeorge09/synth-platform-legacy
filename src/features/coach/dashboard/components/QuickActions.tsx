@@ -5,7 +5,7 @@ import { THEME } from '../../../../lib/theme'
 const ACTIONS = [
   { label: 'Build lineup', path: '/coach/tools/lineups' },
   { label: 'Start timer', path: '/coach/tools/session-timer' },
-  { label: 'Record note', path: '/coach/ai' },
+  { label: 'Ask synth. AI', path: '/coach/ai' },
   { label: 'View sources', path: '/coach/sources/connectors' },
 ] as const
 
@@ -33,7 +33,7 @@ export function QuickActions() {
             fontFamily: THEME.fontMono,
             borderColor: THEME.border,
             color: THEME.textPrimary,
-            background: THEME.white,
+            background: 'var(--bg-primary)',
           }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: THEME.accent }} aria-hidden />

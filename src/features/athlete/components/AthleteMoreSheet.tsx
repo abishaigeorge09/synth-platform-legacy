@@ -119,7 +119,7 @@ function MoreSheetInner({ onClose, items }: { onClose: () => void; items: Item[]
         transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
         className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t p-4 pb-8"
         style={{
-          background: THEME.white,
+          background: 'var(--bg-primary)',
           borderColor: THEME.border,
           paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
           boxShadow: '0 -30px 60px -30px rgba(24,24,27,0.4)',
@@ -140,7 +140,7 @@ function MoreSheetInner({ onClose, items }: { onClose: () => void; items: Item[]
               onClick={onClose}
               onMouseEnter={() => prefetchRoute(it.to)}
               onFocus={() => prefetchRoute(it.to)}
-              className="flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-zinc-100"
+              className="flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-[var(--bg-surface-raised)]"
             >
               <it.Glyph size={22} muted />
               <span className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>

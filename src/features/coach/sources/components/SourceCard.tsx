@@ -65,7 +65,7 @@ export function SourceCard({
       transition={{ duration: 0.18 }}
       className="relative overflow-hidden rounded-xl border p-4 text-left"
       style={{
-        background: THEME.white,
+        background: 'var(--bg-primary)',
         borderColor: selected ? accent : THEME.border,
         boxShadow: selected
           ? `0 1px 0 rgba(24,24,27,0.02), 0 18px 36px -24px ${accent}55`

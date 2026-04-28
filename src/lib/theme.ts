@@ -24,18 +24,21 @@ export const THEME = {
   cyan: '#06B6D4',
   purple: '#8B5CF6',
 
-  // Colors — surfaces
+  // Colors — surfaces (literal, for intentional light/dark elements)
   dark: '#18181B',
   darkDeep: '#0C0A09',
   darkMid: '#27272A',
-  light: '#FAFAF9',
   white: '#FFFFFF',
 
-  // Colors — text
-  textPrimary: '#18181B',
-  textSecondary: '#52525B',
-  textMuted: '#A1A1AA',
-  border: '#E4E4E7',
+  // Colors — theme-adaptive surfaces (CSS variables — update with theme)
+  light: 'var(--bg-surface)',      // off-white → dark surface in dark mode
+  surface: 'var(--bg-primary)',    // main card background
+
+  // Colors — text (CSS variables — update with theme)
+  textPrimary: 'var(--text-primary)',
+  textSecondary: 'var(--text-secondary)',
+  textMuted: 'var(--text-tertiary)',
+  border: 'var(--border-default)',
 
   // Typography
   fontMono: "'JetBrains Mono', monospace",

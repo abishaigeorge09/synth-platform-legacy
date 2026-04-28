@@ -1,31 +1,27 @@
-export type ClaudeModel = 'mock'
+// Real Claude calls — routed through the `claude-chat` Supabase Edge Function
+// so the Anthropic API key never ships in the JS bundle. Requires the user
+// to be signed in to Supabase: the function verifies the JWT before invoking
+// Anthropic.
+//
+// Two entry points:
+//   - claudeChat()           non-streaming. Returns full text.
+//   - streamClaudeMessages() SSE streaming. Calls onTextDelta(fullText) as
+//                            tokens arrive; resolves with final full text.
 
-export type ClaudeChatMessage = {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-}
-
-export async function claudeChat(_args: {
-  model?: ClaudeModel
-  messages: ClaudeChatMessage[]
-  maxTokens?: number
-  temperature?: number
-}) {
-  return {
-    id: `mock-${Date.now()}`,
-    content: `AI is disabled in this build. (${_args.messages.length} messages in thread)`,
-  }
-}
-
+import { supabase } from '../supabaseClient'
 import { isClaudeConfigured } from './env'
 
 export const ANTHROPIC_MODELS = {
   haiku: 'claude-haiku-4-5-20251001',
   sonnet: 'claude-sonnet-4-20250514',
-  /** Spec name; falls back in `selectModel` if API rejects. */
   opus: 'claude-opus-4-6',
   opusStable: 'claude-opus-4-20250514',
 } as const
+
+export type ClaudeChatMessage = {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+}
 
 export function selectModel(query: string, context: string): string {
   const q = query.toLowerCase()
@@ -37,26 +33,78 @@ export function selectModel(query: string, context: string): string {
   return ANTHROPIC_MODELS.sonnet
 }
 
-function anthropicApiBase(): string {
-  if (import.meta.env.DEV && import.meta.env.VITE_ANTHROPIC_USE_DEV_PROXY === 'true') {
-    return '/api/anthropic'
-  }
-  return 'https://api.anthropic.com'
+// ---------------------------------------------------------------------------
+// Edge Function plumbing
+// ---------------------------------------------------------------------------
+
+function functionURL(): string {
+  const base = (import.meta.env.VITE_SUPABASE_URL as string) || ''
+  return `${base}/functions/v1/claude-chat`
 }
 
-function anthropicHeaders(): Record<string, string> {
-  const key = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined
-  const useProxy = import.meta.env.DEV && import.meta.env.VITE_ANTHROPIC_USE_DEV_PROXY === 'true'
-  const h: Record<string, string> = {
+async function authHeaders(): Promise<Record<string, string>> {
+  if (!supabase) throw new Error('Supabase is not configured')
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error('Not signed in')
+  const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || ''
+  return {
     'content-type': 'application/json',
-    'anthropic-version': '2023-06-01',
+    authorization: `Bearer ${token}`,
+    apikey: anonKey,
   }
-  if (!useProxy && key) {
-    h['x-api-key'] = key
-    h['anthropic-dangerous-direct-browser-access'] = 'true'
-  }
-  return h
 }
+
+// ---------------------------------------------------------------------------
+// Non-streaming
+// ---------------------------------------------------------------------------
+
+export async function claudeChat(args: {
+  model?: string
+  messages: ClaudeChatMessage[]
+  system?: string
+  maxTokens?: number
+  temperature?: number
+}): Promise<{ id: string; content: string }> {
+  if (!isClaudeConfigured()) {
+    return {
+      id: `mock-${Date.now()}`,
+      content: `AI is not configured. (${args.messages.length} messages in thread)`,
+    }
+  }
+
+  const userMessages = args.messages.filter((m) => m.role !== 'system')
+  const systemPrompt =
+    args.system ?? args.messages.find((m) => m.role === 'system')?.content
+
+  const res = await fetch(functionURL(), {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      model: args.model ?? ANTHROPIC_MODELS.sonnet,
+      max_tokens: args.maxTokens ?? 1024,
+      system: systemPrompt,
+      messages: userMessages,
+      temperature: args.temperature,
+    }),
+  })
+
+  if (!res.ok) {
+    const t = await res.text()
+    throw new Error(`AI call failed (${res.status}): ${t}`)
+  }
+
+  const json = (await res.json()) as {
+    id?: string
+    content?: { type: string; text: string }[]
+  }
+  const text = json.content?.find((c) => c.type === 'text')?.text ?? ''
+  return { id: json.id ?? `chat-${Date.now()}`, content: text }
+}
+
+// ---------------------------------------------------------------------------
+// Streaming (SSE pass-through from the Edge Function)
+// ---------------------------------------------------------------------------
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -86,13 +134,18 @@ export async function streamClaudeMessages(args: {
   }
 
   let full = ''
-  const tryModels = [...new Set([args.model, ANTHROPIC_MODELS.opusStable, ANTHROPIC_MODELS.sonnet, ANTHROPIC_MODELS.haiku])]
+  // Try the requested model first; fall back to opusStable / sonnet / haiku
+  // if Anthropic rejects it (model deprecation).
+  const tryModels = [
+    ...new Set([args.model, ANTHROPIC_MODELS.opusStable, ANTHROPIC_MODELS.sonnet, ANTHROPIC_MODELS.haiku]),
+  ]
   let lastErr: unknown
+  const headers = await authHeaders()
   for (const model of tryModels) {
     try {
-      const res = await fetch(`${anthropicApiBase()}/v1/messages`, {
+      const res = await fetch(functionURL(), {
         method: 'POST',
-        headers: anthropicHeaders(),
+        headers,
         body: JSON.stringify({
           model,
           max_tokens: 2048,
@@ -106,7 +159,6 @@ export async function streamClaudeMessages(args: {
         const t = await res.text()
         throw new Error(`${res.status} ${t}`)
       }
-
       if (!res.body) throw new Error('No response body')
 
       const reader = res.body.getReader()

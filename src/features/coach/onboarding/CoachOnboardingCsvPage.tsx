@@ -119,7 +119,7 @@ export function CoachOnboardingCsvPage() {
           onChange={(e) => setSheetUrl(e.target.value)}
           placeholder="https://docs.google.com/spreadsheets/..."
           className="w-full rounded-xl border px-4 py-3 text-[13px] outline-none"
-          style={{ borderColor: THEME.border, color: THEME.textPrimary, background: THEME.white }}
+          style={{ borderColor: THEME.border, color: THEME.textPrimary, background: 'var(--bg-primary)' }}
         />
       </label>
       <div className="my-3 text-center text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
@@ -130,7 +130,7 @@ export function CoachOnboardingCsvPage() {
           type="button"
           onClick={downloadCsvTemplate}
           className="rounded-full border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-zinc-50"
-          style={{ borderColor: THEME.border, background: THEME.white, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }}
         >
           Download template
         </button>

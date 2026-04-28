@@ -23,9 +23,14 @@ export default defineConfig({
         theme_color: '#059669',
         background_color: '#fafaf9',
         display: 'standalone',
-        orientation: 'any',
+        orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/app',
+        shortcuts: [
+          { name: 'Open mobile app', short_name: 'Mobile', url: '/app' },
+          { name: 'Coach dashboard', short_name: 'Coach', url: '/coach/dashboard' },
+          { name: 'Athlete view', short_name: 'Athlete', url: '/athlete/today' },
+        ],
         icons: [
           {
             src: '/logos/icon-192.png',

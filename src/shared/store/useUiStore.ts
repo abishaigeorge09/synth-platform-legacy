@@ -5,6 +5,8 @@ type UiState = {
   agentModalOpen: boolean
   mobileDrawerOpen: boolean
   commandPaletteOpen: boolean
+  coachProfileOpen: boolean
+  requestToolOpen: boolean
   hideTopRightControls: boolean
   toggleSidebar: () => void
   setSidebarCollapsed: (v: boolean) => void
@@ -17,7 +19,9 @@ type UiState = {
   closeCommandPalette: () => void
   toggleCommandPalette: () => void
   openCoachProfile: () => void
+  closeCoachProfile: () => void
   openRequestTool: () => void
+  closeRequestTool: () => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -25,6 +29,8 @@ export const useUiStore = create<UiState>((set) => ({
   agentModalOpen: false,
   mobileDrawerOpen: false,
   commandPaletteOpen: false,
+  coachProfileOpen: false,
+  requestToolOpen: false,
   hideTopRightControls: false,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
@@ -36,6 +42,8 @@ export const useUiStore = create<UiState>((set) => ({
   openCommandPalette: () => set({ commandPaletteOpen: true }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
-  openCoachProfile: () => set({}),
-  openRequestTool: () => set({}),
+  openCoachProfile: () => set({ coachProfileOpen: true }),
+  closeCoachProfile: () => set({ coachProfileOpen: false }),
+  openRequestTool: () => set({ requestToolOpen: true }),
+  closeRequestTool: () => set({ requestToolOpen: false }),
 }))

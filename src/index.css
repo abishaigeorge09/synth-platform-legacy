@@ -3,8 +3,14 @@
 /* Enable Tailwind dark: variants based on the .dark class on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Fix root font size so rem units never drift */
-html { font-size: 16px; }
+/* Fix root font size so rem units never drift, and disable mobile-browser
+   text auto-inflation (iOS Safari "text autosizing" + Chrome-Android "font
+   boosting") which otherwise bumps font-size unpredictably on reflow / rotate. */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
@@ -65,12 +71,68 @@ body,
 
 /* In PWA standalone mode, iOS doesn't give us a status-bar space by default.
    Pad the body top so the mobile top bar / athlete header doesn't sit under
-   the notch. Only applies when the app is actually installed. */
+   the notch. Only applies when the app is actually installed.
+   The /app surface handles its own safe areas internally — opt out via
+   data-surface="app" on body so we don't double-pad. */
 @media (display-mode: standalone) {
-  body {
+  body:not([data-surface='app']) {
     padding-top: var(--safe-top);
     padding-left: var(--safe-left);
     padding-right: var(--safe-right);
+  }
+}
+
+/* /app shell chrome.
+   Phone-frame look (rounded corners, soft shadow, bordered column on a darker
+   surround) only renders in BROWSER display-mode at md+. Installed (standalone)
+   PWA always goes full-bleed so it looks like a native app, regardless of
+   the device width. */
+.app-shell-root {
+  display: flex;
+  min-height: 100dvh;
+  width: 100%;
+  justify-content: center;
+  background: #f4f4f5;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+}
+
+.app-shell-frame {
+  position: relative;
+  display: flex;
+  min-height: 100dvh;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fafaf9;
+}
+
+@media (min-width: 768px) {
+  .app-shell-root {
+    align-items: center;
+    padding: 24px 0;
+  }
+  .app-shell-frame {
+    max-width: 390px;
+    min-height: calc(100dvh - 48px);
+    border-radius: 44px;
+    border: 1px solid #e4e4e7;
+    box-shadow: 0 30px 60px -30px rgba(15, 15, 20, 0.25);
+  }
+}
+
+/* Installed PWA: never show the phone frame. Always full-bleed. */
+@media (display-mode: standalone) {
+  .app-shell-root {
+    align-items: stretch;
+    padding: 0;
+    background: #fafaf9;
+  }
+  .app-shell-frame {
+    max-width: none;
+    min-height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
   }
 }
 

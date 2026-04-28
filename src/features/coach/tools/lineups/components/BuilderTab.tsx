@@ -536,8 +536,8 @@ function BoatCard({
   return (
     <article
       style={{
-        width: 340,
-        flexShrink: 0,
+        width: '100%',
+        minWidth: 0,
         borderRadius: 16,
         border: `1px solid ${THEME.border}`,
         background: 'var(--bg-primary)',
@@ -861,25 +861,15 @@ export function BuilderTab({
         )}
       </AnimatePresence>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '280px 1fr',
-          gap: 16,
-          padding: '16px 24px',
-          alignItems: 'start',
-        }}
-      >
+      <div className="grid grid-cols-1 items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[280px_1fr]">
         {/* ── Roster Panel ── */}
         <section
+          className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-160px)]"
           style={{
             borderRadius: 16,
             border: `1px solid ${THEME.border}`,
             background: 'var(--bg-primary)',
             padding: 16,
-            position: 'sticky',
-            top: 80,
-            maxHeight: 'calc(100vh - 160px)',
             display: 'flex',
             flexDirection: 'column',
           }}
@@ -1012,8 +1002,14 @@ export function BuilderTab({
         </section>
 
         {/* ── Boat cards ── */}
-        <section style={{ paddingBottom: 8 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <section style={{ paddingBottom: 8, minWidth: 0 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+              gap: 16,
+            }}
+          >
             {boats.map((boat) => (
               <BoatCard
                 key={boat.id}

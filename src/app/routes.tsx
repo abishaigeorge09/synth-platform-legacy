@@ -7,6 +7,38 @@ import { ErrorBoundary } from '../shared/layout/ErrorBoundary'
 import { PageTitle } from '../shared/components/PageTitle'
 import { NotFoundPage } from '../features/notFound/NotFoundPage'
 import { COACH_TOOLS } from '../features/coach/tools/toolRegistry'
+import { AppShell } from '../features/app/AppShell'
+import { AppRoleGate } from '../features/app/AppRoleGate'
+import { WelcomePage as AppWelcomePage } from '../features/app/onboarding/WelcomePage'
+import { RolePickPage as AppOnboardingRolePage } from '../features/app/onboarding/RolePickPage'
+import { SportPickPage as AppOnboardingSportPage } from '../features/app/onboarding/SportPickPage'
+import { CoachTeamSetupPage as AppOnboardingTeamPage } from '../features/app/onboarding/CoachTeamSetupPage'
+import { CoachCapabilitiesPage as AppOnboardingCapabilitiesPage } from '../features/app/onboarding/CoachCapabilitiesPage'
+import { CoachConnectorsPage as AppOnboardingCoachConnectorsPage } from '../features/app/onboarding/CoachConnectorsPage'
+import { AthleteInviteCodePage as AppOnboardingInviteCodePage } from '../features/app/onboarding/AthleteInviteCodePage'
+import { AthleteConnectorsPage as AppOnboardingAthleteConnectorsPage } from '../features/app/onboarding/AthleteConnectorsPage'
+import { TrustCardPage as AppOnboardingTrustPage } from '../features/app/onboarding/TrustCardPage'
+import { ScanningPage as AppOnboardingScanningPage } from '../features/app/onboarding/ScanningPage'
+import { RevealPage as AppOnboardingRevealPage } from '../features/app/onboarding/RevealPage'
+import { AppCoachShell } from '../features/app/coach/AppCoachShell'
+import { HomePage as AppCoachHomePage } from '../features/app/coach/HomePage'
+import { AttentionPage as AppCoachAttentionPage } from '../features/app/coach/AttentionPage'
+import { AthleteDetailPage as AppCoachAthleteDetailPage } from '../features/app/coach/AthleteDetailPage'
+import { AIPage as AppCoachAIPage } from '../features/app/coach/AIPage'
+import {
+  AppCoachCapturePage,
+  AppCoachLineupsPage,
+  AppCoachNotesPage,
+  AppCoachSourcesPage,
+  AppCoachSettingsPage,
+  AppAthleteHomePage,
+  AppAthleteCapturePage,
+  AppAthleteErgPacerPage,
+  AppAthleteAIPage,
+  AppAthleteNotesPage,
+  AppAthleteSourcesPage,
+  AppAthleteSettingsPage,
+} from '../features/app/AppStubs'
 
 // Phase 12 — route-level code splitting. Each feature page becomes its own
 // chunk that's only fetched when the route is visited. Keeps the landing /
@@ -209,6 +241,52 @@ export const routes: RouteObject[] = [
       },
       { path: 'chat', element: withSuspense(<MyChatPage />, 'synth. AI') },
       { path: 'settings', element: withSuspense(<MySettingsPage />, 'Settings') },
+    ],
+  },
+  {
+    path: '/app',
+    element: (
+      <ErrorBoundary label="App surface">
+        <AppShell />
+      </ErrorBoundary>
+    ),
+    children: [
+      { index: true, element: <AppRoleGate /> },
+      { path: 'welcome', element: withSuspense(<AppWelcomePage />, 'Welcome') },
+      { path: 'onboarding/role', element: withSuspense(<AppOnboardingRolePage />, 'Choose role') },
+      { path: 'onboarding/sport', element: withSuspense(<AppOnboardingSportPage />, 'Choose sport') },
+      { path: 'onboarding/team', element: withSuspense(<AppOnboardingTeamPage />, 'Team setup') },
+      { path: 'onboarding/capabilities', element: withSuspense(<AppOnboardingCapabilitiesPage />, 'Capabilities') },
+      { path: 'onboarding/sources/coach', element: withSuspense(<AppOnboardingCoachConnectorsPage />, 'Connect sources') },
+      { path: 'onboarding/invite-code', element: withSuspense(<AppOnboardingInviteCodePage />, 'Invite code') },
+      { path: 'onboarding/sources/athlete', element: withSuspense(<AppOnboardingAthleteConnectorsPage />, 'Connect your sources') },
+      { path: 'onboarding/trust', element: withSuspense(<AppOnboardingTrustPage />, 'Privacy') },
+      { path: 'onboarding/scanning', element: withSuspense(<AppOnboardingScanningPage />, 'Scanning') },
+      { path: 'onboarding/reveal', element: withSuspense(<AppOnboardingRevealPage />, 'synth is ready') },
+      {
+        path: 'coach',
+        element: <AppCoachShell />,
+        children: [
+          { index: true, element: <Navigate to="/app/coach/home" replace /> },
+          { path: 'home', element: withSuspense(<AppCoachHomePage />, 'Coach home') },
+          { path: 'attention', element: withSuspense(<AppCoachAttentionPage />, 'Attention') },
+          { path: 'athlete/:athleteId', element: withSuspense(<AppCoachAthleteDetailPage />, 'Athlete') },
+          { path: 'capture', element: withSuspense(<AppCoachCapturePage />, 'Capture') },
+          { path: 'ai', element: withSuspense(<AppCoachAIPage />, 'Coach AI') },
+          { path: 'lineups', element: withSuspense(<AppCoachLineupsPage />, 'Lineups') },
+          { path: 'notes', element: withSuspense(<AppCoachNotesPage />, 'Notes') },
+          { path: 'sources', element: withSuspense(<AppCoachSourcesPage />, 'Sources') },
+          { path: 'settings', element: withSuspense(<AppCoachSettingsPage />, 'Settings') },
+        ],
+      },
+      { path: 'athlete', element: <Navigate to="/app/athlete/home" replace /> },
+      { path: 'athlete/home', element: withSuspense(<AppAthleteHomePage />, 'Athlete home') },
+      { path: 'athlete/capture', element: withSuspense(<AppAthleteCapturePage />, 'Capture') },
+      { path: 'athlete/erg-pacer', element: withSuspense(<AppAthleteErgPacerPage />, 'Erg pacer') },
+      { path: 'athlete/ai', element: withSuspense(<AppAthleteAIPage />, 'synth. AI') },
+      { path: 'athlete/notes', element: withSuspense(<AppAthleteNotesPage />, 'Notes') },
+      { path: 'athlete/sources', element: withSuspense(<AppAthleteSourcesPage />, 'Sources') },
+      { path: 'athlete/settings', element: withSuspense(<AppAthleteSettingsPage />, 'Settings') },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

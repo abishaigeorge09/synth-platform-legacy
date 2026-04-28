@@ -148,8 +148,17 @@ export function SidebarContent({
   const team = useTeamStore((s) => s.activeTeam)
   const setActiveTeam = useTeamStore((s) => s.setActiveTeam)
   const sourcesActive = location.pathname.startsWith('/coach/sources')
-  const [sourcesOpenByUser, setSourcesOpenByUser] = useState(false)
-  const sourcesOpen = sourcesActive || sourcesOpenByUser
+  // Open by default when on a Sources route, and auto-open whenever the
+  // user navigates *into* one. After that the user owns the toggle — they
+  // can collapse it even while viewing /coach/sources/*. Uses the React
+  // "adjust state during render" pattern (compare prev to current) instead
+  // of a syncing effect.
+  const [sourcesOpen, setSourcesOpen] = useState(sourcesActive)
+  const [prevSourcesActive, setPrevSourcesActive] = useState(sourcesActive)
+  if (sourcesActive !== prevSourcesActive) {
+    setPrevSourcesActive(sourcesActive)
+    if (sourcesActive) setSourcesOpen(true)
+  }
 
   const afterNavigate = () => {
     onNavigate?.()
@@ -227,7 +236,14 @@ export function SidebarContent({
               <button
                 key={squad.id}
                 type="button"
-                onClick={() => setActiveTeam(squad)}
+                onClick={() => {
+                  if (active) return
+                  setActiveTeam(squad)
+                  // Avoid stranding the user on a route that's scoped to the
+                  // previous team (e.g. /coach/athletes/<old-team-athlete-id>).
+                  navigate('/coach/dashboard')
+                  afterNavigate()
+                }}
                 className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-center text-[11px] font-semibold transition-colors"
                 style={{
                   fontFamily: THEME.fontMono,
@@ -256,12 +272,12 @@ export function SidebarContent({
               open={sourcesOpen}
               onToggle={() => {
                 if (!sourcesOpen) {
-                  setSourcesOpenByUser(true)
+                  setSourcesOpen(true)
                   navigate('/coach/sources/connectors')
                   afterNavigate()
                   return
                 }
-                setSourcesOpenByUser(false)
+                setSourcesOpen(false)
               }}
               afterNavigate={afterNavigate}
             />

@@ -220,21 +220,24 @@ export function LineupsPage() {
 
       {/* SubTab bar */}
       <div
-        className="sticky top-0 z-10 border-b px-5 sm:px-10"
+        className="sticky top-0 z-10 border-b"
         style={{
           borderColor: THEME.border,
           background: 'color-mix(in srgb, var(--surface, #fff) 95%, transparent)',
           backdropFilter: 'blur(8px)',
         }}
       >
-        <div style={{ display: 'flex', gap: 0 }}>
+        <div
+          className="synth-scroll flex gap-0 overflow-x-auto px-5 sm:px-10"
+          style={{ scrollbarWidth: 'none' }}
+        >
           {SUBTABS.map((s) => (
             <button
               key={s.id}
               type="button"
               onClick={() => switchTab(s.id)}
               style={{
-                padding: '14px 18px',
+                padding: '14px 16px',
                 fontSize: 13,
                 fontWeight: tab === s.id ? 700 : 500,
                 fontFamily: tab === s.id ? THEME.fontMono : THEME.fontSans,
@@ -245,6 +248,8 @@ export function LineupsPage() {
                 cursor: 'pointer',
                 transition: 'border-color 0.15s, color 0.15s',
                 letterSpacing: tab === s.id ? '0.02em' : 0,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               {s.label}

@@ -4,6 +4,8 @@ import { AgentModalPortal } from './AgentModalPortal'
 import { CommandPalette } from './CommandPalette'
 import { MobileSidebarDrawer } from './MobileSidebarDrawer'
 import { MobileTopBar } from './MobileTopBar'
+import { CoachProfileModal } from './CoachProfileModal'
+import { RequestToolModal } from './RequestToolModal'
 import { WritebackConfirmBar } from '../components/WritebackConfirmBar'
 import { RightPanel } from './RightPanel'
 import { THEME } from '../../lib/theme'
@@ -51,6 +53,11 @@ export function CoachLayout() {
           layout level so every coach surface inherits the shortcut without
           per-page wiring. */}
       <CommandPalette />
+
+      {/* Coach profile (top-right avatar button) and Request-tool (sidebar)
+          modals — wired so those buttons actually do something visible. */}
+      <CoachProfileModal />
+      <RequestToolModal />
 
       <WritebackConfirmBar />
 

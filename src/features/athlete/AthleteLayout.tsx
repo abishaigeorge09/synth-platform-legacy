@@ -3,6 +3,7 @@ import { THEME } from '../../lib/theme'
 import { AthleteBottomTabs } from './components/AthleteBottomTabs'
 import { CommandPalette } from '../../shared/layout/CommandPalette'
 import { AthleteSidebar } from '../../shared/layout/AthleteSidebar'
+import { BehavioralSurface } from './behavioral/BehavioralSurface'
 
 /**
  * Athlete-side layout. On tablet/desktop (≥ md) shows a horizontal top nav.
@@ -63,6 +64,8 @@ export function AthleteLayout() {
           Same infrastructure as the coach palette but scoped to athlete
           navigation + a "Switch to coach view" action. */}
       <CommandPalette mode="athlete" />
+
+      <BehavioralSurface />
     </div>
   )
 }

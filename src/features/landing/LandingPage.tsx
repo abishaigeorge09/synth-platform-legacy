@@ -704,15 +704,8 @@ export function LandingPage() {
       </header>
 
       <main className="flex flex-col">
-        {/* ── Hero — green bleeds down into black ── */}
-        <div className="relative">
-          <Hero3D onDownload={handleDownload} downloadLabel={installed ? 'Installed' : 'Download app'} />
-          {/* Green dissolves INTO black at the bottom — the hero section fades out, not the dark fading in */}
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-48"
-            style={{ background: 'linear-gradient(to bottom, transparent 0%, #000000 100%)' }}
-          />
-        </div>
+        {/* ── Hero — fully green, no dark overlay ── */}
+        <Hero3D onDownload={handleDownload} downloadLabel={installed ? 'Installed' : 'Download app'} />
 
         {/* ── How it works + live demo ── */}
         <HowItWorksSection />

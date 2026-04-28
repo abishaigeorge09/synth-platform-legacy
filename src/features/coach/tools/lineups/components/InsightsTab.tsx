@@ -16,11 +16,11 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     <div
       style={{
         width: '100%',
-        maxWidth: 680,
+        minWidth: 0,
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-default)',
         borderRadius: 12,
-        padding: 20,
+        padding: 16,
       }}
     >
       <h3
@@ -43,14 +43,10 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 export function InsightsTab({ onApplySuggested, onGoHistory }: Props) {
   return (
-    <div style={{ padding: '16px 24px', paddingBottom: 40 }}>
+    <div className="px-4 py-4 pb-10 sm:px-6">
       <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-          paddingBottom: 12,
-        }}
+        className="grid gap-4 lg:grid-cols-2"
+        style={{ paddingBottom: 12 }}
       >
         {/* Card 1: Pair Compatibility */}
         <Card title="Pair Compatibility">

@@ -1,12 +1,13 @@
-export const AI_PROVIDER = 'mock'
-export const AI_ENABLED = false
+// AI configuration. Real Claude calls go through the `claude-chat` Supabase
+// Edge Function — the Anthropic API key never lives in the browser. "Configured"
+// here means: Supabase is wired up so we can mint an access token to call the
+// function. Auth-required check happens server-side in the function itself.
 
-/**
- * Claude via Vite key (may hit CORS in browser) or dev proxy (see vite.config + `src/lib/ai/claude.ts`).
- */
+import { isSupabaseConfigured } from '../supabaseClient'
+
+export const AI_PROVIDER = 'edge-function'
+export const AI_ENABLED = true
+
 export function isClaudeConfigured(): boolean {
-  if (import.meta.env.DEV && import.meta.env.VITE_ANTHROPIC_USE_DEV_PROXY === 'true') {
-    return true
-  }
-  return !!import.meta.env.VITE_ANTHROPIC_API_KEY
+  return isSupabaseConfigured()
 }

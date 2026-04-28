@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { THEME } from '../../lib/theme'
 import { useUiStore } from '../store/useUiStore'
 import { useTeamStore } from '../store/useTeamStore'
+import { NotificationBell } from './Sidebar'
 
 /**
  * Mobile-only 56 px top bar: hamburger on the left, brand wordmark center,
@@ -48,19 +49,22 @@ export function MobileTopBar() {
         synth<span style={{ color: THEME.accent }}>.</span>
       </button>
 
-      {/* Team short label */}
-      <div className="max-w-[120px] text-right">
-        <div
-          className="truncate text-[10px] font-semibold uppercase tracking-[0.12em]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-        >
-          {team.name.split(' ')[0]}
-        </div>
-        <div
-          className="truncate text-[9px]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
-        >
-          {team.sport}
+      {/* Right cluster — notifications + team short label */}
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <div className="max-w-[100px] text-right">
+          <div
+            className="truncate text-[10px] font-semibold uppercase tracking-[0.12em]"
+            style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+          >
+            {team.name.split(' ')[0]}
+          </div>
+          <div
+            className="truncate text-[9px]"
+            style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
+          >
+            {team.sport}
+          </div>
         </div>
       </div>
     </header>

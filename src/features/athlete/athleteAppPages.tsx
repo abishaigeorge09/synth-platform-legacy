@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { THEME } from '../../lib/theme'
+import { PageHeader } from '../coach/dashboard/components/PageHeader'
 import {
   ATHLETE_BIOMETRICS,
   ATHLETE_CONCEPT2_ROWS,
@@ -16,6 +17,7 @@ import {
   type AthleteDataViewTabId,
 } from './data/demoAthleteDataView'
 import {
+  CHAT_PROMPT_CARDS,
   DEMO_ATHLETE_PROFILE,
   ERG_CHART_SUMMARY,
   ERG_PROGRESSION_POINTS,
@@ -24,6 +26,7 @@ import {
   LINEUP_ENTRIES,
   MONTH_SUMMARY,
   COACH_FEEDBACK_HISTORY,
+  SCORE_CAPTURE_PREVIEW,
   SESSION_ENTRIES,
   TODAY_META,
   TODAY_SCHEDULE,
@@ -33,6 +36,9 @@ import {
   WORKBOOK_TABS,
   CONNECTED_APPS,
 } from './data/demoAthleteData'
+import { AthleteCard } from './behavioral/AthleteCard'
+import { NudgeBanner } from './behavioral/NudgeBanner'
+import { TodayLineupCard } from './dashboard/TodayLineupCard'
 import { useAthleteMediaStore } from '../../shared/store/useAthleteMediaStore'
 import { toast } from '../../shared/store/useToastStore'
 import { useThemeStore, type AppTheme } from '../../shared/store/useThemeStore'
@@ -132,6 +138,72 @@ function fuzzyIncludes(haystack: string, needle: string) {
   return toks.every((t) => h.includes(t))
 }
 
+const NOTIF_PREFS_KEY = 'synth:athlete:notifPrefs'
+type NotifPrefs = {
+  coachNotes: boolean
+  lineupChanges: boolean
+  sessionResults: boolean
+  prAlerts: boolean
+}
+const NOTIF_DEFAULTS: NotifPrefs = {
+  coachNotes: true,
+  lineupChanges: true,
+  sessionResults: true,
+  prAlerts: true,
+}
+function readNotifPrefs(): NotifPrefs {
+  try {
+    const raw = localStorage.getItem(NOTIF_PREFS_KEY)
+    if (!raw) return NOTIF_DEFAULTS
+    return { ...NOTIF_DEFAULTS, ...JSON.parse(raw) }
+  } catch {
+    return NOTIF_DEFAULTS
+  }
+}
+function writeNotifPrefs(p: NotifPrefs) {
+  try {
+    localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(p))
+  } catch {
+    // ignore
+  }
+}
+
+/** Tiny inline sparkline. Numbers with no time axis — pass an array, get a 60×18 SVG. */
+function Sparkline({
+  values,
+  color = THEME.accent,
+  width = 64,
+  height = 18,
+  strokeWidth = 1.5,
+  invert = false,
+}: {
+  values: number[]
+  color?: string
+  width?: number
+  height?: number
+  strokeWidth?: number
+  /** When true, lower values render as higher peaks (e.g. erg splits where smaller = better). */
+  invert?: boolean
+}) {
+  if (values.length < 2) return null
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const stepX = width / (values.length - 1)
+  const points = values
+    .map((v, i) => {
+      const norm = invert ? (max - v) / range : (v - min) / range
+      const y = height - norm * height
+      return `${i * stepX},${y}`
+    })
+    .join(' ')
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden>
+      <polyline points={points} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 const DEMO_RESPONSES: Array<{ match: string[]; reply: string }> = [
   {
     match: ['race', 'cal invite', 'what should i focus', 'focus'],
@@ -186,24 +258,6 @@ function Card({ children, className, onClick }: { children: React.ReactNode; cla
   return (
     <div className={`rounded-2xl border p-5 ${className ?? ''}`} style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }} onClick={onClick}>
       {children}
-    </div>
-  )
-}
-
-function SectionTitle({ kicker, title, right }: { kicker?: string; title: string; right?: React.ReactNode }) {
-  return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        {kicker && (
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            {kicker}
-          </div>
-        )}
-        <div className="mt-1 text-[20px] font-bold" style={{ color: THEME.textPrimary }}>
-          {title}
-        </div>
-      </div>
-      {right}
     </div>
   )
 }
@@ -275,229 +329,464 @@ const cardVariant = {
 
 export function MyDashboardPage() {
   const nav = useNavigate()
+  const race = TODAY_META.raceCountdown
+
+  const dayChip = (
+    <span
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase"
+      style={{
+        background: 'var(--green-subtle)',
+        borderColor: THEME.primary + '55',
+        color: THEME.primary,
+        fontFamily: THEME.fontMono,
+        letterSpacing: '0.16em',
+      }}
+    >
+      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: THEME.primary }} />
+      {race.daysAway}d to race
+    </span>
+  )
 
   return (
-    <motion.div
-      className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10"
-      initial="hidden"
-      animate="visible"
-      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
-    >
-      {/* Page header */}
-      <motion.div variants={cardVariant}>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-          {TODAY_META.dateLabel}
-        </div>
-        <div className="mt-0.5 text-[22px] font-bold" style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}>
-          Today
-        </div>
-      </motion.div>
-
-      <div className="mt-5 grid gap-5 lg:grid-cols-12">
-        {/* ── Hero status card ── */}
-        <motion.div
-          variants={cardVariant}
-          className="lg:col-span-12 rounded-2xl border p-5"
-          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
-        >
-          {/* Avatar + identity */}
-          <div className="flex items-start gap-4">
-            <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[20px] font-bold"
-              style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
-            >
-              SM
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[20px] font-bold leading-tight" style={{ color: THEME.textPrimary }}>
-                {DEMO_ATHLETE_PROFILE.name}
-              </div>
-              <div className="mt-0.5 text-[13px]" style={{ color: THEME.textSecondary }}>
-                {DEMO_ATHLETE_PROFILE.team} · {DEMO_ATHLETE_PROFILE.side} · {DEMO_ATHLETE_PROFILE.year}
-              </div>
-            </div>
-            <Pill tone="good">Race in {TODAY_META.raceCountdown.daysAway} days</Pill>
-          </div>
-
-          {/* Stat pods */}
-          <div className="mt-5 grid grid-cols-3 gap-3">
-            {/* 2K BEST */}
-            <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-                2K Best
-              </div>
-              <div className="mt-2 text-[28px] font-bold leading-none" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
-                6:44.9
-              </div>
-              <div className="mt-1 text-[12px] font-semibold" style={{ color: 'var(--green-primary)' }}>
-                -1.7s YOY
-              </div>
-            </div>
-
-            {/* RECOVERY */}
-            <div className="flex flex-col rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-                Recovery
-              </div>
-              <div className="mt-2 flex items-center justify-center">
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full text-[22px] font-bold"
-                  style={{
-                    fontFamily: THEME.fontMono,
-                    color: 'var(--amber-primary)',
-                    background: 'var(--amber-subtle)',
-                    border: '3px solid var(--amber-primary)',
-                  }}
-                >
-                  72
-                </div>
-              </div>
-            </div>
-
-            {/* STREAK */}
-            <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-                Streak
-              </div>
-              <div className="mt-2 text-[28px] font-bold leading-none" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
-                13 days
-              </div>
-              <div className="mt-1 text-[12px]" style={{ color: THEME.textMuted }}>
-                wellness
-              </div>
-            </div>
-          </div>
-
-          {/* Contextual sentence */}
-          <div className="mt-4 text-[14px]" style={{ color: THEME.textSecondary }}>
-            {TODAY_STATUS_SENTENCE}
-          </div>
-
-          {/* Quick actions */}
-          <div className="mt-3 flex flex-wrap gap-2">
+    <div className="flex min-h-full w-full flex-col pb-14">
+      <PageHeader
+        kicker={`TODAY · ${TODAY_META.dateLabel.toUpperCase()}`}
+        title={`Good morning, ${DEMO_ATHLETE_PROFILE.name.split(' ')[0]}`}
+        subtitle={`${DEMO_ATHLETE_PROFILE.team} · ${DEMO_ATHLETE_PROFILE.side} · ${DEMO_ATHLETE_PROFILE.year}`}
+        actions={
+          <div className="flex items-center gap-2">
+            {dayChip}
             <button
               type="button"
-              className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50"
-              style={{ borderColor: THEME.border, color: THEME.textPrimary }}
-              onClick={() => nav('/athlete/record?tab=score')}
-            >
-              Log erg score
-            </button>
-            <button
-              type="button"
-              className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50"
-              style={{ borderColor: THEME.border, color: THEME.textPrimary }}
-              onClick={() => nav('/athlete/record?tab=form')}
-            >
-              Record form
-            </button>
-            <button
-              type="button"
-              className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50"
-              style={{ borderColor: THEME.border, color: THEME.textPrimary }}
               onClick={() => nav('/athlete/chat')}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-zinc-50"
+              style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
             >
               Ask synth.
             </button>
           </div>
-        </motion.div>
+        }
+      />
 
-        {/* ── Schedule ── */}
-        <motion.div
-          variants={cardVariant}
-          className="lg:col-span-7 rounded-2xl border p-5"
-          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
-        >
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            Today's schedule
+      <div className="flex flex-col gap-5 px-5 sm:px-10">
+        <NudgeBanner />
+
+        {/* Lineup hero — interactive boat illustration */}
+        <TodayLineupCard />
+
+        {/* You + race row */}
+        <div className="grid gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <AthleteCard
+              name={DEMO_ATHLETE_PROFILE.name}
+              handle={DEMO_ATHLETE_PROFILE.name.toLowerCase().replace(/\s+/g, '')}
+              team={DEMO_ATHLETE_PROFILE.team}
+            />
           </div>
-          <div className="mt-4 space-y-3">
-            {TODAY_SCHEDULE.map((e) => (
-              <div key={e.time} className="flex items-start gap-3">
-                <div className="mt-0.5 w-[68px] shrink-0 text-[12px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-                  {e.time}
-                </div>
-                <div
-                  className="mt-[6px] h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: SCHEDULE_DOT_COLOR[e.type] ?? THEME.textMuted }}
-                />
-                <div className="flex-1">
-                  <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
-                    {e.title}
-                  </div>
-                  <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
-                    {e.type}
-                  </div>
-                </div>
+
+          {/* Race spotlight (compact) */}
+          <motion.div
+            variants={cardVariant}
+            initial="hidden"
+            animate="visible"
+            className="relative overflow-hidden rounded-3xl border lg:col-span-5"
+            style={{
+              background: `linear-gradient(155deg, ${THEME.primaryDarker} 0%, ${THEME.primary} 70%, ${THEME.accent} 100%)`,
+              borderColor: 'transparent',
+              color: '#FFFFFF',
+              boxShadow: '0 30px 60px -34px rgba(5,150,105,0.6)',
+            }}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full blur-3xl"
+              style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.35), transparent 65%)' }}
+            />
+            <div className="relative flex h-full flex-col p-5 sm:p-6">
+              <div
+                className="text-[10px] font-bold uppercase"
+                style={{ fontFamily: THEME.fontMono, letterSpacing: '0.18em', opacity: 0.85 }}
+              >
+                Race day · {race.daysAway} {race.daysAway === 1 ? 'day' : 'days'} away
               </div>
-            ))}
-          </div>
+              <div className="mt-1 text-[22px] font-semibold leading-tight sm:text-[24px]" style={{ fontFamily: THEME.fontSerif }}>
+                {race.title}
+              </div>
+              <div className="mt-1 text-[12px]" style={{ opacity: 0.85 }}>
+                {race.date} · Report {race.reportTime} · {race.location}
+              </div>
 
-          {/* Race countdown */}
-          <div
-            className="mt-5 rounded-xl border-l-4 p-3"
-            style={{ borderLeftColor: 'var(--green-primary)', background: 'var(--green-subtle)' }}
-          >
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ fontFamily: THEME.fontMono, color: 'var(--green-primary)' }}>
-              Cal Invite Regatta — Saturday
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Boat', value: race.boat },
+                  { label: 'Seat', value: race.seat },
+                  { label: 'Side', value: race.side },
+                ].map((m) => (
+                  <div
+                    key={m.label}
+                    className="rounded-xl px-3 py-2"
+                    style={{ background: 'rgba(255,255,255,0.14)' }}
+                  >
+                    <div
+                      className="text-[9px] font-bold uppercase"
+                      style={{ fontFamily: THEME.fontMono, letterSpacing: '0.18em', opacity: 0.8 }}
+                    >
+                      {m.label}
+                    </div>
+                    <div
+                      className="mt-0.5 text-[16px] font-bold leading-none"
+                      style={{ fontFamily: THEME.fontMono }}
+                    >
+                      {m.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p
+                className="mt-4 text-[12.5px] leading-relaxed"
+                style={{ opacity: 0.92 }}
+              >
+                {TODAY_STATUS_SENTENCE}
+              </p>
+
+              <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase"
+                  style={{
+                    background: '#FFFFFF',
+                    color: THEME.primaryDarker,
+                    fontFamily: THEME.fontMono,
+                    letterSpacing: '0.06em',
+                  }}
+                  onClick={() => nav('/athlete/chat')}
+                >
+                  Race plan →
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase"
+                  style={{
+                    borderColor: 'rgba(255,255,255,0.4)',
+                    color: '#FFFFFF',
+                    fontFamily: THEME.fontMono,
+                    letterSpacing: '0.06em',
+                    background: 'transparent',
+                  }}
+                  onClick={() => nav('/athlete/record?tab=score')}
+                >
+                  Log erg
+                </button>
+              </div>
             </div>
-            <div className="mt-0.5 text-[12px]" style={{ color: THEME.textSecondary }}>
-              V8 Seat 3 (Port) · {TODAY_META.raceCountdown.daysAway} days away
-            </div>
-          </div>
+          </motion.div>
+        </div>
+
+        {/* Stat strip — refined */}
+        <motion.div
+          className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+        >
+          {[
+            {
+              label: '2K Best',
+              value: '6:44.9',
+              detail: '−1.7s YOY',
+              accent: 'var(--green-primary)',
+              trend: 'up' as 'up' | 'down' | 'flat',
+            },
+            {
+              label: 'Recovery',
+              value: '72',
+              detail: 'Light day suggested',
+              accent: 'var(--amber-primary)',
+              trend: 'flat' as 'up' | 'down' | 'flat',
+            },
+            {
+              label: 'Streak',
+              value: '13',
+              detail: 'days check-in',
+              accent: THEME.primary,
+              trend: 'up' as 'up' | 'down' | 'flat',
+            },
+            {
+              label: 'Volume',
+              value: '142.8k',
+              detail: 'meters this month',
+              accent: 'var(--purple-primary)',
+              trend: 'up' as 'up' | 'down' | 'flat',
+            },
+          ].map((s) => (
+            <motion.div
+              key={s.label}
+              variants={cardVariant}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.18 }}
+              className="rounded-2xl border p-4"
+              style={{
+                background: 'var(--bg-primary)',
+                borderColor: THEME.border,
+                boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 18px 36px -26px rgba(24,24,27,0.22)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div
+                  className="text-[9px] font-semibold uppercase"
+                  style={{ fontFamily: THEME.fontMono, color: THEME.textMuted, letterSpacing: '0.18em' }}
+                >
+                  {s.label}
+                </div>
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ background: s.accent }}
+                />
+              </div>
+              <div
+                className="mt-2 text-[26px] font-bold leading-none sm:text-[28px]"
+                style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
+              >
+                {s.value}
+              </div>
+              <div className="mt-2 flex items-center gap-1.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+                {s.trend === 'up' ? (
+                  <span style={{ color: 'var(--green-primary)' }}>↑</span>
+                ) : s.trend === 'down' ? (
+                  <span style={{ color: 'var(--red-primary)' }}>↓</span>
+                ) : (
+                  <span style={{ color: THEME.textMuted }}>·</span>
+                )}
+                {s.detail}
+              </div>
+            </motion.div>
+          ))}
         </motion.div>
 
-        {/* ── Coach feedback ── */}
-        <motion.div
-          variants={cardVariant}
-          className="lg:col-span-5 rounded-2xl border p-5"
-          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
-        >
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            Latest from coach
-          </div>
-          <div
-            className="mt-3 rounded-xl border-l-4 p-4"
-            style={{ borderLeftColor: 'var(--purple-primary)', background: 'var(--bg-surface)' }}
-          >
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: 'var(--purple-primary)' }}>
-              Coach note · {LATEST_COACH_FEEDBACK.date}
-            </div>
-            <div className="mt-2 text-[13px] leading-relaxed" style={{ color: THEME.textPrimary }}>
-              {LATEST_COACH_FEEDBACK.quote}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {LATEST_COACH_FEEDBACK.focusPoints.map((f) => (
-                <span
-                  key={f.label}
-                  className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
+        {/* Goals + Schedule */}
+        <div className="grid gap-5 lg:grid-cols-12">
+          <motion.div variants={cardVariant} initial="hidden" animate="visible" className="lg:col-span-7">
+            <div
+              className="rounded-2xl border p-5"
+              style={{
+                background: 'var(--bg-primary)',
+                borderColor: THEME.border,
+                boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 18px 36px -26px rgba(24,24,27,0.22)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div
+                  className="text-[10px] font-semibold uppercase"
                   style={{
-                    borderColor: f.status === 'improved' ? 'var(--green-primary)' : 'var(--amber-primary)',
-                    color: f.status === 'improved' ? 'var(--green-primary)' : 'var(--amber-primary)',
-                    background: f.status === 'improved' ? 'var(--green-subtle)' : 'var(--amber-subtle)',
+                    fontFamily: THEME.fontMono,
+                    color: THEME.textMuted,
+                    letterSpacing: '0.18em',
                   }}
                 >
-                  {f.label}
-                </span>
+                  Goals · this week
+                </div>
+                <Link
+                  to="/athlete/progress"
+                  className="text-[11px] font-semibold hover:underline"
+                  style={{ color: THEME.primary, fontFamily: THEME.fontMono }}
+                >
+                  View progress →
+                </Link>
+              </div>
+              <div className="mt-4 space-y-4">
+                {GOALS.map((g) => (
+                  <div key={g.name}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}>
+                        {g.name}
+                      </div>
+                      <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                        {g.progressLabel} · target {g.target}
+                      </div>
+                    </div>
+                    <div
+                      className="mt-2 h-1.5 w-full overflow-hidden rounded-full"
+                      style={{ background: 'var(--bg-surface-raised)' }}
+                    >
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${g.progress}%` }}
+                        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                        className="h-full rounded-full"
+                        style={{
+                          background:
+                            g.progress >= 90
+                              ? `linear-gradient(90deg, ${THEME.primary}, ${THEME.accent})`
+                              : g.progress >= 60
+                                ? 'var(--green-primary)'
+                                : 'var(--amber-primary)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={cardVariant} initial="hidden" animate="visible" className="lg:col-span-5">
+            <div
+              className="rounded-2xl border p-5"
+              style={{
+                background: 'var(--bg-primary)',
+                borderColor: THEME.border,
+                boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 18px 36px -26px rgba(24,24,27,0.22)',
+              }}
+            >
+              <div
+                className="text-[10px] font-semibold uppercase"
+                style={{
+                  fontFamily: THEME.fontMono,
+                  color: THEME.textMuted,
+                  letterSpacing: '0.18em',
+                }}
+              >
+                Today's schedule
+              </div>
+              <ol className="mt-4 space-y-3">
+                {TODAY_SCHEDULE.map((e) => (
+                  <li key={e.time} className="flex items-start gap-3">
+                    <div
+                      className="mt-0.5 w-[60px] shrink-0 text-[11px]"
+                      style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+                    >
+                      {e.time}
+                    </div>
+                    <span
+                      className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ background: SCHEDULE_DOT_COLOR[e.type] ?? THEME.textMuted }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="text-[13px] font-semibold"
+                        style={{ color: THEME.textPrimary }}
+                      >
+                        {e.title}
+                      </div>
+                      <div className="text-[11px]" style={{ color: THEME.textSecondary }}>
+                        {e.type}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Coach feedback */}
+        <motion.div variants={cardVariant} initial="hidden" animate="visible">
+          <div
+            className="rounded-2xl border p-5"
+            style={{
+              background: 'var(--bg-primary)',
+              borderColor: THEME.border,
+              boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 18px 36px -26px rgba(24,24,27,0.22)',
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div
+                className="text-[10px] font-semibold uppercase"
+                style={{
+                  fontFamily: THEME.fontMono,
+                  color: THEME.textMuted,
+                  letterSpacing: '0.18em',
+                }}
+              >
+                Latest from coach
+              </div>
+              <Link
+                to="/athlete/progress"
+                className="text-[11px] font-semibold hover:underline"
+                style={{ color: THEME.primary, fontFamily: THEME.fontMono }}
+              >
+                Full history →
+              </Link>
+            </div>
+            <div
+              className="mt-3 rounded-2xl border-l-[3px] p-4"
+              style={{
+                borderLeftColor: 'var(--purple-primary)',
+                background: 'var(--bg-surface)',
+              }}
+            >
+              <div
+                className="text-[10px] font-semibold uppercase"
+                style={{
+                  fontFamily: THEME.fontMono,
+                  color: 'var(--purple-primary)',
+                  letterSpacing: '0.16em',
+                }}
+              >
+                {LATEST_COACH_FEEDBACK.date}
+              </div>
+              <p
+                className="mt-2 text-[14px] leading-relaxed"
+                style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}
+              >
+                "{LATEST_COACH_FEEDBACK.quote}"
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {LATEST_COACH_FEEDBACK.focusPoints.map((f) => (
+                  <span
+                    key={f.label}
+                    className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                    style={{
+                      borderColor:
+                        f.status === 'improved' ? 'var(--green-primary)' : 'var(--amber-primary)',
+                      color:
+                        f.status === 'improved' ? 'var(--green-primary)' : 'var(--amber-primary)',
+                      background:
+                        f.status === 'improved' ? 'var(--green-subtle)' : 'var(--amber-subtle)',
+                    }}
+                  >
+                    {f.status === 'improved' ? '✓' : '◯'} {f.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {COACH_FEEDBACK_HISTORY.slice(1, 3).map((f) => (
+                <div
+                  key={f.date}
+                  className="rounded-2xl border p-3"
+                  style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}
+                >
+                  <div
+                    className="text-[10px] font-semibold uppercase"
+                    style={{
+                      fontFamily: THEME.fontMono,
+                      color: THEME.textMuted,
+                      letterSpacing: '0.16em',
+                    }}
+                  >
+                    {f.date}
+                  </div>
+                  <div
+                    className="mt-1 text-[12px] leading-relaxed"
+                    style={{ color: THEME.textSecondary }}
+                  >
+                    {f.takeaway}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-          <button
-            type="button"
-            className="mt-3 text-[12px] font-semibold hover:underline"
-            style={{ color: THEME.textSecondary }}
-            onClick={() => nav('/athlete/progress')}
-          >
-            View feedback history →
-          </button>
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
 export function MyStatsPage() {
   const { videos } = useAthleteMediaStore()
+  const nav = useNavigate()
 
   const fmtSplit = (sec: number) => {
     const m = Math.floor(sec / 60)
@@ -505,106 +794,276 @@ export function MyStatsPage() {
     return `${m}:${s < 10 ? '0' : ''}${s.toFixed(1)}`
   }
 
+  // Compute live monthly stats from session data so they aren't lying.
+  const liveStats = useMemo(() => {
+    const sessionCount = SESSION_ENTRIES.length
+    const baseline = MONTH_SUMMARY.find((m) => m.label === 'Erg meters')?.value ?? '—'
+    const gym = MONTH_SUMMARY.find((m) => m.label === 'Gym sessions')?.value ?? '—'
+    const sleep = MONTH_SUMMARY.find((m) => m.label === 'Sleep avg')?.value ?? '—'
+    return [
+      { label: 'Sessions', value: String(sessionCount), detail: 'this month', mono: true },
+      { label: 'Erg meters', value: baseline, detail: 'this month', mono: true },
+      { label: 'Gym sessions', value: gym, detail: 'completed', mono: true },
+      { label: 'Sleep avg', value: sleep, detail: 'this week', mono: true },
+    ]
+  }, [])
+
+  // Pre-compute PR coordinates for chart annotation
+  const prPoint = ERG_PROGRESSION_POINTS.find((p) => p.pr)
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle kicker="My Progress" title="What's moving" right={<Link className="text-[12px] font-semibold underline" to="/athlete/record?tab=form">Record form</Link>} />
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="MY PROGRESS"
+        title="What's moving"
+        subtitle="Goals, erg trend, coach notes — all in one place."
+        actions={
+          <Link
+            to="/athlete/record?tab=form"
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-zinc-50"
+            style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+          >
+            Record form
+          </Link>
+        }
+      />
 
-      {/* Goals */}
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        {GOALS.map((g) => (
-          <Card key={g.name}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>{g.name}</div>
-              <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Target: {g.target}</div>
+      {/* Monthly stats strip — KPI tiles, coach style */}
+      <div className="grid grid-cols-2 gap-3 px-5 sm:px-10 lg:grid-cols-4">
+        {liveStats.map((s) => (
+          <div
+            key={s.label}
+            className="rounded-xl border p-4"
+            style={{
+              background: 'var(--bg-primary)',
+              borderColor: THEME.border,
+              borderLeft: `3px solid ${THEME.primary}`,
+              boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 10px 30px -20px rgba(24,24,27,0.18)',
+            }}
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              {s.label}
             </div>
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full" style={{ background: THEME.border }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${g.progress}%`, background: THEME.accent }} />
+            <div className="mt-2 text-[24px] font-bold leading-none sm:text-[28px]" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
+              {s.value}
             </div>
-            <div className="mt-2 text-[12px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>{g.progressLabel}</div>
-            <div className="mt-2 text-[12px]" style={{ color: THEME.textMuted }}>{g.insight}</div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Erg progression chart */}
-      <Card className="mt-5">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-          2K Erg Progression
-        </div>
-        <div className="mt-3 h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={ERG_PROGRESSION_POINTS}>
-              <CartesianGrid stroke={THEME.border} strokeDasharray="4 6" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textMuted }} />
-              <YAxis
-                domain={[400, 414]}
-                tick={{ fontSize: 11, fill: THEME.textMuted }}
-                tickFormatter={(v: number) => fmtSplit(v)}
-              />
-              <Tooltip formatter={(v: number) => [fmtSplit(v), 'Split']} />
-              <Line type="monotone" dataKey="seconds" stroke={THEME.accent} strokeWidth={2} dot={{ r: 4, fill: THEME.accent }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-2 text-[12px]" style={{ color: THEME.textSecondary }}>{ERG_CHART_SUMMARY}</div>
-      </Card>
-
-      {/* Monthly stats */}
-      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {MONTH_SUMMARY.map((s) => (
-          <div key={s.label} className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.light }}>
-            <div className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>{s.label}</div>
-            <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>{s.value}</div>
-            <div className="mt-0.5 text-[11px]" style={{ color: THEME.textMuted }}>{s.detail}</div>
+            <div className="mt-1.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+              {s.detail}
+            </div>
           </div>
         ))}
       </div>
 
+      {/* Goals */}
+      <div className="mt-6 grid gap-4 px-5 sm:px-10 md:grid-cols-3">
+        {GOALS.map((g) => (
+          <div
+            key={g.name}
+            className="rounded-2xl border p-5"
+            style={{
+              background: 'var(--bg-primary)',
+              borderColor: THEME.border,
+              boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+            }}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{g.name}</div>
+              <span
+                className="rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                style={{
+                  borderColor: g.progress >= 90 ? 'var(--green-primary)' : 'var(--amber-primary)',
+                  color: g.progress >= 90 ? 'var(--green-primary)' : 'var(--amber-primary)',
+                  background: g.progress >= 90 ? 'var(--green-subtle)' : 'var(--amber-subtle)',
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                {g.progress}%
+              </span>
+            </div>
+            <div className="mt-1 text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              Target {g.target}
+            </div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full" style={{ background: 'var(--bg-surface-raised)' }}>
+              <motion.div
+                className="h-full rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${g.progress}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                style={{ background: g.progress >= 90 ? THEME.primary : g.progress >= 60 ? 'var(--green-primary)' : 'var(--amber-primary)' }}
+              />
+            </div>
+            <div className="mt-3 text-[12px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>{g.progressLabel}</div>
+            <p className="mt-2 text-[12px] leading-relaxed" style={{ color: THEME.textMuted }}>{g.insight}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Erg progression chart */}
+      <div
+        className="mx-5 mt-6 rounded-2xl border p-5 sm:mx-10"
+        style={{
+          background: 'var(--bg-primary)',
+          borderColor: THEME.border,
+          boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+        }}
+      >
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              2K Erg Progression
+            </div>
+            <div className="mt-1 text-[17px] font-semibold" style={{ color: THEME.textPrimary }}>
+              Year-over-year trend
+            </div>
+          </div>
+          {prPoint?.milestone && (
+            <span
+              className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+              style={{
+                borderColor: 'var(--green-primary)',
+                background: 'var(--green-subtle)',
+                color: 'var(--green-primary)',
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              ★ {prPoint.milestone}
+            </span>
+          )}
+        </div>
+        <div className="mt-4 h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={ERG_PROGRESSION_POINTS} margin={{ top: 16, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid stroke={THEME.border} strokeDasharray="4 6" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textMuted }} axisLine={false} tickLine={false} />
+              <YAxis
+                domain={[400, 414]}
+                tick={{ fontSize: 11, fill: THEME.textMuted }}
+                tickFormatter={(v: number) => fmtSplit(v)}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                formatter={(v: number) => [fmtSplit(v), 'Split']}
+                contentStyle={{ borderRadius: 12, border: `1px solid var(--border-default)`, background: 'var(--bg-primary)', fontFamily: THEME.fontMono, fontSize: 12 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="seconds"
+                stroke={THEME.primary}
+                strokeWidth={2.5}
+                dot={(props) => {
+                  const isPr = ERG_PROGRESSION_POINTS[props.index]?.pr
+                  return (
+                    <circle
+                      key={`dot-${props.index}`}
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={isPr ? 6 : 3.5}
+                      fill={isPr ? THEME.accent : THEME.primary}
+                      stroke="var(--bg-primary)"
+                      strokeWidth={isPr ? 2 : 1}
+                    />
+                  )
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="mt-3 text-[12px]" style={{ color: THEME.textSecondary }}>{ERG_CHART_SUMMARY}</p>
+      </div>
+
       {/* Coach feedback history */}
-      <Card className="mt-5">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-          Coach feedback
+      <div
+        className="mx-5 mt-6 rounded-2xl border p-5 sm:mx-10"
+        style={{
+          background: 'var(--bg-primary)',
+          borderColor: THEME.border,
+          boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+            Coach feedback · history
+          </div>
+          <span className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
+            {COACH_FEEDBACK_HISTORY.length} notes
+          </span>
         </div>
         <div className="mt-4 space-y-3">
-          {COACH_FEEDBACK_HISTORY.map((f, i) => (
-            <div key={i} className="rounded-xl border-l-4 p-3" style={{ borderColor: THEME.purple, background: THEME.light }}>
-              <div className="flex items-center gap-2">
-                <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{f.date}</div>
-                {f.tags.map((t) => (
-                  <span key={t} className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: THEME.border, color: THEME.textSecondary }}>{t}</span>
-                ))}
-              </div>
-              <div className="mt-2 text-[13px]" style={{ color: THEME.textPrimary }}>{f.takeaway}</div>
-            </div>
+          {COACH_FEEDBACK_HISTORY.map((f) => (
+            <details key={f.date} className="rounded-xl border-l-4 p-4" style={{ borderColor: 'var(--border-default)', borderLeftColor: 'var(--purple-primary)', background: 'var(--bg-surface)' }}>
+              <summary className="cursor-pointer list-none">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: 'var(--purple-primary)' }}>
+                    {f.date}
+                  </span>
+                  {f.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                      style={{
+                        borderColor: t === 'Positive' ? 'var(--green-primary)' : THEME.border,
+                        color: t === 'Positive' ? 'var(--green-primary)' : THEME.textSecondary,
+                        background: t === 'Positive' ? 'var(--green-subtle)' : 'transparent',
+                      }}
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 text-[13px] font-medium" style={{ color: THEME.textPrimary }}>{f.takeaway}</div>
+              </summary>
+              <p className="mt-3 border-t pt-3 text-[12px] leading-relaxed" style={{ borderColor: THEME.border, color: THEME.textSecondary }}>
+                {f.transcription}
+              </p>
+            </details>
           ))}
         </div>
-      </Card>
+      </div>
 
       {/* Form videos */}
-      <Card className="mt-5">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-          My form videos
+      <div
+        className="mx-5 mt-6 rounded-2xl border p-5 sm:mx-10"
+        style={{
+          background: 'var(--bg-primary)',
+          borderColor: THEME.border,
+          boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+            My form videos
+          </div>
+          <button
+            type="button"
+            onClick={() => nav('/athlete/record?tab=form')}
+            className="text-[11px] font-semibold hover:underline"
+            style={{ color: THEME.primary, fontFamily: THEME.fontMono }}
+          >
+            Record new →
+          </button>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {videos.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-5 text-[13px]" style={{ borderColor: THEME.border, color: THEME.textSecondary }}>
-              No saved videos yet. Record a clip and save it locally.
+            <div className="rounded-xl border border-dashed p-6 text-[13px] sm:col-span-2 lg:col-span-3" style={{ borderColor: THEME.border, color: THEME.textSecondary }}>
+              <div className="font-semibold" style={{ color: THEME.textPrimary }}>No saved videos yet.</div>
+              <div className="mt-1">Record a 10–20 second clip from the side. Save it locally or send to coach.</div>
             </div>
           ) : (
             videos.slice(0, 6).map((v) => (
-              <div key={v.id} className="overflow-hidden rounded-xl border" style={{ borderColor: THEME.border, background: THEME.light }}>
+              <div key={v.id} className="overflow-hidden rounded-xl border" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
                 <div className="aspect-video w-full bg-black/10" />
                 <div className="p-3">
                   <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>{v.title}</div>
-                  <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
-                    {v.date} • {Math.round(v.duration)}s • {v.sentToCoach ? 'sent' : 'local'}
+                  <div className="mt-1 text-[11px]" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
+                    {v.date} · {Math.round(v.duration)}s · {v.sentToCoach ? 'sent to coach' : 'local'}
                   </div>
                 </div>
               </div>
             ))
           )}
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
@@ -618,27 +1077,36 @@ export function MyRecordPage() {
     setParams(next, { replace: true })
   }
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle kicker="Record" title="Capture what matters" />
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setTab('form')}
-          className="rounded-xl border px-3 py-2 text-[12px] font-semibold"
-          style={{ borderColor: THEME.border, background: tab === 'form' ? THEME.light : 'var(--bg-primary)' }}
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="RECORD"
+        title="Capture what matters"
+        subtitle="Film a 10–20s side-on clip, or log a score in seconds."
+      />
+      <div className="px-5 sm:px-10">
+        <div
+          className="inline-flex rounded-full border p-1"
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}
         >
-          Record form
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('score')}
-          className="rounded-xl border px-3 py-2 text-[12px] font-semibold"
-          style={{ borderColor: THEME.border, background: tab === 'score' ? THEME.light : 'var(--bg-primary)' }}
-        >
-          Log score
-        </button>
+          {(['form', 'score'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className="rounded-full px-4 py-1.5 text-[11px] font-semibold transition-all"
+              style={{
+                fontFamily: THEME.fontMono,
+                background: tab === t ? THEME.primary : 'transparent',
+                color: tab === t ? '#fff' : THEME.textSecondary,
+                letterSpacing: '0.04em',
+              }}
+            >
+              {t === 'form' ? 'RECORD FORM' : 'LOG SCORE'}
+            </button>
+          ))}
+        </div>
+        <div className="mt-5">{tab === 'form' ? <RecordFormPanel /> : <LogScorePanel />}</div>
       </div>
-      <div className="mt-5">{tab === 'form' ? <RecordFormPanel /> : <LogScorePanel />}</div>
     </div>
   )
 }
@@ -799,134 +1267,243 @@ function RecordFormPanel() {
 }
 
 function LogScorePanel() {
-  const [split, setSplit] = useState('1:41.8')
+  const [split, setSplit] = useState(SCORE_CAPTURE_PREVIEW.split)
   const [distance, setDistance] = useState('2000')
   const [notes, setNotes] = useState('')
-  const save = () => toast('Saved (demo)', 'success')
+  const save = () => toast('Score saved (demo)', 'success')
   return (
     <Card>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-        Log score
+      <div className="flex items-center justify-between">
+        <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+          Log score
+        </div>
+        <span className="text-[10px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
+          Last: {SCORE_CAPTURE_PREVIEW.testType} · {SCORE_CAPTURE_PREVIEW.time} · {SCORE_CAPTURE_PREVIEW.date}
+        </span>
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <label className="text-[12px]" style={{ color: THEME.textSecondary }}>
+        <label className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
           Split
-          <input value={split} onChange={(e) => setSplit(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
+          <input value={split} onChange={(e) => setSplit(e.target.value)} className="mt-1.5 w-full rounded-xl border px-3 py-2 text-[14px] outline-none" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
         </label>
-        <label className="text-[12px]" style={{ color: THEME.textSecondary }}>
+        <label className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
           Distance (m)
-          <input value={distance} onChange={(e) => setDistance(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
+          <input value={distance} onChange={(e) => setDistance(e.target.value)} className="mt-1.5 w-full rounded-xl border px-3 py-2 text-[14px] outline-none" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontMono }} />
         </label>
-        <label className="text-[12px]" style={{ color: THEME.textSecondary }}>
-          Photo
-          <div className="mt-1 rounded-xl border border-dashed p-3 text-[12px]" style={{ borderColor: THEME.border, color: THEME.textMuted }}>
-            OCR preview (demo)
+        <label className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
+          Photo (OCR)
+          <div className="mt-1.5 flex items-center justify-center rounded-xl border border-dashed px-3 py-3 text-[12px]" style={{ borderColor: THEME.border, color: THEME.textMuted }}>
+            tap to attach
           </div>
         </label>
       </div>
-      <label className="mt-3 block text-[12px]" style={{ color: THEME.textSecondary }}>
+      <label className="mt-4 block text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
         Notes
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" rows={3} style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }} />
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1.5 w-full rounded-xl border px-3 py-2 text-[13px] outline-none" rows={3} placeholder="Any context — pace, conditions, focus area…" style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary, fontFamily: THEME.fontSans }} />
       </label>
-      <div className="mt-4 flex justify-end">
-        <button type="button" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={save}>
-          Save
+      <div className="mt-5 flex justify-end gap-2">
+        <button type="button" className="rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textSecondary, fontFamily: THEME.fontMono }} onClick={() => { setSplit(SCORE_CAPTURE_PREVIEW.split); setNotes(''); }}>
+          Reset
+        </button>
+        <button type="button" className="rounded-lg px-4 py-1.5 text-[11px] font-semibold text-white transition-colors" style={{ background: THEME.primary, fontFamily: THEME.fontMono, letterSpacing: '0.04em' }} onClick={save}>
+          SAVE SCORE →
         </button>
       </div>
     </Card>
   )
 }
 
+const WORKBOOK_SHEET_DESCRIPTIONS: Record<string, string> = {
+  'Erg Log': "All-time team 2K rankings — newest scores at top.",
+  "8.25 30'": "30-minute steady state, Aug 25 — meters covered + avg split.",
+  "8.28 3x15'": "3 × 15-minute pieces, Aug 28 — split per piece.",
+}
+
 export function MyWorkbookPage() {
   const vis = useVisibilitySettings()
   const [activeSheet, setActiveSheet] = useState<keyof typeof WORKBOOK_SHEETS>(WORKBOOK_TABS[0])
+  const [search, setSearch] = useState('')
   const rows = WORKBOOK_SHEETS[activeSheet]
   const cols = activeSheet === 'Erg Log' ? WORKBOOK_COLUMNS : activeSheet === "8.25 30'" ? ['Side', 'Athlete', 'Meters', 'Split', 'Watts', 'SPM'] : ['Side', 'Athlete', 'P1', 'P2', 'P3', 'SPM']
 
+  // Compute Star Miller's row + rank for the personal hero card
+  const starRowIndex = rows.findIndex((r) => r[1] === 'Star Miller')
+  const starRow = starRowIndex >= 0 ? rows[starRowIndex] : null
+  const starRank = starRowIndex >= 0 ? starRowIndex + 1 : null
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return rows.map((r, i) => ({ row: r, rank: i + 1 }))
+    return rows
+      .map((r, i) => ({ row: r, rank: i + 1 }))
+      .filter(({ row }) => row.some((cell) => String(cell).toLowerCase().includes(q)))
+  }, [rows, search])
+
   if (!vis.showErgRankings) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-        <SectionTitle kicker="Erg workbook" title="Team sheet" />
-        <div className="mt-5 rounded-2xl border border-dashed p-8 text-center" style={{ borderColor: THEME.border }}>
-          <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>Team workbook not enabled</div>
-          <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>Your coach hasn't enabled team erg rankings. Ask them to turn it on in Settings.</div>
+      <div className="flex min-h-full w-full flex-col pb-12">
+        <PageHeader kicker="ERG WORKBOOK" title="Team sheet" subtitle="Coach-managed rankings" />
+        <div className="mx-5 rounded-2xl border border-dashed p-10 text-center sm:mx-10" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
+          <div className="text-[16px] font-semibold" style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}>Team workbook not enabled</div>
+          <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>Your coach hasn't enabled team erg rankings yet. Ask them to flip it on in their Settings.</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <div className="flex items-end justify-between gap-4">
-        <SectionTitle kicker="Erg workbook" title="Team sheet" />
-        <div className="flex items-center gap-2">
-          <Pill tone="good">Synced 5 min ago</Pill>
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="ERG WORKBOOK"
+        title="Team sheet"
+        subtitle="Read-only mirror of the team's coach-managed sheet."
+        actions={
+          <span
+            className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+            style={{ borderColor: 'var(--green-primary)', background: 'var(--green-subtle)', color: 'var(--green-primary)', fontFamily: THEME.fontMono }}
+          >
+            ● Synced 5 min ago
+          </span>
+        }
+      />
+
+      {/* Personal hero card — your rank, your row, at-a-glance */}
+      {starRow && starRank && (
+        <div
+          className="mx-5 mb-5 rounded-2xl border p-5 sm:mx-10"
+          style={{
+            background: 'linear-gradient(135deg, var(--green-subtle), transparent 70%)',
+            borderColor: THEME.border,
+            borderLeft: `3px solid ${THEME.primary}`,
+            boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: 'var(--green-primary)' }}>
+                Your row · {activeSheet}
+              </div>
+              <div className="mt-1 text-[22px] font-semibold sm:text-[26px]" style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}>
+                ★ {starRow[1]}
+              </div>
+            </div>
+            <div className="ml-auto flex flex-wrap items-center gap-4">
+              <div className="text-center">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Rank</div>
+                <div className="mt-0.5 text-[22px] font-bold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>#{starRank}<span className="text-[12px]" style={{ color: THEME.textMuted }}> / {rows.length}</span></div>
+              </div>
+              <div className="text-center">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Side</div>
+                <div className="mt-0.5 text-[18px] font-semibold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>{starRow[0]}</div>
+              </div>
+              {cols.slice(2).map((c, i) => (
+                <div key={c} className="text-center">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{c}</div>
+                  <div className="mt-0.5 text-[18px] font-semibold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>{starRow[i + 2]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Sheet picker pills */}
+      <div className="mx-5 mb-3 flex flex-wrap gap-2 sm:mx-10">
+        {WORKBOOK_TABS.map((tab) => {
+          const active = activeSheet === tab
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveSheet(tab)}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all"
+              style={{
+                fontFamily: THEME.fontMono,
+                borderColor: active ? THEME.primary : THEME.border,
+                background: active ? 'var(--green-subtle)' : 'var(--bg-primary)',
+                color: active ? 'var(--green-primary)' : THEME.textSecondary,
+              }}
+            >
+              {tab}
+            </button>
+          )
+        })}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Filter by name or split…"
+          className="ml-auto min-w-[180px] flex-1 rounded-lg border px-3 py-1.5 text-[12px] outline-none sm:max-w-[240px]"
+          style={{ borderColor: THEME.border, background: 'var(--bg-primary)', color: THEME.textPrimary }}
+        />
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl border" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left" style={{ fontFamily: 'Arial, sans-serif', fontSize: 13 }}>
+      {/* Sheet description */}
+      <div className="mx-5 mb-3 text-[11px] sm:mx-10" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
+        {WORKBOOK_SHEET_DESCRIPTIONS[activeSheet]}
+      </div>
+
+      {/* Table */}
+      <div
+        className="mx-5 overflow-hidden rounded-2xl border sm:mx-10"
+        style={{
+          background: 'var(--bg-primary)',
+          borderColor: THEME.border,
+          boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+        }}
+      >
+        <div className="synth-scroll overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-[13px]">
             <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e0e0e0' }}>
+              <tr style={{ background: 'var(--bg-surface)', borderBottom: `1px solid ${THEME.border}` }}>
+                <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>#</th>
                 {cols.map((c) => (
-                  <th key={c} className="px-3 py-2 font-semibold" style={{ color: '#202124', fontSize: 12 }}>{c}</th>
+                  <th key={c} className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
+                    {c}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => {
+              {filteredRows.map(({ row, rank }) => {
                 const isStarRow = row[1] === 'Star Miller'
                 return (
                   <tr
-                    key={i}
+                    key={`${activeSheet}-${rank}`}
                     style={{
-                      borderBottom: '1px solid #e8eaed',
-                      background: isStarRow ? '#e6f4ea' : i % 2 === 0 ? '#fff' : '#fafbfc',
+                      borderTop: `1px solid ${THEME.border}`,
+                      background: isStarRow ? 'var(--green-subtle)' : 'transparent',
                     }}
                   >
+                    <td className="px-3 py-2 text-[11px]" style={{ color: rank <= 3 ? 'var(--green-primary)' : THEME.textMuted, fontFamily: THEME.fontMono, fontWeight: rank <= 3 ? 700 : 500 }}>
+                      {rank}
+                    </td>
                     {row.map((cell, j) => (
                       <td
                         key={j}
-                        className="px-3 py-1.5"
+                        className="px-3 py-2"
                         style={{
-                          color: '#202124',
-                          fontFamily: j >= 2 ? 'JetBrains Mono, monospace' : 'Arial, sans-serif',
-                          fontWeight: isStarRow && j === 1 ? 600 : 400,
+                          color: THEME.textPrimary,
+                          fontFamily: j >= 2 ? THEME.fontMono : THEME.fontSans,
+                          fontWeight: isStarRow && j === 1 ? 700 : j >= 2 ? 500 : 400,
                           fontSize: 13,
                         }}
                       >
-                        {cell}
+                        {isStarRow && j === 1 ? `★ ${cell}` : cell}
                       </td>
                     ))}
                   </tr>
                 )
               })}
+              {filteredRows.length === 0 && (
+                <tr>
+                  <td colSpan={cols.length + 1} className="px-3 py-6 text-center text-[12px]" style={{ color: THEME.textMuted }}>
+                    No matches.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-
-        <div className="flex items-center gap-1 border-t px-2 py-1.5" style={{ borderColor: '#e8eaed', background: '#f8f9fa' }}>
-          {WORKBOOK_TABS.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveSheet(tab)}
-              className="rounded-t px-3 py-1.5 text-[12px] font-medium transition-colors"
-              style={{
-                background: activeSheet === tab ? '#fff' : 'transparent',
-                color: activeSheet === tab ? '#1a73e8' : '#5f6368',
-                borderBottom: activeSheet === tab ? '2px solid #1a73e8' : '2px solid transparent',
-              }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 text-[12px]" style={{ color: THEME.textMuted }}>
-        Read-only view. Your rows are highlighted in green.
       </div>
     </div>
   )
@@ -941,13 +1518,29 @@ function fmtMs(ms: number) {
   return `${m}:${sPadded}.${tenths}`
 }
 
+// Session classification — single source of truth so counts and filters agree.
+type SessionCategory = 'race' | 'steady' | 'drill' | 'erg'
+function classifySession(title: string, detail: string): SessionCategory {
+  const t = `${title} ${detail}`.toLowerCase()
+  if (t.includes('race') || t.includes('power') || t.includes('2k') || t.includes('start')) return 'race'
+  if (t.includes('steady') || t.includes('ut2') || t.includes('aerobic')) return 'steady'
+  if (t.includes('drill') || t.includes('technical') || t.includes('rate')) return 'drill'
+  return 'erg'
+}
+
+/** Parse "1:41.2" to seconds, fall-back to 0. */
+function parseSplit(label: string): number {
+  const m = label.match(/^(\d+):(\d+\.?\d*)$/)
+  if (!m) return 0
+  return Number(m[1]) * 60 + Number(m[2])
+}
+
 export function MySessionsPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'race' | 'steady' | 'drill'>('all')
+  const [filter, setFilter] = useState<'all' | SessionCategory>('all')
 
   const timerHistory = useSessionTimerStore((s) => s.history)
 
-  /** Convert timer history entries to the same shape as SESSION_ENTRIES */
   const timerSessions = timerHistory.map((entry) => ({
     id: entry.id,
     date: fmtDateShort(entry.createdAt),
@@ -958,59 +1551,108 @@ export function MySessionsPage() {
     isTimer: true,
   }))
 
-  const allSessions = [
-    ...timerSessions,
-    ...SESSION_ENTRIES.map((s) => ({ ...s, isTimer: false })),
-  ]
+  const allSessions = useMemo(
+    () => [
+      ...timerSessions,
+      ...SESSION_ENTRIES.map((s) => ({ ...s, isTimer: false })),
+    ],
+    [timerSessions],
+  )
 
-  const filtered = allSessions.filter((s) => {
-    if (filter === 'all') return true
-    if (s.isTimer) return false // timer sessions only show in 'all' filter
-    if (filter === 'race') return s.title.toLowerCase().includes('race') || s.title.toLowerCase().includes('power') || s.title.toLowerCase().includes('2k')
-    if (filter === 'steady') return s.title.toLowerCase().includes('steady') || s.title.toLowerCase().includes('ut2')
-    return s.title.toLowerCase().includes('drill') || s.title.toLowerCase().includes('technical') || s.title.toLowerCase().includes('rate')
-  })
+  // Live counts per category — replaces hardcoded "On-water: 5"
+  const counts = useMemo(() => {
+    const c = { race: 0, steady: 0, drill: 0, erg: 0 }
+    allSessions.forEach((s) => {
+      if ('isTimer' in s && s.isTimer) return
+      const cat = classifySession(s.title, s.detail)
+      c[cat]++
+    })
+    return c
+  }, [allSessions])
+
+  const filtered = filter === 'all'
+    ? allSessions
+    : allSessions.filter((s) => !s.isTimer && classifySession(s.title, s.detail) === filter)
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle kicker="Sessions" title="Your recent sessions" />
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="SESSIONS"
+        title="Your recent sessions"
+        subtitle={`${allSessions.length} sessions logged · ${SESSION_ENTRIES.length} synced from coach`}
+      />
 
-      <div className="mt-4 grid grid-cols-4 gap-3">
+      {/* Stat strip */}
+      <div className="grid grid-cols-2 gap-3 px-5 sm:grid-cols-4 sm:px-10">
         {[
-          { label: 'Total', value: String(allSessions.length) },
-          { label: 'On-water', value: '5' },
-          { label: 'Erg', value: '2' },
-          { label: 'Drills', value: '1' },
+          { label: 'Total', value: String(allSessions.length), accent: THEME.primary },
+          { label: 'Race pieces', value: String(counts.race), accent: 'var(--green-primary)' },
+          { label: 'Steady state', value: String(counts.steady), accent: THEME.blue },
+          { label: 'Drills', value: String(counts.drill), accent: 'var(--amber-primary)' },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.light }}>
-            <div className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>{s.label}</div>
-            <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>{s.value}</div>
+          <div
+            key={s.label}
+            className="rounded-xl border p-4"
+            style={{
+              background: 'var(--bg-primary)',
+              borderColor: THEME.border,
+              borderLeft: `3px solid ${s.accent}`,
+              boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 10px 30px -20px rgba(24,24,27,0.18)',
+            }}
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              {s.label}
+            </div>
+            <div className="mt-2 text-[24px] font-bold leading-none" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 flex gap-2">
-        {(['all', 'race', 'steady', 'drill'] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            className="rounded-xl border px-3 py-2 text-[12px] font-semibold"
-            style={{ borderColor: THEME.border, background: filter === f ? THEME.light : 'var(--bg-primary)' }}
-          >
-            {f === 'all' ? 'All' : f === 'race' ? 'Race pieces' : f === 'steady' ? 'Steady state' : 'Drills'}
-          </button>
-        ))}
+      {/* Filter pills */}
+      <div className="mt-5 flex flex-wrap gap-2 px-5 sm:px-10">
+        {(['all', 'race', 'steady', 'drill'] as const).map((f) => {
+          const active = filter === f
+          return (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors"
+              style={{
+                fontFamily: THEME.fontMono,
+                borderColor: active ? THEME.primary : THEME.border,
+                background: active ? 'var(--green-subtle)' : 'var(--bg-primary)',
+                color: active ? 'var(--green-primary)' : THEME.textSecondary,
+              }}
+            >
+              {f === 'all' ? 'ALL' : f === 'race' ? 'RACE PIECES' : f === 'steady' ? 'STEADY STATE' : 'DRILLS'}
+            </button>
+          )
+        })}
       </div>
 
-      <div className="mt-5 space-y-3">
+      {/* Session list */}
+      <div className="mt-5 space-y-3 px-5 sm:px-10">
         {filtered.map((s) => {
           const isOpen = expanded === s.id
+          const splitSeconds = s.splits.map(parseSplit)
+          const isNegativeSplit = splitSeconds.length >= 2 && splitSeconds[splitSeconds.length - 1] < splitSeconds[0]
           return (
-            <Card key={s.id} className="cursor-pointer" onClick={() => setExpanded(isOpen ? null : s.id)}>
+            <div
+              key={s.id}
+              className="cursor-pointer rounded-2xl border p-5 transition-colors hover:bg-zinc-50/50"
+              style={{
+                background: 'var(--bg-primary)',
+                borderColor: THEME.border,
+                boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+              }}
+              onClick={() => setExpanded(isOpen ? null : s.id)}
+            >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{s.date}</div>
                     {s.isTimer && (
                       <span
@@ -1020,42 +1662,60 @@ export function MySessionsPage() {
                         Timer
                       </span>
                     )}
+                    {isNegativeSplit && (
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                        style={{ borderColor: 'var(--green-primary)', color: 'var(--green-primary)', background: 'var(--green-subtle)', fontFamily: THEME.fontMono }}
+                      >
+                        ↓ Negative split
+                      </span>
+                    )}
                   </div>
-                  <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{s.title}</div>
-                  <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>{s.detail}</div>
+                  <div className="mt-1 text-[15px] font-semibold" style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}>{s.title}</div>
+                  <div className="mt-0.5 text-[12px]" style={{ color: THEME.textSecondary }}>{s.detail}</div>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {s.splits.slice(0, 3).map((sp, i) => (
-                    <span key={i} className="rounded-full border px-2 py-0.5 text-[11px]" style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
-                      {sp}
-                    </span>
-                  ))}
-                  {s.splits.length > 3 && (
-                    <span className="rounded-full border px-2 py-0.5 text-[11px]" style={{ borderColor: THEME.border, color: THEME.textMuted }}>
-                      +{s.splits.length - 3}
-                    </span>
+                <div className="flex flex-col items-end gap-2">
+                  {splitSeconds.length >= 2 && (
+                    <Sparkline values={splitSeconds} invert color={isNegativeSplit ? 'var(--green-primary)' : THEME.primary} width={72} height={22} />
                   )}
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {s.splits.slice(0, 3).map((sp, i) => (
+                      <span key={i} className="rounded-md border px-1.5 py-0.5 text-[11px]" style={{ borderColor: THEME.border, fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
+                        {sp}
+                      </span>
+                    ))}
+                    {s.splits.length > 3 && (
+                      <span className="rounded-md border px-1.5 py-0.5 text-[11px]" style={{ borderColor: THEME.border, color: THEME.textMuted, fontFamily: THEME.fontMono }}>
+                        +{s.splits.length - 3}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               {isOpen && (
                 <div className="mt-4 border-t pt-4" style={{ borderColor: THEME.border }}>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-                    Splits
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                    All splits
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
                     {s.splits.map((sp, i) => (
-                      <div key={i} className="rounded-xl border px-3 py-2" style={{ borderColor: THEME.border, background: THEME.light }}>
-                        <div className="text-[10px]" style={{ color: THEME.textMuted }}>P{i + 1}</div>
-                        <div className="text-[14px] font-bold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>{sp}</div>
+                      <div key={i} className="rounded-lg border p-2 text-center" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
+                        <div className="text-[9px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>P{i + 1}</div>
+                        <div className="mt-0.5 text-[14px] font-bold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>{sp}</div>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 text-[13px]" style={{ color: THEME.textSecondary }}>{s.notes}</div>
+                  <p className="mt-4 text-[13px] leading-relaxed" style={{ color: THEME.textSecondary }}>{s.notes}</p>
                 </div>
               )}
-            </Card>
+            </div>
           )
         })}
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border border-dashed p-8 text-center text-[13px]" style={{ borderColor: THEME.border, color: THEME.textSecondary }}>
+            No sessions match this filter.
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1063,6 +1723,75 @@ export function MySessionsPage() {
 
 const STAR_MILLER_ID = 'a-miller'
 const STAR_MILLER_NAME = 'Star Miller'
+
+/** Tiny boat-diagram primitive — a vertical column of seats with cox at top.
+ *  Highlights the seat where Star Miller sits. Used in MyLineupsPage. */
+function BoatDiagram({
+  seats,
+  highlightName,
+}: {
+  seats: Array<{ seat: string | number; side: string; name: string }>
+  highlightName: string
+}) {
+  // Order seats from cox down to bow
+  const ordered = [...seats].sort((a, b) => {
+    const ord = (s: string | number) => {
+      const v = String(s).toLowerCase()
+      if (v.startsWith('cox')) return 0
+      if (v.startsWith('str') || v === '8') return 1
+      if (v.startsWith('bow') || v === '1') return 100
+      const n = Number(v)
+      return Number.isFinite(n) ? 10 - n : 50
+    }
+    return ord(a.seat) - ord(b.seat)
+  })
+  return (
+    <div className="mx-auto w-full max-w-[180px]">
+      {/* Hull outline */}
+      <div className="relative rounded-[40px] border-2 p-2" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-surface)' }}>
+        <div className="space-y-1.5">
+          {ordered.map((s) => {
+            const isCox = String(s.seat).toLowerCase().startsWith('cox')
+            const isHighlight = s.name === highlightName || String(s.name).includes(highlightName.split(' ')[0])
+            const isPort = s.side === 'Port'
+            const isStbd = s.side === 'Stbd' || s.side === 'Starboard'
+            return (
+              <div key={String(s.seat)} className="flex items-center gap-1.5">
+                {/* Port oar */}
+                <div
+                  className="h-[3px] flex-1 rounded-full"
+                  style={{ background: isPort ? 'var(--red-primary)' : 'transparent' }}
+                />
+                {/* Seat cell */}
+                <div
+                  className="flex h-9 w-12 shrink-0 flex-col items-center justify-center rounded-md text-[10px] font-semibold"
+                  style={{
+                    background: isHighlight ? 'var(--green-primary)' : isCox ? 'var(--bg-surface-raised)' : 'var(--bg-primary)',
+                    color: isHighlight ? '#fff' : THEME.textPrimary,
+                    border: `1px solid ${isHighlight ? 'var(--green-primary)' : THEME.border}`,
+                    fontFamily: THEME.fontMono,
+                  }}
+                >
+                  <span className="text-[9px] leading-none" style={{ opacity: 0.8 }}>{String(s.seat)}</span>
+                  <span className="mt-0.5 text-[9px] leading-none">{isHighlight ? 'YOU' : s.name.split(' ').slice(-1)[0].slice(0, 4)}</span>
+                </div>
+                {/* Starboard oar */}
+                <div
+                  className="h-[3px] flex-1 rounded-full"
+                  style={{ background: isStbd ? 'var(--green-primary)' : 'transparent' }}
+                />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-center gap-3 text-[9px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+        <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full" style={{ background: 'var(--red-primary)' }} /> Port</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full" style={{ background: 'var(--green-primary)' }} /> Stbd</span>
+      </div>
+    </div>
+  )
+}
 
 export function MyLineupsPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -1078,27 +1807,49 @@ export function MyLineupsPage() {
 
   const totalLineups = storeCards.length + LINEUP_ENTRIES.length
 
-  return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle kicker="Lineups" title="Your boats" />
+  // Detect seat change between newest and previous LINEUP_ENTRIES
+  const newestEntry = LINEUP_ENTRIES[0]
+  const prevEntry = LINEUP_ENTRIES[1]
+  const newestSeat = newestEntry?.seats.find((s) => s.highlight)?.seat
+  const prevSeat = prevEntry?.seats.find((s) => s.highlight)?.seat
+  const seatChanged = newestSeat && prevSeat && newestSeat !== prevSeat
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.light }}>
-          <div className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Current seat</div>
-          <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>Seat 3</div>
-        </div>
-        <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.light }}>
-          <div className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Boat</div>
-          <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>V8</div>
-        </div>
-        <div className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: THEME.light }}>
-          <div className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Total lineups</div>
-          <div className="mt-1 text-[18px] font-bold" style={{ color: THEME.textPrimary }}>{totalLineups}</div>
-        </div>
+  return (
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="LINEUPS"
+        title="Your boats"
+        subtitle={seatChanged ? `Seat changed: ${prevSeat} → ${newestSeat}` : `Seat ${newestSeat ?? 3} · ${totalLineups} lineups this season`}
+      />
+
+      <div className="grid grid-cols-2 gap-3 px-5 sm:grid-cols-3 sm:px-10">
+        {[
+          { label: 'Current seat', value: `Seat ${newestSeat ?? 3}`, accent: THEME.primary },
+          { label: 'Boat', value: 'V8', accent: 'var(--green-primary)' },
+          { label: 'Total lineups', value: String(totalLineups), accent: THEME.blue },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="rounded-xl border p-4"
+            style={{
+              background: 'var(--bg-primary)',
+              borderColor: THEME.border,
+              borderLeft: `3px solid ${s.accent}`,
+              boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 10px 30px -20px rgba(24,24,27,0.18)',
+            }}
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              {s.label}
+            </div>
+            <div className="mt-2 text-[22px] font-bold leading-none" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
+              {s.value}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-5 space-y-4">
-        {/* Published lineups from coach (store), newest first — only when Star Miller is seated */}
+      <div className="mt-5 space-y-4 px-5 sm:px-10">
+        {/* Coach-published lineups from store, newest first */}
         {storeCards.map((pl) => {
           const isOpen = expanded === pl.id
           const starSeat = pl.boats
@@ -1110,109 +1861,169 @@ export function MyLineupsPage() {
           const dateLabel = new Date(pl.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
           return (
-            <Card key={pl.id} className="cursor-pointer" onClick={() => setExpanded(isOpen ? null : pl.id)}>
+            <div
+              key={pl.id}
+              className="cursor-pointer rounded-2xl border p-5"
+              style={{
+                background: 'var(--bg-primary)',
+                borderColor: THEME.border,
+                boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+              }}
+              onClick={() => setExpanded(isOpen ? null : pl.id)}
+            >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{dateLabel}</div>
-                  <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{pl.sessionTitle}</div>
-                  <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>{seatSummary}</div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{dateLabel}</div>
+                    <span
+                      className="rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                      style={{ borderColor: 'var(--green-primary)', color: 'var(--green-primary)', background: 'var(--green-subtle)', fontFamily: THEME.fontMono }}
+                    >
+                      Published by coach
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[15px] font-semibold" style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}>{pl.sessionTitle}</div>
+                  <div className="mt-0.5 text-[12px]" style={{ color: THEME.textSecondary }}>{seatSummary}</div>
                   {pl.note && <div className="mt-0.5 text-[11px]" style={{ color: THEME.textMuted }}>{pl.note}</div>}
                 </div>
-                <Pill tone="good">Published</Pill>
+                <span className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>{isOpen ? '▾' : '▸'}</span>
               </div>
               {isOpen && pl.boats.length > 0 && (
                 <div className="mt-4 border-t pt-4" style={{ borderColor: THEME.border }}>
                   {pl.boats.map((boat) => (
                     <div key={boat.id} className="mb-4 last:mb-0">
-                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                      <div className="mb-3 text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
                         {boat.name}
                       </div>
                       <div className="overflow-hidden rounded-xl border" style={{ borderColor: THEME.border }}>
-                        <table className="w-full text-left text-[12px]">
-                          <thead style={{ background: THEME.light }}>
-                            <tr>
-                              <th className="px-3 py-2 w-16">Seat</th>
-                              <th className="px-3 py-2 w-16">Side</th>
-                              <th className="px-3 py-2">Athlete</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {boat.seats.map((s) => {
-                              const isStarMiller = s.athleteId === STAR_MILLER_ID
-                              const seatLabel = s.isCox ? 'Cox' : String(s.seatNumber)
-                              return (
-                                <tr
-                                  key={`${s.seatNumber}-${s.side}`}
-                                  className="border-t"
-                                  style={{ borderColor: THEME.border, background: isStarMiller ? '#e6f4ea' : 'transparent' }}
-                                >
-                                  <td className="px-3 py-1.5" style={{ fontFamily: THEME.fontMono, fontWeight: 600 }}>{seatLabel}</td>
-                                  <td className="px-3 py-1.5" style={{ color: THEME.textSecondary }}>{s.side}</td>
-                                  <td className="px-3 py-1.5" style={{ fontWeight: isStarMiller ? 600 : 400, color: THEME.textPrimary }}>
-                                    {isStarMiller ? `★ ${STAR_MILLER_NAME}` : (s.athleteId ?? '—')}
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
+                        <div className="synth-scroll overflow-x-auto">
+                          <table className="w-full min-w-[320px] table-fixed text-left text-[12px]">
+                            <colgroup>
+                              <col style={{ width: '20%' }} />
+                              <col style={{ width: '24%' }} />
+                              <col />
+                            </colgroup>
+                            <thead style={{ background: 'var(--bg-surface)' }}>
+                              <tr>
+                                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Seat</th>
+                                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Side</th>
+                                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Athlete</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {boat.seats.map((s) => {
+                                const isStarMiller = s.athleteId === STAR_MILLER_ID
+                                const seatLabel = s.isCox ? 'Cox' : String(s.seatNumber)
+                                return (
+                                  <tr
+                                    key={`${s.seatNumber}-${s.side}`}
+                                    className="border-t"
+                                    style={{ borderColor: THEME.border, background: isStarMiller ? 'var(--green-subtle)' : 'transparent' }}
+                                  >
+                                    <td className="px-3 py-2" style={{ fontFamily: THEME.fontMono, fontWeight: 600, color: THEME.textPrimary }}>{seatLabel}</td>
+                                    <td className="px-3 py-2" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>{s.side}</td>
+                                    <td className="px-3 py-2" style={{ fontWeight: isStarMiller ? 700 : 400, color: THEME.textPrimary }}>
+                                      {isStarMiller ? `★ ${STAR_MILLER_NAME}` : (s.athleteId ?? '—')}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </Card>
+            </div>
           )
         })}
 
-        {/* Seed lineup entries (always shown) */}
-        {LINEUP_ENTRIES.map((l) => {
+        {/* Seed lineup entries — these get the boat diagram visual */}
+        {LINEUP_ENTRIES.map((l, idx) => {
           const isOpen = expanded === l.id
+          const isMostRecent = idx === 0
+          const seatChangedHere = isMostRecent && seatChanged
           return (
-            <Card key={l.id} className="cursor-pointer" onClick={() => setExpanded(isOpen ? null : l.id)}>
+            <div
+              key={l.id}
+              className="cursor-pointer rounded-2xl border p-5"
+              style={{
+                background: 'var(--bg-primary)',
+                borderColor: THEME.border,
+                boxShadow: '0 1px 0 rgba(24,24,27,0.02), 0 20px 40px -28px rgba(24,24,27,0.2)',
+              }}
+              onClick={() => setExpanded(isOpen ? null : l.id)}
+            >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{l.date}</div>
-                  <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{l.title}</div>
-                  <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>{l.athleteSummary}</div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{l.date}</div>
+                    {seatChangedHere && (
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                        style={{ borderColor: 'var(--amber-primary)', color: 'var(--amber-primary)', background: 'var(--amber-subtle)', fontFamily: THEME.fontMono }}
+                      >
+                        Seat change
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-[15px] font-semibold" style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}>{l.title}</div>
+                  <div className="mt-0.5 text-[12px]" style={{ color: THEME.textSecondary }}>{l.athleteSummary}</div>
                 </div>
-                <Pill tone="good">Published</Pill>
+                <span className="text-[11px]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>{isOpen ? '▾' : '▸'}</span>
               </div>
               {isOpen && (
-                <div className="mt-4 border-t pt-4" style={{ borderColor: THEME.border }}>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-                    Boat
+                <div className="mt-4 grid gap-5 border-t pt-4 lg:grid-cols-[180px_1fr]" style={{ borderColor: THEME.border }}>
+                  <div>
+                    <div className="mb-3 text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                      Boat layout
+                    </div>
+                    <BoatDiagram seats={l.seats} highlightName={STAR_MILLER_NAME} />
                   </div>
-                  <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: THEME.border }}>
-                    <table className="w-full text-left text-[12px]">
-                      <thead style={{ background: THEME.light }}>
-                        <tr>
-                          <th className="px-3 py-2 w-16">Seat</th>
-                          <th className="px-3 py-2 w-16">Side</th>
-                          <th className="px-3 py-2">Athlete</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {l.seats.map((s) => (
-                          <tr
-                            key={s.seat}
-                            className="border-t"
-                            style={{
-                              borderColor: THEME.border,
-                              background: s.highlight ? '#e6f4ea' : 'transparent',
-                            }}
-                          >
-                            <td className="px-3 py-1.5" style={{ fontFamily: THEME.fontMono, fontWeight: 600 }}>{s.seat}</td>
-                            <td className="px-3 py-1.5" style={{ color: THEME.textSecondary }}>{s.side}</td>
-                            <td className="px-3 py-1.5" style={{ fontWeight: s.highlight ? 600 : 400, color: THEME.textPrimary }}>{s.name}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div>
+                    <div className="mb-3 text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                      Roster
+                    </div>
+                    <div className="overflow-hidden rounded-xl border" style={{ borderColor: THEME.border }}>
+                      <div className="synth-scroll overflow-x-auto">
+                        <table className="w-full min-w-[320px] table-fixed text-left text-[12px]">
+                          <colgroup>
+                            <col style={{ width: '20%' }} />
+                            <col style={{ width: '24%' }} />
+                            <col />
+                          </colgroup>
+                          <thead style={{ background: 'var(--bg-surface)' }}>
+                            <tr>
+                              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Seat</th>
+                              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Side</th>
+                              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>Athlete</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {l.seats.map((s) => (
+                              <tr
+                                key={s.seat}
+                                className="border-t"
+                                style={{
+                                  borderColor: THEME.border,
+                                  background: s.highlight ? 'var(--green-subtle)' : 'transparent',
+                                }}
+                              >
+                                <td className="px-3 py-2" style={{ fontFamily: THEME.fontMono, fontWeight: 600, color: THEME.textPrimary }}>{s.seat}</td>
+                                <td className="px-3 py-2" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>{s.side}</td>
+                                <td className="px-3 py-2" style={{ fontWeight: s.highlight ? 700 : 400, color: THEME.textPrimary }}>{s.name}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-            </Card>
+            </div>
           )
         })}
       </div>
@@ -1274,47 +2085,61 @@ export function MyChatPage() {
     : teamMessages
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle kicker="Chat" title="Messages" />
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="CHAT"
+        title="Messages"
+        subtitle="Ask synth. AI for race plans + insights, or message your coach."
+      />
 
-      {/* Tab switcher */}
-      <div className="mt-4 flex gap-2">
-        {(['ai', 'messages'] as const).map((tab) => {
-          const active = chatTab === tab
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setChatTab(tab)}
-              className="rounded-full border px-4 py-2 text-[12px] font-semibold transition-colors"
-              style={{
-                fontFamily: THEME.fontMono,
-                borderColor: active ? THEME.primary : THEME.border,
-                background: active ? `${THEME.primary}14` : 'var(--bg-primary)',
-                color: active ? THEME.primary : THEME.textSecondary,
-              }}
-            >
-              {tab === 'ai' ? 'synth. AI' : 'Team Messages'}
-            </button>
-          )
-        })}
+      <div className="px-5 sm:px-10">
+        {/* Tab switcher */}
+        <div className="inline-flex rounded-full border p-1" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
+          {(['ai', 'messages'] as const).map((tab) => {
+            const active = chatTab === tab
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setChatTab(tab)}
+                className="rounded-full px-4 py-1.5 text-[11px] font-semibold transition-all"
+                style={{
+                  fontFamily: THEME.fontMono,
+                  background: active ? THEME.primary : 'transparent',
+                  color: active ? '#fff' : THEME.textSecondary,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {tab === 'ai' ? 'SYNTH. AI' : 'TEAM MESSAGES'}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
+      <div className="mt-5 px-5 sm:px-10">
       {/* AI Tab */}
       {chatTab === 'ai' && (
-        <Card className="mt-4">
+        <Card>
           {messages.length === 0 ? (
             <div className="py-3">
-              <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>
+              <div className="text-[18px] font-semibold" style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}>
                 What do you want to know right now?
               </div>
-              <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>
-                Tap a prompt to start.
+              <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono }}>
+                Tap a prompt to get a context-aware reply.
               </div>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {['Race plan for tomorrow', 'What should I focus on today?', 'How is my recovery?', 'How do I improve my 2K?'].map((p) => (
-                  <button key={p} type="button" className="rounded-xl border px-3 py-3 text-left text-[13px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={() => send(p)}>
-                    {p}
+                {CHAT_PROMPT_CARDS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className="group rounded-xl border p-3 text-left text-[13px] font-medium transition-all hover:border-[var(--green-primary)]"
+                    style={{ borderColor: THEME.border, color: THEME.textPrimary, background: 'var(--bg-surface)' }}
+                    onClick={() => send(p)}
+                  >
+                    <span>{p}</span>
+                    <span className="ml-2 text-[11px] transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--green-primary)', fontFamily: THEME.fontMono }}>→</span>
                   </button>
                 ))}
               </div>
@@ -1345,14 +2170,14 @@ export function MyChatPage() {
 
       {/* Team Messages Tab */}
       {chatTab === 'messages' && (
-        <Card className="mt-4">
+        <Card>
           {/* Search */}
           <input
             value={teamSearch}
             onChange={(e) => setTeamSearch(e.target.value)}
             placeholder="Search messages…"
             className="w-full rounded-xl border px-3 py-2 text-[13px] outline-none"
-            style={{ borderColor: THEME.border, background: THEME.light, color: THEME.textPrimary }}
+            style={{ borderColor: THEME.border, background: 'var(--bg-surface)', color: THEME.textPrimary }}
           />
 
           {/* Messages */}
@@ -1413,107 +2238,219 @@ export function MyChatPage() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   )
 }
 
+const NOTIF_LABELS: Record<keyof NotifPrefs, { label: string; detail: string }> = {
+  coachNotes: { label: 'Coach notes', detail: "Get notified when your coach posts a new note." },
+  lineupChanges: { label: 'Lineup changes', detail: 'Push when your seat or boat changes.' },
+  sessionResults: { label: 'Session results', detail: 'Daily summary after each practice.' },
+  prAlerts: { label: 'PR alerts', detail: 'Celebrate when you set a new personal record.' },
+}
+
 export function MySettingsPage() {
   const { theme, setTheme } = useThemeStore()
-  const [notifs, setNotifs] = useState({ coachNotes: true, lineupChanges: true, sessionResults: true, prAlerts: true })
+  const nav = useNavigate()
+  const [notifs, setNotifs] = useState<NotifPrefs>(() => readNotifPrefs())
+
+  const flipNotif = (key: keyof NotifPrefs) => {
+    setNotifs((prev) => {
+      const next = { ...prev, [key]: !prev[key] }
+      writeNotifPrefs(next)
+      return next
+    })
+  }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <SectionTitle kicker="Settings" title="Your account" />
-      <div className="mt-5 grid gap-5">
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="SETTINGS"
+        title="Your account"
+        subtitle="Profile, theme, connected apps, notifications, privacy."
+      />
+
+      <div className="grid gap-5 px-5 sm:px-10">
         {/* Profile */}
         <Card>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            Profile
+          <div className="flex items-center justify-between">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              Profile
+            </div>
+            <span
+              className="rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+              style={{ borderColor: 'var(--green-primary)', color: 'var(--green-primary)', background: 'var(--green-subtle)', fontFamily: THEME.fontMono }}
+            >
+              {DEMO_ATHLETE_PROFILE.status}
+            </span>
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div>
-              <div className="text-[12px]" style={{ color: THEME.textSecondary }}>Name</div>
-              <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{DEMO_ATHLETE_PROFILE.name}</div>
-            </div>
-            <div>
-              <div className="text-[12px]" style={{ color: THEME.textSecondary }}>Team</div>
-              <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{DEMO_ATHLETE_PROFILE.team}</div>
-            </div>
-            <div>
-              <div className="text-[12px]" style={{ color: THEME.textSecondary }}>Side</div>
-              <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{DEMO_ATHLETE_PROFILE.side}</div>
-            </div>
-            <div>
-              <div className="text-[12px]" style={{ color: THEME.textSecondary }}>Year</div>
-              <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{DEMO_ATHLETE_PROFILE.year}</div>
-            </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Name', value: DEMO_ATHLETE_PROFILE.name },
+              { label: 'Team', value: DEMO_ATHLETE_PROFILE.team },
+              { label: 'Side', value: DEMO_ATHLETE_PROFILE.side },
+              { label: 'Year', value: DEMO_ATHLETE_PROFILE.year },
+            ].map((f) => (
+              <div key={f.label}>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>{f.label}</div>
+                <div className="mt-1 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>{f.value}</div>
+              </div>
+            ))}
           </div>
         </Card>
 
         {/* Theme */}
         <Card>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+          <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Theme
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(['system', 'light', 'dark'] as const).map((t) => (
-              <button key={t} type="button" onClick={() => setTheme(t as AppTheme)} className="rounded-xl border px-3 py-2 text-[12px] font-semibold" style={{ borderColor: THEME.border, background: theme === t ? THEME.light : 'var(--bg-primary)' }}>
-                {t[0].toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+          <div className="mt-3 inline-flex rounded-full border p-1" style={{ borderColor: THEME.border, background: 'var(--bg-surface)' }}>
+            {(['system', 'light', 'dark'] as const).map((t) => {
+              const active = theme === t
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTheme(t as AppTheme)}
+                  className="rounded-full px-4 py-1.5 text-[11px] font-semibold transition-all"
+                  style={{
+                    fontFamily: THEME.fontMono,
+                    background: active ? THEME.primary : 'transparent',
+                    color: active ? '#fff' : THEME.textSecondary,
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  {t.toUpperCase()}
+                </button>
+              )
+            })}
           </div>
         </Card>
 
         {/* Connected apps */}
         <Card>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            Connected apps
+          <div className="flex items-center justify-between">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+              Connected apps
+            </div>
+            <button
+              type="button"
+              onClick={() => nav('/athlete/sources/connectors')}
+              className="text-[11px] font-semibold hover:underline"
+              style={{ color: THEME.primary, fontFamily: THEME.fontMono }}
+            >
+              Manage all →
+            </button>
           </div>
-          <div className="mt-3 space-y-2">
-            {CONNECTED_APPS.map((a) => (
-              <div key={a.name} className="flex items-center justify-between rounded-xl border px-3 py-2" style={{ borderColor: THEME.border }}>
-                <div>
-                  <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>{a.name}</div>
-                  <div className="text-[11px]" style={{ color: THEME.textMuted }}>{a.detail}</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {CONNECTED_APPS.map((a) => {
+              const isConnected = a.status === 'connected'
+              return (
+                <div
+                  key={a.name}
+                  className="rounded-xl border p-3"
+                  style={{
+                    borderColor: THEME.border,
+                    background: 'var(--bg-surface)',
+                    borderLeft: `3px solid ${isConnected ? 'var(--green-primary)' : THEME.border}`,
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>{a.name}</div>
+                      <div className="mt-0.5 text-[11px]" style={{ color: THEME.textMuted }}>{a.detail}</div>
+                    </div>
+                    <span
+                      className="shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                      style={{
+                        borderColor: isConnected ? 'var(--green-primary)' : THEME.border,
+                        color: isConnected ? 'var(--green-primary)' : THEME.textMuted,
+                        background: isConnected ? 'var(--green-subtle)' : 'transparent',
+                        fontFamily: THEME.fontMono,
+                      }}
+                    >
+                      {a.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {isConnected ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => toast(`${a.name} sync started`, 'success')}
+                          className="rounded-md border px-2.5 py-1 text-[10px] font-semibold transition-colors hover:bg-zinc-50"
+                          style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+                        >
+                          Sync now
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => nav('/athlete/sources/data-view')}
+                          className="rounded-md border px-2.5 py-1 text-[10px] font-semibold transition-colors hover:bg-zinc-50"
+                          style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+                        >
+                          View data
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => nav('/athlete/sources/connectors')}
+                        className="rounded-md px-2.5 py-1 text-[10px] font-semibold text-white transition-colors"
+                        style={{ background: THEME.primary, fontFamily: THEME.fontMono, letterSpacing: '0.04em' }}
+                      >
+                        Connect →
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <Pill tone={a.status === 'connected' ? 'good' : 'neutral'}>{a.status}</Pill>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </Card>
 
         {/* Notifications */}
         <Card>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+          <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Notifications
           </div>
-          <div className="mt-3 space-y-3">
-            {Object.entries(notifs).map(([key, val]) => (
-              <div key={key} className="flex items-center justify-between">
-                <div className="text-[13px]" style={{ color: THEME.textPrimary }}>
-                  {key === 'coachNotes' ? 'Coach notes' : key === 'lineupChanges' ? 'Lineup changes' : key === 'sessionResults' ? 'Session results' : 'PR alerts'}
+          <div className="mt-4 space-y-4">
+            {(Object.keys(NOTIF_LABELS) as Array<keyof NotifPrefs>).map((key) => {
+              const val = notifs[key]
+              const meta = NOTIF_LABELS[key]
+              return (
+                <div key={key} className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>{meta.label}</div>
+                    <div className="mt-0.5 text-[11px]" style={{ color: THEME.textMuted }}>{meta.detail}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => flipNotif(key)}
+                    className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+                    style={{ background: val ? THEME.primary : 'var(--bg-surface-raised)' }}
+                    aria-pressed={val}
+                  >
+                    <span
+                      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+                      style={{ transform: val ? 'translateX(22px)' : 'translateX(2px)' }}
+                    />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setNotifs((n) => ({ ...n, [key]: !val }))}
-                  className="h-6 w-10 rounded-full transition-colors"
-                  style={{ background: val ? THEME.accent : THEME.border }}
-                >
-                  <div className="h-5 w-5 rounded-full bg-white transition-transform" style={{ transform: val ? 'translateX(18px)' : 'translateX(2px)' }} />
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </Card>
 
         {/* Privacy */}
         <Card>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+          <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Privacy
           </div>
-          <div className="mt-3 text-[13px]" style={{ color: THEME.textSecondary }}>
+          <p className="mt-3 text-[13px] leading-relaxed" style={{ color: THEME.textSecondary }}>
             Your wellness data is only visible to you and your coach. Erg scores are shared with the team by default. You can adjust visibility with your coach in team settings.
-          </div>
+          </p>
         </Card>
       </div>
     </div>
@@ -1534,10 +2471,10 @@ export function AthleteSourcesConnectorsPage() {
 
   if (!vis.allowPersonalSources) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-        <SectionTitle kicker="Sources" title="Connectors" />
-        <div className="mt-5 rounded-2xl border border-dashed p-8 text-center" style={{ borderColor: THEME.border }}>
-          <div className="text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>Personal sources not enabled</div>
+      <div className="flex min-h-full w-full flex-col pb-12">
+        <PageHeader kicker="SOURCES · CONNECTORS" title="Personal data sources" />
+        <div className="mx-5 rounded-2xl border border-dashed p-10 text-center sm:mx-10" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
+          <div className="text-[16px] font-semibold" style={{ color: THEME.textPrimary, fontFamily: THEME.fontSerif }}>Personal sources not enabled</div>
           <div className="mt-2 text-[13px]" style={{ color: THEME.textSecondary }}>Your coach hasn't enabled personal source connections for this team.</div>
         </div>
       </div>
@@ -1545,15 +2482,24 @@ export function AthleteSourcesConnectorsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:px-10">
-      <div className="flex items-end justify-between gap-4">
-        <SectionTitle kicker="Sources" title="Connectors" />
-        <button type="button" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }} onClick={() => nav('/athlete/sources/data-view')}>
-          View data →
-        </button>
-      </div>
+    <div className="flex min-h-full w-full flex-col pb-12">
+      <PageHeader
+        kicker="SOURCES · CONNECTORS"
+        title="Personal data sources"
+        subtitle="Connect Concept2, Strava, Apple Health and more — synth. pulls them automatically."
+        actions={
+          <button
+            type="button"
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-zinc-50"
+            style={{ borderColor: THEME.border, color: THEME.textPrimary, fontFamily: THEME.fontMono }}
+            onClick={() => nav('/athlete/sources/data-view')}
+          >
+            View data →
+          </button>
+        }
+      />
 
-      <div className="mt-5 grid gap-5">
+      <div className="grid gap-5 px-5 sm:px-10">
         <Card>
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
             Connected
@@ -1735,7 +2681,8 @@ function AthleteWorkflowBoard({ onSelectTab }: { onSelectTab: (t: AthleteDataVie
             <Pill tone="neutral">{ATHLETE_DATA_SOURCES.length} sources</Pill>
           </div>
 
-          <div className="relative overflow-hidden rounded-xl border" style={{ borderColor: THEME.border, background: THEME.light, height: 560 }}>
+          {/* Desktop: draggable SVG canvas. Mobile: vertical card list (canvas needs >=lg width) */}
+          <div className="relative hidden overflow-hidden rounded-xl border lg:block" style={{ borderColor: THEME.border, background: 'var(--bg-surface)', height: 560 }}>
             <svg className="absolute inset-0 h-full w-full">
               {ATHLETE_WORKFLOW_EDGES.map((e) => {
                 const a = byId.get(e.from)
@@ -1769,8 +2716,8 @@ function AthleteWorkflowBoard({ onSelectTab }: { onSelectTab: (t: AthleteDataVie
                     const t = n.id as AthleteDataViewTabId
                     if (ATHLETE_DATA_TABS.some((x) => x.id === t)) onSelectTab(t)
                   }}
-                  className="absolute cursor-grab select-none rounded-2xl border bg-white p-3 active:cursor-grabbing"
-                  style={{ left: n.x, top: n.y, width: ATHLETE_WORKFLOW_CANVAS.nodeW, height: ATHLETE_WORKFLOW_CANVAS.nodeH, borderColor: border }}
+                  className="absolute cursor-grab select-none rounded-2xl border p-3 active:cursor-grabbing"
+                  style={{ left: n.x, top: n.y, width: ATHLETE_WORKFLOW_CANVAS.nodeW, height: ATHLETE_WORKFLOW_CANVAS.nodeH, borderColor: border, background: 'var(--bg-primary)' }}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
@@ -1782,6 +2729,41 @@ function AthleteWorkflowBoard({ onSelectTab }: { onSelectTab: (t: AthleteDataVie
                   </div>
                   <div className="mt-1 text-[12px]" style={{ color: THEME.textSecondary }}>
                     {n.detail}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Mobile fallback: linear node list grouped by kind */}
+          <div className="space-y-3 lg:hidden">
+            {(['source', 'process', 'output'] as const).map((kind) => {
+              const groupNodes = nodes.filter((n) => n.kind === kind)
+              if (groupNodes.length === 0) return null
+              return (
+                <div key={kind}>
+                  <div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                    {kind}s
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {groupNodes.map((n) => {
+                      const accent = n.kind === 'source' ? n.color ?? THEME.border : n.kind === 'output' ? 'var(--green-primary)' : THEME.primary
+                      return (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => {
+                            const t = n.id as AthleteDataViewTabId
+                            if (ATHLETE_DATA_TABS.some((x) => x.id === t)) onSelectTab(t)
+                          }}
+                          className="rounded-xl border p-3 text-left"
+                          style={{ borderColor: THEME.border, borderLeft: `3px solid ${accent}`, background: 'var(--bg-primary)' }}
+                        >
+                          <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>{n.label}</div>
+                          <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>{n.detail}</div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -1918,31 +2900,35 @@ export function AthleteSourcesDataViewPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 pb-24 pt-6 sm:px-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            Sources
+    <div className="flex min-h-full w-full flex-col pb-24">
+      <PageHeader
+        kicker="SOURCES · DATA VIEW"
+        title="Your data flow"
+        subtitle="Where your data comes from, how it's processed, and what's powering each insight."
+        actions={
+          <div className="inline-flex rounded-full border p-1" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
+            <NavLink
+              to="/athlete/sources/connectors"
+              className="rounded-full px-3 py-1 text-[11px] font-semibold"
+              style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary, letterSpacing: '0.04em' }}
+            >
+              CONNECTORS
+            </NavLink>
+            <span
+              className="rounded-full px-3 py-1 text-[11px] font-semibold"
+              style={{ fontFamily: THEME.fontMono, background: THEME.primary, color: '#fff', letterSpacing: '0.04em' }}
+            >
+              DATA VIEW
+            </span>
           </div>
-          <div className="mt-1 text-[20px] font-bold" style={{ color: THEME.textPrimary }}>
-            Data View
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <NavLink to="/athlete/sources/connectors" className="rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-zinc-50" style={{ borderColor: THEME.border, color: THEME.textPrimary }}>
-            Connectors
-          </NavLink>
-          <NavLink to="/athlete/sources/data-view" className="rounded-xl border px-3 py-2 text-[12px] font-semibold" style={{ borderColor: THEME.border, background: THEME.light, color: THEME.textPrimary }}>
-            Data View
-          </NavLink>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="mt-4">
+      <div className="px-5 sm:px-10">
         <AthleteInfoBanner activeTab={activeTab} />
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-12">
+      <div className="mt-5 grid gap-5 px-5 sm:px-10 lg:grid-cols-12">
         <div className="lg:col-span-9 space-y-5">
           {activeTab === 'workflow' && <AthleteWorkflowBoard onSelectTab={setTab} />}
 
@@ -2099,18 +3085,33 @@ export function AthleteSourcesDataViewPage() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 h-56 rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={ATHLETE_BIOMETRICS}>
-                      <CartesianGrid stroke={THEME.border} strokeDasharray="4 6" />
-                      <XAxis dataKey="day" tick={{ fontSize: 11, fill: THEME.textMuted }} />
-                      <YAxis tick={{ fontSize: 11, fill: THEME.textMuted }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="sleep" stroke="#FF2D55" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="hrv" stroke="#10B981" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="rhr" stroke="#3B82F6" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                {/* Each metric gets its own scale so the lines mean something. */}
+                <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                  {[
+                    { key: 'sleep', label: 'Sleep (h)', color: '#FF2D55', fmt: (v: number) => v.toFixed(1) },
+                    { key: 'hrv', label: 'HRV (ms)', color: 'var(--green-primary)', fmt: (v: number) => v.toFixed(0) },
+                    { key: 'rhr', label: 'RHR (bpm)', color: THEME.blue, fmt: (v: number) => v.toFixed(0) },
+                  ].map((m) => (
+                    <div key={m.key} className="rounded-xl border p-3" style={{ borderColor: THEME.border, background: 'var(--bg-primary)' }}>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                        {m.label}
+                      </div>
+                      <div className="mt-2 h-32">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={ATHLETE_BIOMETRICS} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                            <CartesianGrid stroke={THEME.border} strokeDasharray="4 6" />
+                            <XAxis dataKey="day" tick={{ fontSize: 9, fill: THEME.textMuted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 9, fill: THEME.textMuted }} axisLine={false} tickLine={false} tickFormatter={m.fmt} />
+                            <Tooltip
+                              formatter={(v: number) => [m.fmt(v), m.label]}
+                              contentStyle={{ borderRadius: 8, border: `1px solid var(--border-default)`, background: 'var(--bg-primary)', fontSize: 11 }}
+                            />
+                            <Line type="monotone" dataKey={m.key} stroke={m.color} strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </Card>
             </AthleteSourceShell>
@@ -2200,33 +3201,51 @@ export function AthleteSourcesDataViewPage() {
           {activeTab === 'workbook' && (
             <AthleteSourceShell tab="workbook">
               <Card>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+                <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
                   Erg Workbook
                 </div>
-                <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: '#e8eaed' }}>
-                  <table className="w-full text-left" style={{ fontFamily: 'Arial, sans-serif', fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e0e0e0' }}>
-                        {WORKBOOK_COLUMNS.map((c) => (
-                          <th key={c} className="px-3 py-2 font-semibold" style={{ color: '#202124', fontSize: 12 }}>{c}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {WORKBOOK_SHEETS['Erg Log'].map((row, i) => {
-                        const isStarRow = row[1] === 'Star Miller'
-                        return (
-                          <tr key={i} style={{ borderBottom: '1px solid #e8eaed', background: isStarRow ? '#e6f4ea' : i % 2 === 0 ? '#fff' : '#fafbfc' }}>
-                            {row.map((cell, j) => (
-                              <td key={j} className="px-3 py-1.5" style={{ color: '#202124', fontFamily: j >= 2 ? 'JetBrains Mono, monospace' : 'Arial, sans-serif', fontWeight: isStarRow && j === 1 ? 600 : 400, fontSize: 13 }}>
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: THEME.border }}>
+                  <div className="synth-scroll overflow-x-auto">
+                    <table className="w-full min-w-[480px] text-left text-[13px]">
+                      <thead>
+                        <tr style={{ background: 'var(--bg-surface)', borderBottom: `1px solid ${THEME.border}` }}>
+                          {WORKBOOK_COLUMNS.map((c) => (
+                            <th key={c} className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}>
+                              {c}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {WORKBOOK_SHEETS['Erg Log'].map((row, i) => {
+                          const isStarRow = row[1] === 'Star Miller'
+                          return (
+                            <tr
+                              key={i}
+                              style={{
+                                borderTop: `1px solid ${THEME.border}`,
+                                background: isStarRow ? 'var(--green-subtle)' : 'transparent',
+                              }}
+                            >
+                              {row.map((cell, j) => (
+                                <td
+                                  key={j}
+                                  className="px-3 py-2"
+                                  style={{
+                                    color: THEME.textPrimary,
+                                    fontFamily: j >= 2 ? THEME.fontMono : THEME.fontSans,
+                                    fontWeight: isStarRow && j === 1 ? 700 : 400,
+                                  }}
+                                >
+                                  {isStarRow && j === 1 ? `★ ${cell}` : cell}
+                                </td>
+                              ))}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </Card>
             </AthleteSourceShell>
@@ -2238,16 +3257,30 @@ export function AthleteSourcesDataViewPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-white/80 backdrop-blur" style={{ borderColor: THEME.border }}>
-        <div className="mx-auto flex max-w-6xl gap-1 px-3 py-2 sm:px-10">
+      {/* In-flow source picker (mono pills, scrollable on mobile) */}
+      <div className="mt-6 px-5 sm:px-10">
+        <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
+          Switch source
+        </div>
+        <div className="synth-scroll mt-3 flex gap-2 overflow-x-auto pb-1">
           {visibleTabs.map((t) => {
             const active = t.id === activeTab
             return (
-              <button key={t.id} type="button" onClick={() => setTab(t.id)} className="flex-1 rounded-xl border px-2 py-2 text-[12px] font-semibold" style={{ borderColor: THEME.border, background: active ? THEME.light : 'transparent' }}>
-                <div className="flex items-center justify-center gap-2">
-                  <SourceDot color={t.color} />
-                  <span>{t.label}</span>
-                </div>
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className="flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all"
+                style={{
+                  fontFamily: THEME.fontMono,
+                  borderColor: active ? THEME.primary : THEME.border,
+                  background: active ? 'var(--green-subtle)' : 'var(--bg-primary)',
+                  color: active ? 'var(--green-primary)' : THEME.textSecondary,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <SourceDot color={t.color} />
+                <span>{t.label}</span>
               </button>
             )
           })}

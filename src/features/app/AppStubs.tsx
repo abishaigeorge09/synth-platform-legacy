@@ -45,24 +45,6 @@ function Stub({ label, phase, reference }: StubProps) {
   )
 }
 
-// — Coach stubs (Phase E / F) —
-
-export const AppCoachCapturePage = () => (
-  <Stub label="Capture" phase="E" reference="Arc Search + new synthesis" />
-)
-export const AppCoachLineupsPage = () => (
-  <Stub label="Lineups" phase="F" reference="Existing /coach/tools/lineups" />
-)
-export const AppCoachNotesPage = () => (
-  <Stub label="Notes" phase="F" reference="GO Club [18]" />
-)
-export const AppCoachSourcesPage = () => (
-  <Stub label="Sources" phase="F" reference="Cal AI [5, 21]" />
-)
-export const AppCoachSettingsPage = () => (
-  <Stub label="Settings" phase="F" reference="GO Club [84–87]" />
-)
-
 // — Athlete (Phase D / E / F) —
 
 export const AppAthleteHomePage = () => (

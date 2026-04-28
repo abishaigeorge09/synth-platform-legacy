@@ -25,12 +25,12 @@ import { HomePage as AppCoachHomePage } from '../features/app/coach/HomePage'
 import { AttentionPage as AppCoachAttentionPage } from '../features/app/coach/AttentionPage'
 import { AthleteDetailPage as AppCoachAthleteDetailPage } from '../features/app/coach/AthleteDetailPage'
 import { AIPage as AppCoachAIPage } from '../features/app/coach/AIPage'
+import { CapturePage as AppCoachCapturePage } from '../features/app/coach/CapturePage'
+import { LineupsPage as AppCoachLineupsPage } from '../features/app/coach/LineupsPage'
+import { NotesPage as AppCoachNotesPage } from '../features/app/coach/NotesPage'
+import { SourcesPage as AppCoachSourcesPage } from '../features/app/coach/SourcesPage'
+import { SettingsPage as AppCoachSettingsPage } from '../features/app/coach/SettingsPage'
 import {
-  AppCoachCapturePage,
-  AppCoachLineupsPage,
-  AppCoachNotesPage,
-  AppCoachSourcesPage,
-  AppCoachSettingsPage,
   AppAthleteHomePage,
   AppAthleteCapturePage,
   AppAthleteErgPacerPage,

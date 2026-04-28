@@ -124,6 +124,23 @@ body[data-app-canvas='cobalt'] .app-shell-frame {
   }
 }
 
+/* Cream-canvas surfaces (synth AI). Same pattern — overscroll exposes
+   cream (matching SYNTH.aiCanvas) instead of cobalt or white. */
+body[data-app-canvas='cream'] {
+  background: #F4EFE3;
+}
+body[data-app-canvas='cream'] .app-shell-root {
+  background: #F4EFE3;
+}
+body[data-app-canvas='cream'] .app-shell-frame {
+  background: #F4EFE3;
+}
+@media (display-mode: standalone) {
+  body[data-app-canvas='cream'] .app-shell-root {
+    background: #F4EFE3;
+  }
+}
+
 @media (min-width: 768px) {
   .app-shell-root {
     align-items: center;
@@ -175,6 +192,17 @@ body {
 ::selection {
   background: rgba(16, 185, 129, 0.35);
   color: #fff;
+}
+
+/* iOS Safari auto-zooms when an input has font-size < 16px and gets focus.
+   The page never reliably zooms back out. Force every input/textarea/select
+   to a minimum 16px so the keyboard never triggers the zoom. Component-level
+   visual sizing can still go smaller via CSS `font-size` overrides — this is
+   the floor. */
+input,
+textarea,
+select {
+  font-size: max(16px, 1em);
 }
 
 * {

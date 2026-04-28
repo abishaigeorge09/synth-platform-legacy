@@ -17,12 +17,88 @@ export const APP_MOCK_TEAM = {
   id: 'team-cal-w-rowing',
   name: "Cal Women's Rowing",
   sport: 'rowing' as const,
-  athleteCount: 28,
-  activeToday: 22,
+  athleteCount: 46,
+  activeToday: 38,
   avgRecovery: 71,
-  attentionCount: 4,
-  sessionsToday: 18,
+  attentionCount: 10,
+  sessionsToday: 24,
 }
+
+export type AppScheduleItem = {
+  id: string
+  when: string // "Tonight" | "Tomorrow" | "Wed" | "Sat" …
+  iconLetter: string // 1–2 char circle label, e.g. "LU" / "RC" / "AB"
+  category: 'lineup' | 'race' | 'practice' | 'attendance' | 'meeting'
+  headline: string
+  detail: string
+  provenance: string
+  severity: 'high' | 'med' | 'low'
+}
+
+// One week of performance + scheduling items shown under "This week" on
+// home. Excludes fatigue/wellness — those live on the Attention tab.
+export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
+  {
+    id: 'sch-lineup-tomorrow',
+    when: 'Tomorrow',
+    iconLetter: 'LU',
+    category: 'lineup',
+    headline: 'V8 lineup posted for AM practice',
+    detail: 'Stroke seat changed — Juno → Star. Confirm before 10pm.',
+    provenance: 'Lineups · just now',
+    severity: 'med',
+  },
+  {
+    id: 'sch-race-saturday',
+    when: 'Sat',
+    iconLetter: 'RC',
+    category: 'race',
+    headline: 'Cal Invite Regatta — race day',
+    detail: 'V8 + V4+ entries · report time 5:30 AM · 3 days out',
+    provenance: 'Google Calendar · 8m ago',
+    severity: 'high',
+  },
+  {
+    id: 'sch-attendance',
+    when: 'Yesterday',
+    iconLetter: 'AB',
+    category: 'attendance',
+    headline: '2 athletes missed AM practice',
+    detail: 'Coral Mendez (excused) · Rae Akhtar (no notice)',
+    provenance: 'TeamWorks · 2h ago',
+    severity: 'med',
+  },
+  {
+    id: 'sch-time-trial',
+    when: 'Thu',
+    iconLetter: 'TT',
+    category: 'practice',
+    headline: '2K time trials for V8 selection',
+    detail: '6:00 AM water session · 4 seats open',
+    provenance: 'TrainingPeaks · 1h ago',
+    severity: 'med',
+  },
+  {
+    id: 'sch-meeting',
+    when: 'Tonight',
+    iconLetter: 'MT',
+    category: 'meeting',
+    headline: 'Coaches meeting · 6:00 PM',
+    detail: 'Race-day strategy + bow pair selection',
+    provenance: 'Google Calendar · 14m ago',
+    severity: 'low',
+  },
+  {
+    id: 'sch-erg-test',
+    when: 'Wed',
+    iconLetter: 'ER',
+    category: 'practice',
+    headline: '6K erg test scheduled',
+    detail: '38 athletes signed up · 3 erg bays from 5:30 AM',
+    provenance: 'Concept2 · 30m ago',
+    severity: 'low',
+  },
+]
 
 export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
   {

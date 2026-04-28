@@ -14,21 +14,21 @@ export function AppCoachShell() {
   const hideTabBar = HIDE_TAB_BAR_PREFIXES.some((p) => pathname.startsWith(p))
 
   // Tag the body so the surrounding wrappers (.app-shell-root,
-  // .app-shell-frame, body) paint cobalt — keeps overscroll from exposing
-  // the default white frame.
+  // .app-shell-frame, body) paint the right canvas color — keeps overscroll
+  // from exposing the default white frame.
   useEffect(() => {
-    document.body.setAttribute('data-app-canvas', 'cobalt')
+    document.body.setAttribute('data-app-canvas', isAI ? 'cream' : 'cobalt')
     return () => {
       document.body.removeAttribute('data-app-canvas')
     }
-  }, [])
+  }, [isAI])
 
   return (
     <div
       className="relative flex flex-1 flex-col"
       style={{
         background: isAI
-          ? SYNTH.canvasInk
+          ? SYNTH.aiCanvas
           : `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
         fontFamily: SYNTH.font,
       }}

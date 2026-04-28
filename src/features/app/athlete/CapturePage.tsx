@@ -1,10 +1,31 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Video, Activity, Heart, FileText, ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
+import {
+  VideoCaptureSheet,
+  QuickNoteSheet,
+} from '../primitives/CaptureSheets'
+import { AuroraVoiceOverlay } from '../primitives/AuroraVoiceOverlay'
 import { SYNTH } from '../lib/theme'
 
-const MODES = [
+type ModeKey = 'form-video' | 'erg-log' | 'wellness' | 'note'
+
+type RecentItem = {
+  kind: 'erg-log' | 'wellness' | 'form-video' | 'note'
+  title: string
+  detail: string
+  minutesAgo: number
+}
+
+const SEED_RECENT: RecentItem[] = [
+  { kind: 'erg-log', title: '2K · 7:08.2', detail: 'logged this morning · 22 spm', minutesAgo: 35 },
+  { kind: 'wellness', title: 'Wellness · 7/10', detail: '6h sleep, 3/10 soreness', minutesAgo: 6 * 60 },
+  { kind: 'form-video', title: 'Form video · drive phase', detail: 'sent to Coach Geri', minutesAgo: 24 * 60 },
+]
+
+const MODES: { key: ModeKey; label: string; description: string; cardColor: string; icon: ReactNode; action: string }[] = [
   {
     key: 'form-video',
     label: 'Form video',
@@ -16,7 +37,7 @@ const MODES = [
   {
     key: 'erg-log',
     label: 'Erg log',
-    description: 'Time, distance, splits — manual entry',
+    description: 'Time, distance, splits — voice it in',
     cardColor: SYNTH.cardYellow,
     icon: <Activity size={20} strokeWidth={2.4} />,
     action: 'Log session',
@@ -39,13 +60,36 @@ const MODES = [
   },
 ]
 
-const RECENT = [
-  { kind: 'erg-log' as const, title: '2K · 7:08.2', detail: 'logged this morning · 22 spm', minutesAgo: 35 },
-  { kind: 'wellness' as const, title: 'Wellness · 7/10', detail: '6h sleep, 3/10 soreness', minutesAgo: 6 * 60 },
-  { kind: 'form-video' as const, title: 'Form video · drive phase', detail: 'sent to Coach Geri', minutesAgo: 24 * 60 },
-]
-
 export function CapturePage() {
+  const [openMode, setOpenMode] = useState<ModeKey | null>(null)
+  const [recent, setRecent] = useState<RecentItem[]>(SEED_RECENT)
+
+  const close = () => setOpenMode(null)
+
+  const onVideoSave = (file: File) => {
+    setRecent((r) => [
+      { kind: 'form-video', title: 'Form video', detail: file.name || 'captured', minutesAgo: 0 },
+      ...r,
+    ])
+  }
+
+  const onErgLogSave = (transcript: string) => {
+    if (!transcript) return
+    const t = transcript.length > 60 ? `${transcript.slice(0, 60)}…` : transcript
+    setRecent((r) => [{ kind: 'erg-log', title: 'Erg log · voice', detail: `"${t}"`, minutesAgo: 0 }, ...r])
+  }
+
+  const onWellnessSave = (text: string) => {
+    setRecent((r) => [
+      { kind: 'wellness', title: 'Wellness check-in', detail: text.slice(0, 60), minutesAgo: 0 },
+      ...r,
+    ])
+  }
+
+  const onNoteSave = (text: string) => {
+    setRecent((r) => [{ kind: 'note', title: 'Note', detail: text.slice(0, 60), minutesAgo: 0 }, ...r])
+  }
+
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
       <CoachPageHeader title="Log it" subtitle="Drop anything, synth synthesizes" back="/app/athlete/home" />
@@ -60,9 +104,7 @@ export function CapturePage() {
             cardColor={m.cardColor}
             icon={m.icon}
             action={m.action}
-            onClick={() => {
-              /* Phase E proper wires camera/voice/etc */
-            }}
+            onClick={() => setOpenMode(m.key)}
           />
         ))}
       </section>
@@ -81,11 +123,10 @@ export function CapturePage() {
             border: `1px solid ${SYNTH.inlineCardBorder}`,
           }}
         >
-          {RECENT.map((r, i) => (
-            <button
-              key={`${r.kind}-${i}`}
-              type="button"
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70"
+          {recent.map((r, i) => (
+            <div
+              key={`${r.kind}-${i}-${r.minutesAgo}`}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
               style={{ borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.inlineCardBorder}` }}
             >
               <span
@@ -96,7 +137,15 @@ export function CapturePage() {
                   color: SYNTH.inkOnBrand,
                 }}
               >
-                {r.kind === 'erg-log' ? <Activity size={14} /> : r.kind === 'wellness' ? <Heart size={14} /> : <Video size={14} />}
+                {r.kind === 'erg-log' ? (
+                  <Activity size={14} />
+                ) : r.kind === 'wellness' ? (
+                  <Heart size={14} />
+                ) : r.kind === 'form-video' ? (
+                  <Video size={14} />
+                ) : (
+                  <FileText size={14} />
+                )}
               </span>
               <div className="min-w-0 flex-1">
                 <p
@@ -116,13 +165,28 @@ export function CapturePage() {
                 className="text-[10px] uppercase tracking-[0.14em]"
                 style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
               >
-                {r.minutesAgo < 60 ? `${r.minutesAgo}m` : `${Math.floor(r.minutesAgo / 60)}h`}
+                {r.minutesAgo === 0 ? 'just now' : r.minutesAgo < 60 ? `${r.minutesAgo}m` : `${Math.floor(r.minutesAgo / 60)}h`}
               </span>
               <ChevronRight size={14} color={SYNTH.inkOnBrandFaint} />
-            </button>
+            </div>
           ))}
         </div>
       </section>
+
+      <VideoCaptureSheet open={openMode === 'form-video'} onClose={close} onSave={onVideoSave} />
+      <AuroraVoiceOverlay
+        open={openMode === 'erg-log'}
+        onClose={close}
+        onSave={onErgLogSave}
+        scopeLabel="your erg session"
+      />
+      <QuickNoteSheet
+        open={openMode === 'wellness'}
+        onClose={close}
+        onSave={onWellnessSave}
+        placeholder="How did you sleep? Soreness, stress, anything synth should know…"
+      />
+      <QuickNoteSheet open={openMode === 'note'} onClose={close} onSave={onNoteSave} />
     </div>
   )
 }

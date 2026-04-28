@@ -1,11 +1,32 @@
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Mic, FileText, Mail, ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
+import { AuroraVoiceOverlay } from '../primitives/AuroraVoiceOverlay'
+import {
+  PhotoCaptureSheet,
+  EmailForwardSheet,
+} from '../primitives/CaptureSheets'
 import { SYNTH } from '../lib/theme'
 
-const MODES = [
+type ModeKey = 'voice' | 'photo' | 'note' | 'email'
+
+type RecentItem = {
+  kind: 'voice' | 'photo' | 'email'
+  title: string
+  detail: string
+  minutesAgo: number
+}
+
+const SEED_RECENT: RecentItem[] = [
+  { kind: 'voice', title: '20s memo · Star Miller', detail: '"watch port shoulder on stbd"', minutesAgo: 34 },
+  { kind: 'photo', title: 'Whiteboard · Wednesday plan', detail: '8x500m + 3x10', minutesAgo: 2 * 60 + 12 },
+  { kind: 'email', title: 'Forward · TrainingPeaks rec', detail: 'plan from Coach M', minutesAgo: 6 * 60 },
+]
+
+const MODES: { key: ModeKey; label: string; description: string; cardColor: string; icon: ReactNode; action: string }[] = [
   {
     key: 'voice',
     label: 'Voice memo',
@@ -40,14 +61,33 @@ const MODES = [
   },
 ]
 
-const RECENT = [
-  { kind: 'voice' as const, title: '20s memo · Star Miller', detail: '"watch port shoulder on stbd"', minutesAgo: 34 },
-  { kind: 'photo' as const, title: 'Whiteboard · Wednesday plan', detail: '8x500m + 3x10', minutesAgo: 2 * 60 + 12 },
-  { kind: 'email' as const, title: 'Forward · TrainingPeaks rec', detail: 'plan from Coach M', minutesAgo: 6 * 60 },
-]
-
 export function CapturePage() {
   const navigate = useNavigate()
+  const [openMode, setOpenMode] = useState<ModeKey | null>(null)
+  const [recent, setRecent] = useState<RecentItem[]>(SEED_RECENT)
+
+  const close = () => setOpenMode(null)
+
+  const onModeTap = (key: ModeKey) => {
+    if (key === 'note') {
+      navigate('/app/coach/notes')
+      return
+    }
+    setOpenMode(key)
+  }
+
+  const onVoiceSave = (transcript: string) => {
+    if (!transcript) return
+    const truncated = transcript.length > 60 ? `${transcript.slice(0, 60)}…` : transcript
+    setRecent((r) => [{ kind: 'voice', title: `Voice memo`, detail: `"${truncated}"`, minutesAgo: 0 }, ...r])
+  }
+
+  const onPhotoSave = (file: File) => {
+    setRecent((r) => [
+      { kind: 'photo', title: 'Photo · form', detail: file.name || 'captured', minutesAgo: 0 },
+      ...r,
+    ])
+  }
 
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
@@ -63,10 +103,7 @@ export function CapturePage() {
             cardColor={m.cardColor}
             icon={m.icon}
             action={m.action}
-            onClick={() => {
-              if (m.key === 'note') navigate('/app/coach/notes')
-              // other modes are wired in Phase E proper
-            }}
+            onClick={() => onModeTap(m.key)}
           />
         ))}
       </section>
@@ -85,11 +122,10 @@ export function CapturePage() {
             border: `1px solid ${SYNTH.inlineCardBorder}`,
           }}
         >
-          {RECENT.map((r, i) => (
-            <button
-              key={`${r.kind}-${i}`}
-              type="button"
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70"
+          {recent.map((r, i) => (
+            <div
+              key={`${r.kind}-${i}-${r.minutesAgo}`}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
               style={{ borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.inlineCardBorder}` }}
             >
               <span
@@ -120,13 +156,26 @@ export function CapturePage() {
                 className="text-[10px] uppercase tracking-[0.14em]"
                 style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
               >
-                {r.minutesAgo < 60 ? `${r.minutesAgo}m` : `${Math.floor(r.minutesAgo / 60)}h`}
+                {r.minutesAgo === 0 ? 'just now' : r.minutesAgo < 60 ? `${r.minutesAgo}m` : `${Math.floor(r.minutesAgo / 60)}h`}
               </span>
               <ChevronRight size={14} color={SYNTH.inkOnBrandFaint} />
-            </button>
+            </div>
           ))}
         </div>
       </section>
+
+      <AuroraVoiceOverlay
+        open={openMode === 'voice'}
+        onClose={close}
+        onSave={onVoiceSave}
+        scopeLabel="your team"
+      />
+      <PhotoCaptureSheet open={openMode === 'photo'} onClose={close} onSave={onPhotoSave} />
+      <EmailForwardSheet
+        open={openMode === 'email'}
+        onClose={close}
+        forwardTo="capture+cal-w-rowing@synth.so"
+      />
     </div>
   )
 }

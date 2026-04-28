@@ -57,6 +57,14 @@ export const SYNTH = {
   provenanceOnBrand: 'rgba(255,255,255,0.55)',
   provenanceOnSheet: '#9A9AAB',
 
+  // AI surface — warm paper canvas (read-rich content lives on a page,
+  // not in dark-mode chat). Reserved for /app/coach/ai and /app/athlete/ai.
+  aiCanvas: '#F4EFE3',
+  aiCard: '#EFE9DA',
+  aiBubble: '#E6E1D2',
+  aiBorder: '#E5DFCE',
+  aiTextMuted: '#6F6B62',
+
   // Type
   font: '"Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif',
 

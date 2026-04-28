@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { QuickStatsSheet } from '../primitives/SourcesSheets'
-import { APP_MOCK_TEAM, APP_MOCK_ATTENTION, APP_MOCK_ATHLETES, fmtAgo } from '../data/mockTeam'
+import { APP_MOCK_TEAM, APP_MOCK_ATHLETES } from '../data/mockTeam'
+import { useAttentionItems } from '../data/useAttentionItems'
 
 export function HomePage() {
   const navigate = useNavigate()
   const greeting = greetingForNow()
-  const topAttention = APP_MOCK_ATTENTION.slice(0, 3)
+  const attentionItems = useAttentionItems()
+  const topAttention = attentionItems.slice(0, 3)
   const [statsOpen, setStatsOpen] = useState(false)
 
   return (
@@ -222,7 +224,7 @@ export function HomePage() {
             <button
               key={item.id}
               type="button"
-              onClick={() => navigate(`/app/coach/athlete/${item.athleteId}`)}
+              onClick={() => navigate(`/app/coach/attention?focus=${item.id}`)}
               className="flex w-full items-start gap-3 px-4 py-4 text-left active:opacity-80"
               style={{
                 borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.inlineCardBorder}`,
@@ -259,7 +261,7 @@ export function HomePage() {
                   className="mt-1.5 text-[10px] uppercase tracking-[0.14em]"
                   style={{ color: SYNTH.provenanceOnBrand, fontFamily: SYNTH.font }}
                 >
-                  {item.source} · synced {fmtAgo(item.syncedMinutesAgo)}
+                  {item.source} · synced {item.syncedLabel}
                 </p>
               </div>
               <span

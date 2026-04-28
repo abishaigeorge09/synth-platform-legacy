@@ -106,6 +106,24 @@ body,
   background: #fafaf9;
 }
 
+/* Cobalt-canvas surfaces (post-auth coach + athlete shells). Paint the
+   surround, the phone-frame, and the body itself so any rubber-band
+   overscroll exposes cobalt instead of the white frame underneath. */
+body[data-app-canvas='cobalt'] {
+  background: #1F26C9;
+}
+body[data-app-canvas='cobalt'] .app-shell-root {
+  background: #1F26C9;
+}
+body[data-app-canvas='cobalt'] .app-shell-frame {
+  background: linear-gradient(180deg, #2E37F2 0%, #1F26C9 100%);
+}
+@media (display-mode: standalone) {
+  body[data-app-canvas='cobalt'] .app-shell-root {
+    background: #1F26C9;
+  }
+}
+
 @media (min-width: 768px) {
   .app-shell-root {
     align-items: center;

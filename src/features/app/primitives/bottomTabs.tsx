@@ -1,4 +1,4 @@
-import { Home, Bell, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
+import { Home, AlertTriangle, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
 import { BottomTabBar, type BottomTabItem } from './BottomTabBar'
 
 const COACH_TABS: BottomTabItem[] = [
@@ -14,7 +14,7 @@ const COACH_TABS: BottomTabItem[] = [
     label: 'Attention',
     to: '/app/coach/attention',
     match: (p) => p.startsWith('/app/coach/attention') || p.startsWith('/app/coach/athlete'),
-    icon: <Bell size={20} strokeWidth={2.2} />,
+    icon: <AlertTriangle size={20} strokeWidth={2.2} />,
   },
   {
     key: 'capture',

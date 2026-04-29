@@ -34,16 +34,20 @@ export function SheetShell({ open, onClose, title, children }: Props) {
             animate={{ y: 0 }}
             exit={{ y: 600 }}
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col"
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden"
             style={{
               background: SYNTH.sheet,
               borderRadius: `${SYNTH.radius.sheet}px ${SYNTH.radius.sheet}px 0 0`,
               maxHeight: '88dvh',
               color: SYNTH.ink,
               fontFamily: SYNTH.font,
+              boxShadow: SYNTH.shadow.sheet,
             }}
           >
-            <header className="relative flex items-center justify-between px-5 pt-5 pb-2">
+            {/* Pinned header — shrink-0 so the flex layout never collapses
+                it (was the bug: maxHeight + tall content squashed the
+                title + drag handle + close offscreen). */}
+            <header className="relative flex shrink-0 items-center justify-between px-5 pt-5 pb-3">
               <div
                 className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full"
                 style={{ background: SYNTH.sheetMuted }}
@@ -64,7 +68,11 @@ export function SheetShell({ open, onClose, title, children }: Props) {
                 <X size={16} strokeWidth={2.2} />
               </button>
             </header>
-            <div className="flex flex-col gap-4 overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-2">
+            {/* Scrollable body — flex-1 min-h-0 makes overflow-y-auto
+                actually constrain + scroll inside the sheet. */}
+            <div
+              className="synth-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-2"
+            >
               {children}
             </div>
           </motion.div>

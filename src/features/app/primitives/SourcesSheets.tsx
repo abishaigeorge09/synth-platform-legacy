@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Plus, Pause, Play, AlertCircle, Check, RefreshCw } from 'lucide-react'
 import { SheetShell } from './SheetShell'
+import { ConnectorLogo } from './ConnectorLogo'
 import { SYNTH } from '../lib/theme'
 
 export type ConnectorMeta = {
@@ -142,12 +143,7 @@ export function AddSourceSheet({
               className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left"
               style={{ background: SYNTH.sheetMuted, color: SYNTH.ink }}
             >
-              <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                style={{ background: c.brandColor, color: SYNTH.inkOnBrand, fontFamily: SYNTH.font, fontWeight: 700, fontSize: 14 }}
-              >
-                {c.name.charAt(0)}
-              </span>
+              <ConnectorLogo id={c.id} size={36} />
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] font-semibold" style={{ fontFamily: SYNTH.font }}>{c.name}</p>
                 <p className="text-[11px] uppercase tracking-[0.12em]" style={{ color: SYNTH.inkMuted, fontFamily: SYNTH.font }}>

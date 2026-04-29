@@ -70,9 +70,17 @@ export function BoatLineupCard({ boat, onEdit }: Props) {
     })
   }
 
+  // Multi-pick fills rower seats sequentially. Cox is filled by tapping the
+  // cox row directly, so we exclude it when looking for the first empty seat.
+  const firstEmptyRowerSeat =
+    boat.seats.find(
+      (s) => s.athleteId === null && seatSide(boat.size, s.position) !== 'X',
+    ) ?? null
+  const allRowersFilled = firstEmptyRowerSeat === null
+
   const onFillSeats = () => {
-    const firstEmpty = boat.seats.find((s) => s.athleteId === null)?.position ?? 1
-    setPicker({ kind: 'multi', anchorPosition: firstEmpty })
+    if (allRowersFilled) return
+    setPicker({ kind: 'multi', anchorPosition: firstEmptyRowerSeat.position })
   }
 
   const onPickSingle = (a: AppMockAthlete) => {
@@ -147,15 +155,18 @@ export function BoatLineupCard({ boat, onEdit }: Props) {
         <button
           type="button"
           onClick={onFillSeats}
-          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.12em]"
+          disabled={allRowersFilled}
+          aria-label={allRowersFilled ? 'Crew set' : 'Fill seats'}
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.12em] disabled:cursor-not-allowed"
           style={{
-            background: SYNTH.inkOnBrand,
-            color: SYNTH.ink,
+            background: allRowersFilled ? 'rgba(255,255,255,0.14)' : SYNTH.inkOnBrand,
+            color: allRowersFilled ? SYNTH.inkOnBrandMuted : SYNTH.ink,
             fontFamily: SYNTH.font,
+            border: allRowersFilled ? `1px solid ${SYNTH.glassBorder}` : 'none',
           }}
         >
           <Users size={12} strokeWidth={2.6} />
-          Fill seats
+          {allRowersFilled ? 'Crew set' : 'Fill seats'}
         </button>
       </div>
 

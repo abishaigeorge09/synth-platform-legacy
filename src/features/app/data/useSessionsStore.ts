@@ -50,6 +50,8 @@ export type Session = {
   type: string
   /** YYYY-MM-DD */
   date: string
+  /** HH:mm in 24h. Optional — older sessions may not have a time. */
+  time?: string
   notes: string
   status: SessionStatus
   /** Snapshot of boats at the moment the session was published */

@@ -131,6 +131,7 @@ export function AthleteDetailPage() {
         {/* Tab strip */}
         <div className="mt-2 px-5">
           <div
+            data-tour="coach-athlete-tabs"
             className="synth-scroll flex gap-1.5 overflow-x-auto rounded-full p-1"
             style={{
               background: SYNTH.glass,
@@ -146,6 +147,7 @@ export function AthleteDetailPage() {
                 <button
                   key={t.key}
                   type="button"
+                  data-tour={t.key === 'notes' ? 'coach-athlete-notes' : undefined}
                   onClick={() => setTab(t.key)}
                   className="shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors"
                   style={{

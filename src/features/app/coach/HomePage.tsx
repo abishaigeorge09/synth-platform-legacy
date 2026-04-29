@@ -1,19 +1,106 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { ArrowUpRight, BarChart3 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_TEAM, APP_MOCK_SCHEDULE } from '../data/mockTeam'
+import { LaunchActionSheet } from './LaunchActionSheet'
+import { useLaunchSheetStore } from '../../../shared/store/useLaunchSheetStore'
+import { LineupHeroPanel } from './lineupHero/LineupHeroPanel'
 
+const LAUNCH_SHEET_DELAY_MS = 400
+
+/**
+ * Coach home — horizontal pager. Page 1 is the lineup-first hero (always
+ * the default landing). Page 2 is the dashboard. Swipe right or tap the
+ * "Dashboard" pill on the hero to slide over.
+ *
+ * Each custom tool can register its own hero page later — for now there's
+ * just one (the Lineup Builder's), so the pager has 2 pages total.
+ */
 export function HomePage() {
+  const pagerRef = useRef<HTMLDivElement | null>(null)
+  const [activePage, setActivePage] = useState(0)
+
+  const goToPage = (index: number) => {
+    const el = pagerRef.current
+    if (!el) return
+    el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' })
+  }
+
+  const onPagerScroll = () => {
+    const el = pagerRef.current
+    if (!el) return
+    const idx = Math.round(el.scrollLeft / el.clientWidth)
+    if (idx !== activePage) setActivePage(idx)
+  }
+
+  return (
+    <div className="relative flex flex-1 flex-col overflow-hidden">
+      <div
+        ref={pagerRef}
+        onScroll={onPagerScroll}
+        className="synth-scroll flex flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
+        style={{ scrollbarWidth: 'none', overscrollBehaviorX: 'contain' }}
+      >
+        <div className="flex h-full w-full shrink-0 snap-center">
+          <LineupHeroPanel onPeekDashboard={() => goToPage(1)} />
+        </div>
+        <div className="flex h-full w-full shrink-0 snap-center">
+          <DashboardPanel />
+        </div>
+      </div>
+
+      {/* Page dots — tells the coach there are two pages */}
+      <div
+        className="pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-2.5 py-1.5"
+        style={{
+          bottom: 'max(env(safe-area-inset-bottom), 96px)',
+          background: 'rgba(8,8,40,0.45)',
+          border: `1px solid ${SYNTH.glassBorder}`,
+          backdropFilter: 'blur(8px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(140%)',
+        }}
+      >
+        {[0, 1].map((i) => {
+          const active = i === activePage
+          return (
+            <span
+              key={i}
+              className="rounded-full transition-all"
+              style={{
+                width: active ? 16 : 4,
+                height: 4,
+                background: active ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.45)',
+              }}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function DashboardPanel() {
   const navigate = useNavigate()
   const greeting = greetingForNow()
   const weekItems = APP_MOCK_SCHEDULE
   const [statsOpen, setStatsOpen] = useState(false)
+  const launchShouldShow = useLaunchSheetStore((s) => s.shouldShow)
+  const launchShow = useLaunchSheetStore((s) => s.show)
+
+  // Auto-present the quick-start sheet on coach Home, after the entrance
+  // animation has settled. Honors dismissal streak + manual disable in store.
+  useEffect(() => {
+    if (!launchShouldShow()) return
+    const t = window.setTimeout(launchShow, LAUNCH_SHEET_DELAY_MS)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[120px]">
+    <div className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-[120px]">
       <header
         className="flex items-center justify-between px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2"
         style={{ color: SYNTH.inkOnBrand }}
@@ -27,6 +114,7 @@ export function HomePage() {
         <button
           type="button"
           aria-label="Quick stats"
+          data-tour="coach-home-stats-button"
           onClick={() => setStatsOpen(true)}
           className="flex h-9 items-center gap-1.5 rounded-full px-3"
           style={{
@@ -56,6 +144,7 @@ export function HomePage() {
       />
 
       <motion.h1
+        data-tour="coach-home-greeting"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -64,7 +153,7 @@ export function HomePage() {
       >
         {greeting}, Coach.
         <br />
-        Race day in 3 days.
+        <span data-tour="coach-home-race-countdown">Race day in 3 days.</span>
       </motion.h1>
 
       <motion.section
@@ -220,6 +309,7 @@ export function HomePage() {
           </button>
         </header>
         <div
+          data-tour="coach-home-schedule"
           className="overflow-hidden rounded-3xl"
           style={{
             background: SYNTH.inlineCard,
@@ -285,6 +375,8 @@ export function HomePage() {
           ))}
         </div>
       </section>
+
+      <LaunchActionSheet />
     </div>
   )
 }

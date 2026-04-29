@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAppAuthStore } from './store/useAppAuthStore'
 import { SYNTH } from './lib/theme'
+import { TutorialProvider } from '../../shared/tutorial'
 
 export function AppShell() {
   const hydrate = useAppAuthStore((s) => s.hydrate)
@@ -24,6 +25,7 @@ export function AppShell() {
       <div className="app-shell-frame">
         {isReady ? <Outlet /> : <AppShellSplash />}
       </div>
+      {isReady && <TutorialProvider />}
     </div>
   )
 }

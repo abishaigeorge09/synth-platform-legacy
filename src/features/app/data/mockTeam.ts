@@ -194,6 +194,55 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     lastSyncMinutes: 22,
     primarySource: 'Apple Health',
   },
+  // ─── Coxswains ─────────────────────────────────────────────────────────
+  // Cox athletes don't row, so 2K + volume fields are minimal/representative.
+  // Surfaces in AthletePickerSheet under the COX filter chip when picking
+  // for a cox seat (forSide === 'X').
+  {
+    id: 'a-andie-vega',
+    name: 'Andie Vega',
+    initials: 'AV',
+    position: 'V8 — Cox',
+    side: 'X',
+    preferredSeat: 'cox',
+    recoveryScore: 84,
+    twoKBestSeconds: 8 * 60 + 12, // ergs occasionally for fitness tests
+    twoKAvg30dSeconds: 8 * 60 + 24,
+    weeklyVolumeMeters: 14_000, // light cross-training rows
+    streakDays: 19,
+    lastSyncMinutes: 6,
+    primarySource: 'WHOOP',
+  },
+  {
+    id: 'a-pia-roman',
+    name: 'Pia Roman',
+    initials: 'PR',
+    position: '2V8 — Cox',
+    side: 'X',
+    preferredSeat: 'cox',
+    recoveryScore: 76,
+    twoKBestSeconds: 8 * 60 + 28,
+    twoKAvg30dSeconds: 8 * 60 + 36,
+    weeklyVolumeMeters: 9_000,
+    streakDays: 8,
+    lastSyncMinutes: 14,
+    primarySource: 'Apple Health',
+  },
+  {
+    id: 'a-tess-kim',
+    name: 'Tess Kim',
+    initials: 'TK',
+    position: 'Reserve — Cox',
+    side: 'X',
+    preferredSeat: 'cox',
+    recoveryScore: 68,
+    twoKBestSeconds: 8 * 60 + 41,
+    twoKAvg30dSeconds: 8 * 60 + 49,
+    weeklyVolumeMeters: 6_000,
+    streakDays: 4,
+    lastSyncMinutes: 32,
+    primarySource: 'Strava',
+  },
 ]
 
 export type AppAttentionItem = {
@@ -246,6 +295,16 @@ export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
     signal: 'Streak hit 23 days — longest on team',
     source: 'synth.',
     syncedMinutesAgo: 12,
+    severity: 'low',
+  },
+  {
+    id: 'att-5',
+    athleteId: 'a-andie-vega',
+    athleteName: 'Andie Vega',
+    initials: 'AV',
+    signal: 'Race-day ready — recovery 84, slept 8.1h',
+    source: 'WHOOP',
+    syncedMinutesAgo: 6,
     severity: 'low',
   },
 ]

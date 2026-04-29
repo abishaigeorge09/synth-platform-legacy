@@ -79,7 +79,7 @@ export function AttentionPage() {
       >
         {/* Bottom padding leaves clearance for the floating tab bar */}
         <div className="flex flex-col gap-5 pb-[96px]">
-          <article>
+          <article data-tour="coach-attention-row">
             <div className="flex items-start gap-3">
               <span
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
@@ -126,6 +126,7 @@ export function AttentionPage() {
 
             <button
               type="button"
+              data-tour="coach-attention-tap"
               onClick={() => navigate(`/app/coach/athlete/${selected.athleteId}`)}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold"
               style={{

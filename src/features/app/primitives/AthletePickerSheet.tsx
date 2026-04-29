@@ -100,7 +100,10 @@ export function AthletePickerSheet({
       : undefined
 
   return (
-    <SheetShell open={open} onClose={onClose} title={titleText} tall>
+    // Auto-fit content height — short filters (e.g. PORT only, 3 athletes)
+    // dock at the bottom instead of stretching to 78dvh. Long filters (ALL,
+    // 46 athletes) still scroll inside SheetShell's 88dvh ceiling.
+    <SheetShell open={open} onClose={onClose} title={titleText}>
       {/* Search */}
       <label
         className="flex items-center gap-2 rounded-2xl px-3"

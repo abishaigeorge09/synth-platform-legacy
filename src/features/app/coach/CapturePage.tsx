@@ -94,21 +94,32 @@ export function CapturePage() {
       <CoachPageHeader title="Capture" subtitle="Drop anything, synth synthesizes" back="/app/coach/home" />
 
       <section className="mx-5 mt-2 grid grid-cols-2 gap-3">
-        {MODES.map((m, i) => (
-          <ModeCard
-            key={m.key}
-            index={i}
-            label={m.label}
-            description={m.description}
-            cardColor={m.cardColor}
-            icon={m.icon}
-            action={m.action}
-            onClick={() => onModeTap(m.key)}
-          />
-        ))}
+        {MODES.map((m, i) => {
+          const tourAnchor =
+            m.key === 'voice'
+              ? 'coach-capture-voice'
+              : m.key === 'photo'
+                ? 'coach-capture-photo'
+                : m.key === 'note'
+                  ? 'coach-capture-note'
+                  : undefined
+          return (
+            <div key={m.key} {...(tourAnchor ? { 'data-tour': tourAnchor } : {})}>
+              <ModeCard
+                index={i}
+                label={m.label}
+                description={m.description}
+                cardColor={m.cardColor}
+                icon={m.icon}
+                action={m.action}
+                onClick={() => onModeTap(m.key)}
+              />
+            </div>
+          )
+        })}
       </section>
 
-      <section className="mt-7 px-5">
+      <section data-tour="coach-capture-recent" className="mt-7 px-5">
         <p
           className="pb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
           style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}

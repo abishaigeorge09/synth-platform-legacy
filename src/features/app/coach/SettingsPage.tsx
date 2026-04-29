@@ -11,7 +11,13 @@ import {
   UserPlus,
   Copy,
   Check,
+  HelpCircle,
+  RotateCcw,
+  Zap,
 } from 'lucide-react'
+import { useTutorialStore } from '../../../shared/tutorial'
+import { toast } from '../../../shared/store/useToastStore'
+import { useLaunchSheetStore } from '../../../shared/store/useLaunchSheetStore'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import {
@@ -30,7 +36,32 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const user = useAppAuthStore((s) => s.user)
   const signOut = useAppAuthStore((s) => s.signOut)
+  const replayTour = useTutorialStore((s) => s.replay)
+  const resetAll = useTutorialStore((s) => s.resetAll)
+  const launchDisabled = useLaunchSheetStore((s) => s.disabled)
+  const launchEnable = useLaunchSheetStore((s) => s.enable)
+  const launchDisable = useLaunchSheetStore((s) => s.disable)
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null)
+
+  const replayCurrent = () => {
+    // Send the coach to home and replay that tour. Defer the replay so the
+    // route mount happens before the overlay tries to find the anchor.
+    navigate('/app/coach/home')
+    window.setTimeout(() => replayTour('coachHome'), 80)
+  }
+  const resetEverything = () => {
+    resetAll()
+    toast('All tutorials reset — they will fire again on next visit.', 'success')
+  }
+  const toggleLaunchSheet = () => {
+    if (launchDisabled) {
+      launchEnable()
+      toast('Quick start sheet will appear on Home', 'success')
+    } else {
+      launchDisable()
+      toast("Quick start sheet won't auto-open", 'info')
+    }
+  }
 
   const [copied, setCopied] = useState(false)
   const inviteCode = 'CAL-W26'
@@ -107,6 +138,7 @@ export function SettingsPage() {
 
       <Section title="Team">
         <div
+          data-tour="coach-settings-invite"
           className="flex items-center gap-3 px-4 py-3.5"
           style={{ borderTop: 'none' }}
         >
@@ -164,12 +196,14 @@ export function SettingsPage() {
       </Section>
 
       <Section title="Preferences">
-        <Row
-          icon={<Bell size={18} />}
-          label="Notifications"
-          sub="Daily summary, attention alerts"
-          onClick={() => setOpenSheet('notifications')}
-        />
+        <div data-tour="coach-settings-notif">
+          <Row
+            icon={<Bell size={18} />}
+            label="Notifications"
+            sub="Daily summary, attention alerts"
+            onClick={() => setOpenSheet('notifications')}
+          />
+        </div>
         <Row
           icon={<Sparkles size={18} />}
           label="synth AI"
@@ -181,6 +215,29 @@ export function SettingsPage() {
           label="Privacy &amp; sharing"
           sub="What athletes can see by default"
           onClick={() => setOpenSheet('privacy')}
+        />
+      </Section>
+
+      <Section title="Help &amp; guidance">
+        <Row
+          icon={<Zap size={18} />}
+          label={launchDisabled ? 'Quick start sheet · off' : 'Quick start sheet · on'}
+          sub={launchDisabled ? 'Tap to auto-open the sheet on Home again' : 'Auto-opens Capture / Start session on Home'}
+          onClick={toggleLaunchSheet}
+        />
+        <div data-tour="coach-settings-replay">
+          <Row
+            icon={<HelpCircle size={18} />}
+            label="Replay tutorial"
+            sub="Walk through the home page step-by-step"
+            onClick={replayCurrent}
+          />
+        </div>
+        <Row
+          icon={<RotateCcw size={18} />}
+          label="Reset all tutorials"
+          sub="Make every walkthrough fire on next visit"
+          onClick={resetEverything}
         />
       </Section>
 

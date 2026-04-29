@@ -35,6 +35,7 @@ import { SessionDetailPage as AppCoachSessionDetailPage } from '../features/app/
 import { SessionTimerPage as AppCoachSessionTimerPage } from '../features/app/coach/SessionTimerPage'
 import { NotesPage as AppCoachNotesPage } from '../features/app/coach/NotesPage'
 import { SourcesPage as AppCoachSourcesPage } from '../features/app/coach/SourcesPage'
+import { SourcesDataViewPage as AppCoachSourcesDataViewPage } from '../features/app/coach/SourcesDataViewPage'
 import { SettingsPage as AppCoachSettingsPage } from '../features/app/coach/SettingsPage'
 import { AppAthleteShell } from '../features/app/athlete/AppAthleteShell'
 import { HomePage as AppAthleteHomePage } from '../features/app/athlete/HomePage'
@@ -286,7 +287,9 @@ export const routes: RouteObject[] = [
           { path: 'sessions/:id', element: withSuspense(<AppCoachSessionDetailPage />, 'Session') },
           { path: 'sessions/:id/timer', element: withSuspense(<AppCoachSessionTimerPage />, 'Session timer') },
           { path: 'notes', element: withSuspense(<AppCoachNotesPage />, 'Notes') },
-          { path: 'sources', element: withSuspense(<AppCoachSourcesPage />, 'Sources') },
+          { path: 'sources', element: <Navigate to="/app/coach/sources/connectors" replace /> },
+          { path: 'sources/connectors', element: withSuspense(<AppCoachSourcesPage />, 'Sources') },
+          { path: 'sources/data-view', element: withSuspense(<AppCoachSourcesDataViewPage />, 'Sources data view') },
           { path: 'settings', element: withSuspense(<AppCoachSettingsPage />, 'Settings') },
         ],
       },

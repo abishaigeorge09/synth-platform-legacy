@@ -27,6 +27,7 @@ export function NotesPage() {
           <button
             type="button"
             aria-label="New note"
+            data-tour="coach-notes-add"
             onClick={() => setComposerOpen(true)}
             className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
             style={{
@@ -43,7 +44,13 @@ export function NotesPage() {
       <section className="mx-5 mt-2">
         <div className="flex flex-col gap-2.5">
           {notes.map((note, i) => (
-            <NoteCard key={note.id} note={note} index={i} onAthleteTap={() => navigate(`/app/coach/athlete/${note.athleteId}`)} />
+            <div key={note.id} {...(i === 0 ? { 'data-tour': 'coach-notes-row' } : {})}>
+              <NoteCard
+                note={note}
+                index={i}
+                onAthleteTap={() => navigate(`/app/coach/athlete/${note.athleteId}`)}
+              />
+            </div>
           ))}
         </div>
       </section>

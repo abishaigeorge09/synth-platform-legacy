@@ -1,108 +1,47 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Check, AlertCircle, RefreshCw } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Plus, ChevronRight, ArrowUpRight } from 'lucide-react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
-import { COACH_CONNECTORS } from '../data/mockConnectors'
-import {
-  AddSourceSheet,
-  SourceDetailSheet,
-  type ConnectorMeta,
-} from '../primitives/SourcesSheets'
+import { COACH_CONNECTORS, type ConnectorMock } from '../data/mockConnectors'
+import { ConnectorLogo } from '../primitives/ConnectorLogo'
+import { ConnectorPermissionsSheet } from '../primitives/ConnectorPermissionsSheet'
+import { SourcesSegmentedSwitch } from '../primitives/SourcesSegmentedSwitch'
+import { AddSourceSheet } from '../primitives/SourcesSheets'
+import { useSourcesStore, enabledToolCount } from '../data/useSourcesStore'
 import { SYNTH } from '../lib/theme'
 
-type Status = 'synced' | 'syncing' | 'error'
-
-type Row = {
-  id: string
-  status: Status
-  lastSync: string
-}
-
-const SEED_ROWS: Row[] = [
-  { id: 'concept2', status: 'synced', lastSync: '4m ago' },
-  { id: 'strava', status: 'synced', lastSync: '12m ago' },
-  { id: 'trainingpeaks', status: 'syncing', lastSync: 'now' },
-  { id: 'whoop', status: 'synced', lastSync: '6m ago' },
-  { id: 'apple-health', status: 'synced', lastSync: '4m ago' },
-  { id: 'garmin', status: 'error', lastSync: '2h ago' },
-]
-
 export function SourcesPage() {
-  const [rows, setRows] = useState<Row[]>(SEED_ROWS)
+  const sources = useSourcesStore((s) => s.sources)
+  const connect = useSourcesStore((s) => s.connect)
+
   const [openDetailId, setOpenDetailId] = useState<string | null>(null)
   const [openAdd, setOpenAdd] = useState(false)
-  const [syncingAll, setSyncingAll] = useState(false)
-  const [lastSyncCount, setLastSyncCount] = useState('4m')
 
-  const enriched = useMemo(
+  const connected = useMemo(
     () =>
-      rows
-        .map((r) => {
-          const meta = COACH_CONNECTORS.find((c) => c.id === r.id)
-          if (!meta) return null
-          return { ...r, meta }
-        })
-        .filter((r): r is Row & { meta: typeof COACH_CONNECTORS[number] } => r !== null),
-    [rows],
+      COACH_CONNECTORS.filter((c) => sources[c.id]).map((c) => ({
+        ...c,
+        toolCount: enabledToolCount(sources[c.id]),
+      })),
+    [sources],
   )
 
-  const available: ConnectorMeta[] = COACH_CONNECTORS.filter(
-    (c) => !rows.some((r) => r.id === c.id),
-  ).map((c) => ({
-    id: c.id,
-    name: c.name,
-    category: c.category,
-    brandColor: c.brandColor,
-  }))
-
-  const onSyncAll = () => {
-    if (syncingAll) return
-    setSyncingAll(true)
-    setRows((r) => r.map((row) => (row.status === 'error' ? row : { ...row, status: 'syncing', lastSync: 'now' })))
-    setTimeout(() => {
-      setRows((r) =>
-        r.map((row) => (row.status === 'error' ? row : { ...row, status: 'synced', lastSync: 'just now' })),
-      )
-      setLastSyncCount('0m')
-      setSyncingAll(false)
-    }, 1400)
-  }
-
-  const onAdd = (id: string) => {
-    setRows((r) => [...r, { id, status: 'synced', lastSync: 'just now' }])
-    setOpenAdd(false)
-  }
-
-  const detailSource = enriched.find((r) => r.id === openDetailId)
-
-  const onPause = () => {
-    if (!openDetailId) return
-    setRows((r) =>
-      r.map((row) =>
-        row.id === openDetailId
-          ? { ...row, status: row.status === 'syncing' ? 'synced' : 'syncing' }
-          : row,
-      ),
-    )
-  }
-
-  const onDisconnect = () => {
-    if (!openDetailId) return
-    setRows((r) => r.filter((row) => row.id !== openDetailId))
-    setOpenDetailId(null)
-  }
+  const available = useMemo(
+    () => COACH_CONNECTORS.filter((c) => !sources[c.id]),
+    [sources],
+  )
 
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
       <CoachPageHeader
         title="Sources"
-        subtitle={`${enriched.length} connected`}
+        subtitle={`${connected.length} connected`}
         back="/app/coach/home"
         rightSlot={
           <button
             type="button"
             aria-label="Add source"
+            data-tour="coach-sources-grant"
             onClick={() => setOpenAdd(true)}
             className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
             style={{
@@ -118,208 +57,140 @@ export function SourcesPage() {
         }
       />
 
+      <SourcesSegmentedSwitch />
+
       <motion.section
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32 }}
-        className="mx-5 mt-2 rounded-3xl p-5"
-        style={{ background: SYNTH.cardSky, boxShadow: SYNTH.shadow.card }}
+        className="mt-3 px-5"
       >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-          style={{ color: SYNTH.ink, opacity: 0.65, fontFamily: SYNTH.font }}
-        >
-          Last sync
-        </p>
-        <div className="mt-2 flex items-baseline gap-3">
-          <span
-            className="text-[36px] font-bold leading-none tracking-[-0.02em]"
-            style={{
-              color: SYNTH.ink,
-              fontFamily: SYNTH.font,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {syncingAll ? '—' : lastSyncCount}
-          </span>
-          <span
-            className="text-[12px] font-semibold"
-            style={{ color: SYNTH.ink, opacity: 0.6, fontFamily: SYNTH.font }}
-          >
-            {syncingAll ? 'pulling fresh data…' : 'ago · all sources healthy'}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onSyncAll}
-          disabled={syncingAll}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] disabled:opacity-50"
-          style={{
-            background: SYNTH.accentBlack,
-            color: SYNTH.inkOnBrand,
-            fontFamily: SYNTH.font,
-          }}
-        >
-          <motion.span
-            animate={syncingAll ? { rotate: 360 } : { rotate: 0 }}
-            transition={syncingAll ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 0.2 }}
-            className="flex"
-          >
-            <RefreshCw size={11} strokeWidth={2.4} />
-          </motion.span>
-          {syncingAll ? 'Syncing' : 'Sync now'}
-        </button>
-      </motion.section>
-
-      <section className="mt-5 px-5">
         <p
           className="pb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
           style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
         >
           Connected
         </p>
-        <div
-          className="overflow-hidden rounded-3xl"
-          style={{
-            background: SYNTH.inlineCard,
-            border: `1px solid ${SYNTH.inlineCardBorder}`,
-          }}
-        >
-          {enriched.map((row, i) => (
-            <SourceRow
-              key={row.id}
-              brandColor={row.meta.brandColor}
-              initial={row.meta.name.charAt(0)}
-              name={row.meta.name}
-              category={row.meta.category}
-              status={row.status}
-              lastSync={row.lastSync}
+        <div className="flex flex-col">
+          {connected.map((c, i) => (
+            <ConnectorRow
+              key={c.id}
+              connector={c}
+              toolCount={c.toolCount}
+              connected
               isFirst={i === 0}
-              onClick={() => setOpenDetailId(row.id)}
+              isLast={i === connected.length - 1}
+              onClick={() => setOpenDetailId(c.id)}
             />
           ))}
         </div>
-      </section>
+      </motion.section>
+
+      {available.length > 0 ? (
+        <section className="mt-6 px-5">
+          <p
+            className="pb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
+            style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+          >
+            Available
+          </p>
+          <div className="flex flex-col">
+            {available.map((c, i) => (
+              <ConnectorRow
+                key={c.id}
+                connector={c}
+                toolCount={0}
+                connected={false}
+                isFirst={i === 0}
+                isLast={i === available.length - 1}
+                onClick={() => connect(c.id)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <AddSourceSheet
         open={openAdd}
         onClose={() => setOpenAdd(false)}
-        available={available}
-        onAdd={onAdd}
+        available={available.map((c) => ({
+          id: c.id,
+          name: c.name,
+          category: c.category,
+          brandColor: c.brandColor,
+        }))}
+        onAdd={(id) => {
+          connect(id)
+          setOpenAdd(false)
+        }}
       />
-      {detailSource ? (
-        <SourceDetailSheet
-          open={!!openDetailId}
-          onClose={() => setOpenDetailId(null)}
-          source={{
-            id: detailSource.id,
-            name: detailSource.meta.name,
-            category: detailSource.meta.category,
-            brandColor: detailSource.meta.brandColor,
-            status: detailSource.status,
-            lastSync: detailSource.lastSync,
-          }}
-          onPause={onPause}
-          onDisconnect={onDisconnect}
-        />
-      ) : null}
+
+      <ConnectorPermissionsSheet
+        open={openDetailId !== null}
+        onClose={() => setOpenDetailId(null)}
+        sourceId={openDetailId}
+      />
     </div>
   )
 }
 
-function SourceRow({
-  brandColor,
-  initial,
-  name,
-  category,
-  status,
-  lastSync,
+function ConnectorRow({
+  connector,
+  toolCount,
+  connected,
   isFirst,
+  isLast,
   onClick,
 }: {
-  brandColor: string
-  initial: string
-  name: string
-  category: string
-  status: Status
-  lastSync: string
+  connector: ConnectorMock
+  toolCount: number
+  connected: boolean
   isFirst: boolean
+  isLast: boolean
   onClick: () => void
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-4 text-left active:opacity-70"
-      style={{ borderTop: isFirst ? 'none' : `1px solid ${SYNTH.inlineCardBorder}` }}
-    >
-      <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{
-          background: brandColor,
-          color: SYNTH.inkOnBrand,
-          fontFamily: SYNTH.font,
-          fontWeight: 700,
-          fontSize: 14,
-        }}
-      >
-        {initial.toUpperCase()}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p
-          className="truncate text-[14px] font-semibold leading-tight"
-          style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-        >
-          {name}
-        </p>
-        <p
-          className="mt-0.5 text-[11px] uppercase tracking-[0.12em]"
-          style={{
-            color: SYNTH.inkOnBrandMuted,
-            fontFamily: SYNTH.font,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {category} · {lastSync}
-        </p>
-      </div>
-      <StatusBadge status={status} />
-    </button>
-  )
-}
-
-function StatusBadge({ status }: { status: Status }) {
-  let icon: ReactNode
-  let bg: string
-  let label: string
-  switch (status) {
-    case 'synced':
-      icon = <Check size={11} strokeWidth={3} color={SYNTH.inkOnBrand} />
-      bg = SYNTH.accentEmerald
-      label = 'Synced'
-      break
-    case 'syncing':
-      icon = <RefreshCw size={11} strokeWidth={2.6} color={SYNTH.inkOnBrand} />
-      bg = SYNTH.accentAmber
-      label = 'Syncing'
-      break
-    case 'error':
-      icon = <AlertCircle size={11} strokeWidth={2.6} color={SYNTH.inkOnBrand} />
-      bg = SYNTH.accentRed
-      label = 'Error'
-      break
-  }
-  return (
-    <span
-      className="flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+      className="flex w-full items-center gap-3 py-3 text-left active:opacity-70"
       style={{
-        background: bg,
-        color: SYNTH.inkOnBrand,
-        fontFamily: SYNTH.font,
+        borderTop: isFirst ? 'none' : `1px solid rgba(255,255,255,0.08)`,
+        paddingTop: isFirst ? 12 : 12,
+        paddingBottom: isLast ? 12 : 12,
       }}
     >
-      {icon}
-      {label}
-    </span>
+      <ConnectorLogo id={connector.id} size={32} />
+      <span
+        className="flex-1 truncate text-[15px] font-semibold"
+        style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+      >
+        {connector.name}
+      </span>
+      {connected ? (
+        <>
+          <span
+            className="flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-[12px] font-bold"
+            style={{
+              background: '#3B82F6',
+              color: '#FFFFFF',
+              fontFamily: SYNTH.font,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {toolCount}
+          </span>
+          <ChevronRight size={18} color="rgba(255,255,255,0.6)" strokeWidth={2.2} />
+        </>
+      ) : (
+        <span
+          className="flex items-center gap-1 text-[13px] font-semibold"
+          style={{ color: 'rgba(255,255,255,0.62)', fontFamily: SYNTH.font }}
+        >
+          Connect
+          <ArrowUpRight size={14} strokeWidth={2.4} />
+        </span>
+      )}
+    </button>
   )
 }

@@ -85,6 +85,7 @@ export function RosterPage() {
 
       <section className="mx-5 mt-2">
         <label
+          data-tour="coach-roster-search"
           className="flex items-center gap-2 rounded-full px-4"
           style={{
             background: SYNTH.glass,
@@ -145,16 +146,17 @@ export function RosterPage() {
             </p>
           ) : (
             visible.map(({ athlete, erg, rank, recovery, flagged }, i) => (
-              <RosterRow
-                key={athlete.id}
-                athlete={athlete}
-                erg={erg}
-                rank={rank}
-                recovery={recovery}
-                flagged={flagged}
-                first={i === 0}
-                onPress={() => navigate(`/app/coach/athlete/${athlete.id}`)}
-              />
+              <div key={athlete.id} {...(i === 0 ? { 'data-tour': 'coach-roster-card' } : {})}>
+                <RosterRow
+                  athlete={athlete}
+                  erg={erg}
+                  rank={rank}
+                  recovery={recovery}
+                  flagged={flagged}
+                  first={i === 0}
+                  onPress={() => navigate(`/app/coach/athlete/${athlete.id}`)}
+                />
+              </div>
             ))
           )}
         </div>

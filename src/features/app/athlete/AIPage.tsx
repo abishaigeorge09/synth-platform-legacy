@@ -161,16 +161,20 @@ export function AIPage() {
               Just me
             </span>
           </div>
-          <HeaderIconButton ariaLabel="Chat history" onClick={() => setHistoryOpen(true)}>
-            <Menu size={16} strokeWidth={2.2} />
-          </HeaderIconButton>
-          <HeaderIconButton
-            ariaLabel="Customize chat"
-            onClick={() => setCustomizeOpen(true)}
-            badge={customizationActive}
-          >
-            <Sliders size={16} strokeWidth={2.2} />
-          </HeaderIconButton>
+          <span data-tour="athlete-ai-history">
+            <HeaderIconButton ariaLabel="Chat history" onClick={() => setHistoryOpen(true)}>
+              <Menu size={16} strokeWidth={2.2} />
+            </HeaderIconButton>
+          </span>
+          <span data-tour="athlete-ai-customize">
+            <HeaderIconButton
+              ariaLabel="Customize chat"
+              onClick={() => setCustomizeOpen(true)}
+              badge={customizationActive}
+            >
+              <Sliders size={16} strokeWidth={2.2} />
+            </HeaderIconButton>
+          </span>
         </header>
 
         <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-2">
@@ -182,7 +186,7 @@ export function AIPage() {
           />
         </div>
 
-        <div className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+        <div data-tour="athlete-ai-input" className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
           <AIComposer
             value={text}
             onChange={setText}

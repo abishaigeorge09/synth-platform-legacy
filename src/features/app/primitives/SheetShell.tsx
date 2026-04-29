@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { SYNTH } from '../lib/theme'
@@ -20,9 +21,17 @@ type Props = {
  * Shared bottom-sheet shell — drag-handle, dimmed backdrop, rounded top,
  * cream/white sheet body. Used across capture / settings / sources /
  * lineups for any modal that's contextual to a page.
+ *
+ * Rendered through a portal to document.body so the fixed-position sheet
+ * always anchors to the viewport — not to the nearest ancestor with a
+ * `transform`, `filter`, or `backdrop-filter`. (e.g. BoatLineupCard's glass
+ * card: without the portal, the sheet would slide out of the card itself
+ * instead of from the bottom of the screen.)
  */
 export function SheetShell({ open, onClose, title, children, tall = false }: Props) {
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <AnimatePresence>
       {open ? (
         <>
@@ -88,6 +97,7 @@ export function SheetShell({ open, onClose, title, children, tall = false }: Pro
           </motion.div>
         </>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }

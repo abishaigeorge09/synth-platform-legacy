@@ -46,7 +46,10 @@ export function TrustCardPage() {
     >
       <OnboardingBackground variant="trust" />
       <div className="synth-scroll relative z-10 min-h-0 flex-1 overflow-y-auto">
-        <div className="flex min-h-full flex-col justify-center px-6 py-6">
+        <div
+          className="flex min-h-full flex-col justify-center px-6 py-6"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 110px)' }}
+        >
           <div className="mx-auto w-full max-w-[420px]">
             {/* Hero shield */}
             <motion.div
@@ -120,7 +123,7 @@ export function TrustCardPage() {
       </div>
 
       <div
-        className="relative z-10 shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-3"
+        className="absolute inset-x-0 bottom-0 z-20 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-3"
         style={{
           background: 'rgba(31, 38, 201, 0.82)',
           backdropFilter: 'blur(18px) saturate(140%)',

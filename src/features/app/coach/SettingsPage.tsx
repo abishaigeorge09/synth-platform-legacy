@@ -8,7 +8,9 @@ import {
   Database,
   LogOut,
   Sparkles,
-  Users,
+  UserPlus,
+  Copy,
+  Check,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
@@ -28,6 +30,19 @@ export function SettingsPage() {
   const user = useAppAuthStore((s) => s.user)
   const signOut = useAppAuthStore((s) => s.signOut)
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null)
+
+  const [copied, setCopied] = useState(false)
+  const inviteCode = 'CAL-W26'
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    } catch {
+      /* ignore */
+    }
+  }
 
   const onSignOut = async () => {
     await signOut()
@@ -90,16 +105,59 @@ export function SettingsPage() {
       </motion.section>
 
       <Section title="Team">
+        <div
+          className="flex items-center gap-3 px-4 py-3.5"
+          style={{ borderTop: 'none' }}
+        >
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+            style={{
+              background: SYNTH.glass,
+              color: SYNTH.inkOnBrand,
+              border: `1px solid ${SYNTH.glassBorder}`,
+            }}
+          >
+            <UserPlus size={18} strokeWidth={2.2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-[14px] font-semibold leading-tight"
+              style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+            >
+              Team invite code
+            </p>
+            <p
+              className="mt-0.5 text-[12px]"
+              style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+            >
+              Share with athletes joining {APP_MOCK_TEAM.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCopy}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold"
+            style={{
+              background: copied ? SYNTH.accentEmerald : SYNTH.inkOnBrand,
+              color: copied ? SYNTH.inkOnBrand : SYNTH.ink,
+              fontFamily: SYNTH.font,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {copied ? <Check size={12} strokeWidth={3} /> : <Copy size={12} strokeWidth={2.4} />}
+            {copied ? 'Copied' : inviteCode}
+          </button>
+        </div>
         <Row
-          icon={<Users size={18} />}
-          label="Roster"
-          sub={`${APP_MOCK_TEAM.athleteCount} athletes`}
-          onClick={() => navigate('/app/coach/roster')}
+          icon={<UserPlus size={18} />}
+          label="Invite coaches"
+          sub="Add assistant coaches to this team"
+          onClick={() => alert("Coach invite flow — coming next.")}
         />
         <Row
           icon={<Database size={18} />}
-          label="Connected sources"
-          sub="6 connected · 4m last sync"
+          label="Connector health"
+          sub="6 connected · 4m last sync · all healthy"
           onClick={() => navigate('/app/coach/sources')}
         />
       </Section>

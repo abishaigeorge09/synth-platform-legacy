@@ -1,66 +1,91 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Play, Square, X, Pause, Flag, Layers } from 'lucide-react'
-import { useSessionsStore } from '../data/useSessionsStore'
+import { Play, Square, Pause, Flag, X, Plus, Layers, ArrowLeftRight } from 'lucide-react'
+import {
+  useSessionsStore,
+  type RunSwap,
+} from '../data/useSessionsStore'
+import { type Boat } from '../data/lineupBuilderStore'
 import { APP_MOCK_ATHLETES } from '../data/mockTeam'
 import { SYNTH } from '../lib/theme'
 import { fmtClock, fmtSplit } from '../primitives/RaceRecorder'
-import type { Boat } from '../data/lineupBuilderStore'
+import { LiveBoatStrip, type StripBoat } from '../primitives/LiveBoatStrip'
+import { RunSwapSheet } from '../primitives/RunSwapSheet'
+import { SaveRaceSheet, type SaveRaceResult } from '../primitives/SaveRaceSheet'
 
-type BoatTimer = {
+type LiveBoatTimer = {
+  id: string
   status: 'idle' | 'running' | 'paused' | 'finished'
-  elapsed: number
-  startedAt: number | null // perf.now()
+  startedAt: number | null
   accum: number
-  splitTimes: number[]
+  splits: number[]
 }
 
-function defaultTimer(): BoatTimer {
-  return { status: 'idle', elapsed: 0, startedAt: null, accum: 0, splitTimes: [] }
+type ActiveRun = {
+  id: string
+  title: string
+  boats: Boat[]
+  liveBoats: Record<string, LiveBoatTimer>
+  raceGroups: string[][]
+  swaps: RunSwap[]
+  finishedAt: string | null
 }
 
-/**
- * Live race timer for an entire session. Each boat is its own swipeable
- * page (CSS scroll-snap). Per-boat:
- *   - huge black timer (Strava style)
- *   - lineup chips
- *   - START · PAUSE · FINISH controls
- *   - SPLIT button captures a split
- *
- * Top bar has "Race together" — shows a compact picker; selecting boats
- * and tapping start/finish-all kicks them off simultaneously.
- *
- * Finish (all boats) writes the run into the session and routes back.
- */
+function makeIdleTimer(id: string): LiveBoatTimer {
+  return { id, status: 'idle', startedAt: null, accum: 0, splits: [] }
+}
+
+function makeRun(boats: Boat[], index: number, swaps: RunSwap[] = []): ActiveRun {
+  return {
+    id: `run-${Date.now()}-${index}`,
+    title: `Run ${index + 1}`,
+    boats: boats.map((b) => ({ ...b, seats: b.seats.map((s) => ({ ...s })) })),
+    liveBoats: Object.fromEntries(boats.map((b) => [b.id, makeIdleTimer(b.id)])),
+    raceGroups: [],
+    swaps,
+    finishedAt: null,
+  }
+}
+
+function elapsedFor(t: LiveBoatTimer, now: number): number {
+  if (t.status === 'running' && t.startedAt !== null) {
+    return t.accum + (now - t.startedAt)
+  }
+  return t.accum
+}
+
 export function SessionTimerPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const session = useSessionsStore((s) => s.sessions.find((x) => x.id === id) ?? null)
   const updateSession = useSessionsStore((s) => s.updateSession)
   const addRun = useSessionsStore((s) => s.addRun)
+  const markCompleted = useSessionsStore((s) => s.markCompleted)
+  const markNeedsRating = useSessionsStore((s) => s.markNeedsRating)
 
-  // Per-boat timer state
-  const boatIds = session?.boats.map((b) => b.id) ?? []
-  const [timers, setTimers] = useState<Record<string, BoatTimer>>(() =>
-    Object.fromEntries(boatIds.map((bid) => [bid, defaultTimer()])),
-  )
-  // Currently focused page index (for race-together button context)
+  const [runs, setRuns] = useState<ActiveRun[]>(() => (session ? [makeRun(session.boats, 0)] : []))
+  const [activeRunIdx, setActiveRunIdx] = useState(0)
   const [pageIndex, setPageIndex] = useState(0)
+  const [raceTogetherOpen, setRaceTogetherOpen] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
+  const [saveOpen, setSaveOpen] = useState(false)
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
   const [, forceTick] = useState(0)
 
-  // Mark session in-progress on mount (idempotent)
+  // Move session to in-progress on mount
   useEffect(() => {
     if (session && session.status === 'scheduled') {
       updateSession(session.id, { status: 'in-progress' })
     }
   }, [session, updateSession])
 
-  // RAF — drives the displayed elapsed for any running boat
+  // RAF — drives the live timers across the active run
   useEffect(() => {
-    const anyRunning = Object.values(timers).some((t) => t.status === 'running')
+    const active = runs[activeRunIdx]
+    if (!active) return
+    const anyRunning = Object.values(active.liveBoats).some((t) => t.status === 'running')
     if (!anyRunning) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       rafRef.current = null
@@ -74,106 +99,169 @@ export function SessionTimerPage() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [timers])
+  }, [runs, activeRunIdx])
 
   if (!session) {
     return (
       <div className="flex flex-1 items-center justify-center px-6">
-        <p
-          className="text-center text-[14px]"
-          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
-        >
-          Session not found.
-        </p>
+        <p style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>Session not found.</p>
       </div>
     )
   }
 
-  // ── Timer ops ─────────────────────────────────────────────────────────────
-  const elapsedFor = (t: BoatTimer): number => {
-    if (t.status === 'running' && t.startedAt !== null) {
-      return t.accum + (performance.now() - t.startedAt)
-    }
-    return t.elapsed
-  }
+  const active = runs[activeRunIdx]
+  const now = performance.now()
 
-  const startBoat = (boatId: string) => {
-    setTimers((prev) => ({
-      ...prev,
-      [boatId]: {
-        ...prev[boatId],
-        status: 'running',
-        startedAt: performance.now(),
-      },
+  const updateActiveRun = useCallback(
+    (mut: (run: ActiveRun) => ActiveRun) => {
+      setRuns((prev) => prev.map((r, i) => (i === activeRunIdx ? mut(r) : r)))
+    },
+    [activeRunIdx],
+  )
+
+  const startBoats = (boatIds: string[]) => {
+    const start = performance.now()
+    updateActiveRun((run) => ({
+      ...run,
+      raceGroups: boatIds.length >= 2 ? [...run.raceGroups, [...boatIds]] : [...run.raceGroups, ...boatIds.map((id) => [id])],
+      liveBoats: Object.fromEntries(
+        Object.entries(run.liveBoats).map(([id, t]) =>
+          boatIds.includes(id) && (t.status === 'idle' || t.status === 'paused')
+            ? [id, { ...t, status: 'running', startedAt: start }]
+            : [id, t],
+        ),
+      ),
     }))
   }
+
   const pauseBoat = (boatId: string) => {
-    setTimers((prev) => {
-      const t = prev[boatId]
-      if (!t || t.status !== 'running') return prev
-      const now = performance.now()
-      const elapsed = t.accum + (t.startedAt ? now - t.startedAt : 0)
-      return {
-        ...prev,
-        [boatId]: { ...t, status: 'paused', elapsed, accum: elapsed, startedAt: null },
-      }
-    })
+    updateActiveRun((run) => ({
+      ...run,
+      liveBoats: Object.fromEntries(
+        Object.entries(run.liveBoats).map(([id, t]) => {
+          if (id !== boatId || t.status !== 'running') return [id, t]
+          const e = elapsedFor(t, performance.now())
+          return [id, { ...t, status: 'paused', accum: e, startedAt: null }]
+        }),
+      ),
+    }))
   }
+
   const finishBoat = (boatId: string) => {
-    setTimers((prev) => {
-      const t = prev[boatId]
-      if (!t) return prev
-      const elapsed = elapsedFor(t)
-      return {
-        ...prev,
-        [boatId]: { ...t, status: 'finished', elapsed, accum: elapsed, startedAt: null },
-      }
-    })
+    updateActiveRun((run) => ({
+      ...run,
+      liveBoats: Object.fromEntries(
+        Object.entries(run.liveBoats).map(([id, t]) => {
+          if (id !== boatId) return [id, t]
+          const e = elapsedFor(t, performance.now())
+          return [id, { ...t, status: 'finished', accum: e, startedAt: null }]
+        }),
+      ),
+    }))
   }
+
   const splitBoat = (boatId: string) => {
-    setTimers((prev) => {
-      const t = prev[boatId]
-      if (!t || t.status !== 'running') return prev
-      const elapsed = elapsedFor(t)
-      return {
-        ...prev,
-        [boatId]: { ...t, splitTimes: [...t.splitTimes, elapsed] },
+    updateActiveRun((run) => ({
+      ...run,
+      liveBoats: Object.fromEntries(
+        Object.entries(run.liveBoats).map(([id, t]) => {
+          if (id !== boatId || t.status !== 'running') return [id, t]
+          const e = elapsedFor(t, performance.now())
+          return [id, { ...t, splits: [...t.splits, e] }]
+        }),
+      ),
+    }))
+  }
+
+  const endRun = () => {
+    if (!active) return
+    // Finish anything still running
+    let mutatedRun = active
+    Object.values(active.liveBoats).forEach((t) => {
+      if (t.status === 'running' || t.status === 'paused') {
+        const e = elapsedFor(t, performance.now())
+        mutatedRun = {
+          ...mutatedRun,
+          liveBoats: {
+            ...mutatedRun.liveBoats,
+            [t.id]: { ...t, status: 'finished', accum: e, startedAt: null },
+          },
+        }
       }
     })
+    mutatedRun = { ...mutatedRun, finishedAt: new Date().toISOString() }
+    setRuns((prev) => prev.map((r, i) => (i === activeRunIdx ? mutatedRun : r)))
+
+    // Commit to the persistent store
+    const boatElapsed: Record<string, number> = {}
+    const splits: { boatId: string; ts: number }[] = []
+    Object.values(mutatedRun.liveBoats).forEach((t) => {
+      boatElapsed[t.id] = t.accum
+      t.splits.forEach((ts) => splits.push({ boatId: t.id, ts }))
+    })
+    addRun(session.id, {
+      title: mutatedRun.title,
+      startedAt: new Date().toISOString(),
+      finishedAt: mutatedRun.finishedAt ?? new Date().toISOString(),
+      boatsSnapshot: mutatedRun.boats,
+      raceGroups: mutatedRun.raceGroups,
+      boatElapsed,
+      splits,
+      swaps: mutatedRun.swaps,
+    })
   }
-  const startAll = () => {
-    setTimers((prev) => {
-      const next: Record<string, BoatTimer> = {}
-      const now = performance.now()
-      Object.keys(prev).forEach((bid) => {
-        const t = prev[bid]
-        if (t.status === 'idle' || t.status === 'paused') {
-          next[bid] = { ...t, status: 'running', startedAt: now }
-        } else {
-          next[bid] = t
-        }
-      })
+
+  const startNewRun = (nextBoats: Boat[], swaps: RunSwap[]) => {
+    setRuns((prev) => {
+      const newRun = makeRun(nextBoats, prev.length, swaps)
+      const next = [...prev, newRun]
+      setActiveRunIdx(next.length - 1)
+      setPageIndex(0)
       return next
     })
   }
 
-  const finishSession = () => {
-    // Capture a single Run snapshot of the session
-    const boatElapsed: Record<string, number> = {}
-    const splits: { boatId: string; ts: number }[] = []
-    Object.entries(timers).forEach(([bid, t]) => {
-      boatElapsed[bid] = t.elapsed || elapsedFor(t)
-      t.splitTimes.forEach((ts) => splits.push({ boatId: bid, ts }))
-    })
-    addRun(session.id, {
-      startedAt: new Date().toISOString(),
-      finishedAt: new Date().toISOString(),
-      boatElapsed,
-      splits,
-    })
-    updateSession(session.id, { status: 'completed' })
+  const finishSession = (saved: SaveRaceResult | null) => {
+    if (saved) {
+      // Find the latest finished run that doesn't yet have ratings — attach
+      // the ratings to it via updateRun.
+      const state = useSessionsStore.getState()
+      const persisted = state.sessions.find((s) => s.id === session.id)
+      const lastUnrated = persisted?.runs.findLast?.((r) => !r.ratings)
+      if (persisted && lastUnrated) {
+        state.updateRun(session.id, lastUnrated.id, {
+          ratings: saved.ratings,
+          ratedByCoach: saved.ratedByCoach,
+          notes: saved.privateNotes,
+        })
+      }
+      markCompleted(session.id)
+    } else {
+      markNeedsRating(session.id)
+    }
     navigate(`/app/coach/sessions/${session.id}`)
   }
+
+  // ── Strip data ────────────────────────────────────────────────────────────
+  const stripBoats: StripBoat[] = active
+    ? active.boats.map((b) => {
+        const t = active.liveBoats[b.id] ?? makeIdleTimer(b.id)
+        return {
+          id: b.id,
+          name: b.name,
+          color: b.color,
+          status: t.status,
+          elapsedMs: elapsedFor(t, now),
+        }
+      })
+    : []
+
+  const focusedBoatId = active?.boats[pageIndex]?.id
+
+  // Boats currently idle — eligible for "Race together" picker
+  const idleBoats = active
+    ? active.boats.filter((b) => active.liveBoats[b.id]?.status === 'idle')
+    : []
 
   // ── Page-snap scroll handler ─────────────────────────────────────────────
   const onScroll = () => {
@@ -191,7 +279,7 @@ export function SessionTimerPage() {
         fontFamily: SYNTH.font,
       }}
     >
-      {/* Top bar */}
+      {/* Top bar — close + session title */}
       <header
         className="flex shrink-0 items-center gap-2 px-4"
         style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 6 }}
@@ -220,14 +308,15 @@ export function SessionTimerPage() {
             className="text-[10px] uppercase tracking-[0.16em]"
             style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
           >
-            Boat {pageIndex + 1} of {session.boats.length}
+            {session.type}
           </p>
         </div>
         <button
           type="button"
-          onClick={startAll}
-          aria-label="Start all boats together"
-          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.12em]"
+          onClick={() => setRaceTogetherOpen(true)}
+          aria-label="Race boats together"
+          disabled={idleBoats.length === 0}
+          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.12em] disabled:opacity-40"
           style={{
             background: SYNTH.accentEmerald,
             color: SYNTH.inkOnBrand,
@@ -235,18 +324,43 @@ export function SessionTimerPage() {
           }}
         >
           <Layers size={12} strokeWidth={2.6} />
-          Start all
+          Race
         </button>
       </header>
 
+      {/* Run tabs */}
+      <RunTabs
+        runs={runs}
+        activeIdx={activeRunIdx}
+        onPick={(i) => {
+          setActiveRunIdx(i)
+          setPageIndex(0)
+        }}
+        onAddRun={() => setSwapOpen(true)}
+      />
+
+      {/* Live boat strip */}
+      <LiveBoatStrip
+        boats={stripBoats}
+        raceGroups={active?.raceGroups ?? []}
+        focusedId={focusedBoatId}
+        onTap={(id) => {
+          const idx = active?.boats.findIndex((b) => b.id === id) ?? -1
+          if (idx < 0) return
+          setPageIndex(idx)
+          const sc = scrollerRef.current
+          if (sc) sc.scrollTo({ left: idx * sc.clientWidth, behavior: 'smooth' })
+        }}
+      />
+
       {/* Page indicator dots */}
-      <div className="flex shrink-0 justify-center gap-1.5 py-2">
-        {session.boats.map((b, i) => (
+      <div className="flex shrink-0 justify-center gap-1.5 py-1.5">
+        {(active?.boats ?? []).map((b, i) => (
           <span
             key={b.id}
             className="h-1.5 rounded-full transition-all"
             style={{
-              width: i === pageIndex ? 24 : 8,
+              width: i === pageIndex ? 22 : 6,
               background: i === pageIndex ? b.color : 'rgba(255,255,255,0.25)',
             }}
           />
@@ -263,9 +377,9 @@ export function SessionTimerPage() {
           scrollbarWidth: 'none',
         }}
       >
-        {session.boats.map((boat) => {
-          const t = timers[boat.id] ?? defaultTimer()
-          const live = elapsedFor(t)
+        {(active?.boats ?? []).map((boat) => {
+          const t = active!.liveBoats[boat.id] ?? makeIdleTimer(boat.id)
+          const liveMs = elapsedFor(t, now)
           return (
             <div
               key={boat.id}
@@ -276,13 +390,13 @@ export function SessionTimerPage() {
                 scrollSnapStop: 'always',
               }}
             >
-              <BoatTimerPage
+              <BoatPage
                 boat={boat}
                 timer={t}
-                live={live}
+                live={liveMs}
                 splitsTarget={session.preset.splits.length}
                 splitUnit={session.preset.splitUnit}
-                onStart={() => startBoat(boat.id)}
+                onStart={() => startBoats([boat.id])}
                 onPause={() => pauseBoat(boat.id)}
                 onFinish={() => finishBoat(boat.id)}
                 onSplit={() => splitBoat(boat.id)}
@@ -292,8 +406,8 @@ export function SessionTimerPage() {
         })}
       </div>
 
-      {/* Bottom — finish session */}
-      <div
+      {/* Bottom — End run / Finish session */}
+      <footer
         className="flex shrink-0 items-center justify-center gap-3 px-5 pb-[max(env(safe-area-inset-bottom),16px)] pt-3"
         style={{
           background: 'rgba(31, 38, 201, 0.78)',
@@ -302,10 +416,31 @@ export function SessionTimerPage() {
           borderTop: '1px solid rgba(255,255,255,0.12)',
         }}
       >
+        {active && !active.finishedAt ? (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.96 }}
+            onClick={endRun}
+            className="flex h-12 items-center gap-2 rounded-full px-5 text-[12px] font-bold uppercase tracking-[0.12em]"
+            style={{
+              background: SYNTH.glass,
+              border: `1px solid ${SYNTH.glassBorder}`,
+              color: SYNTH.inkOnBrand,
+              fontFamily: SYNTH.font,
+            }}
+          >
+            <Square size={14} strokeWidth={2.6} fill={SYNTH.inkOnBrand} />
+            End run
+          </motion.button>
+        ) : null}
         <motion.button
           type="button"
-          whileTap={{ scale: 0.96 }}
-          onClick={finishSession}
+          whileTap={{ scale: 0.94 }}
+          onClick={() => {
+            // Make sure any in-flight run gets committed first
+            if (active && !active.finishedAt) endRun()
+            setSaveOpen(true)
+          }}
           className="flex h-14 items-center gap-2 rounded-full px-7 text-[14px] font-bold uppercase tracking-[0.04em]"
           style={{
             background: '#FC4C02',
@@ -317,14 +452,126 @@ export function SessionTimerPage() {
           <Square size={16} strokeWidth={2.8} fill="#FFFFFF" />
           Finish session
         </motion.button>
-      </div>
+      </footer>
+
+      {/* Sheets */}
+      <RaceTogetherSheet
+        open={raceTogetherOpen}
+        onClose={() => setRaceTogetherOpen(false)}
+        idleBoats={idleBoats}
+        onStart={(ids) => {
+          startBoats(ids)
+          setRaceTogetherOpen(false)
+        }}
+      />
+
+      {active ? (
+        <RunSwapSheet
+          open={swapOpen}
+          onClose={() => setSwapOpen(false)}
+          boats={active.boats}
+          onConfirm={(nextBoats, swaps) => {
+            // End the current run before starting a new one
+            if (!active.finishedAt) endRun()
+            startNewRun(nextBoats, swaps)
+          }}
+        />
+      ) : null}
+
+      <SaveRaceSheet
+        open={saveOpen}
+        onClose={() => {
+          setSaveOpen(false)
+        }}
+        boats={(runs[runs.length - 1]?.boats ?? []).map((b) => ({
+          id: b.id,
+          name: b.name,
+          color: b.color,
+        }))}
+        elapsedMs={Object.values(runs[runs.length - 1]?.liveBoats ?? {}).reduce(
+          (mx, t) => Math.max(mx, t.accum),
+          0,
+        )}
+        splits={Object.values(runs[runs.length - 1]?.liveBoats ?? {}).flatMap((t) =>
+          t.splits.map((ts) => ({ boatId: t.id, ts })),
+        )}
+        onSave={(saved) => finishSession(saved)}
+        onSkip={() => finishSession(null)}
+      />
     </div>
   )
 }
 
-// ─── Single boat page ──────────────────────────────────────────────────────
+// ─── Run tabs ───────────────────────────────────────────────────────────────
 
-function BoatTimerPage({
+function RunTabs({
+  runs,
+  activeIdx,
+  onPick,
+  onAddRun,
+}: {
+  runs: ActiveRun[]
+  activeIdx: number
+  onPick: (i: number) => void
+  onAddRun: () => void
+}) {
+  return (
+    <div
+      className="synth-scroll flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 py-2"
+      style={{ scrollbarWidth: 'none' }}
+    >
+      {runs.map((r, i) => {
+        const active = i === activeIdx
+        const anyRunning = Object.values(r.liveBoats).some((t) => t.status === 'running')
+        const allFinished = r.finishedAt !== null
+        const status = allFinished ? 'Completed' : anyRunning ? 'Live' : 'Ready'
+        const statusColor =
+          status === 'Live'
+            ? SYNTH.accentEmerald
+            : status === 'Completed'
+              ? SYNTH.inkOnBrandFaint
+              : SYNTH.cardLemon
+        return (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => onPick(i)}
+            className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]"
+            style={{
+              background: active ? SYNTH.inkOnBrand : SYNTH.glass,
+              color: active ? SYNTH.ink : SYNTH.inkOnBrand,
+              border: `1px solid ${active ? SYNTH.inkOnBrand : SYNTH.glassBorder}`,
+              fontFamily: SYNTH.font,
+            }}
+          >
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: statusColor }}
+            />
+            {r.title}
+          </button>
+        )
+      })}
+      <button
+        type="button"
+        onClick={onAddRun}
+        className="flex shrink-0 items-center gap-1 rounded-full border-2 border-dashed px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]"
+        style={{
+          borderColor: 'rgba(255,255,255,0.32)',
+          color: SYNTH.inkOnBrandMuted,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        <Plus size={11} strokeWidth={2.6} />
+        New run
+      </button>
+    </div>
+  )
+}
+
+// ─── Per-boat page ─────────────────────────────────────────────────────────
+
+function BoatPage({
   boat,
   timer,
   live,
@@ -336,7 +583,7 @@ function BoatTimerPage({
   onSplit,
 }: {
   boat: Boat
-  timer: BoatTimer
+  timer: LiveBoatTimer
   live: number
   splitsTarget: number
   splitUnit: 's' | 'ms'
@@ -353,27 +600,24 @@ function BoatTimerPage({
     [boat.seats],
   )
 
-  const splitsTaken = timer.splitTimes.length
-  const lastSplit = timer.splitTimes[timer.splitTimes.length - 1] ?? null
   const status = timer.status
+  const splitsTaken = timer.splits.length
+  const lastSplit = timer.splits[timer.splits.length - 1] ?? null
 
   return (
     <div className="flex h-full flex-col px-5">
-      {/* Boat header */}
       <div
         className="mt-2 flex items-center gap-3 rounded-2xl border px-4 py-3"
         style={{
           background: SYNTH.glass,
-          backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-          WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
           borderColor: SYNTH.glassBorder,
         }}
       >
         <span
-          className="flex h-10 w-10 items-center justify-center rounded-lg"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-[12px] font-bold"
           style={{ background: boat.color, color: SYNTH.ink }}
         >
-          <span className="text-[12px] font-bold">{boat.size}</span>
+          {boat.size}
         </span>
         <div className="min-w-0 flex-1">
           <p
@@ -393,26 +637,8 @@ function BoatTimerPage({
             {seatedAthletes.length > 4 ? ` +${seatedAthletes.length - 4}` : ''}
           </p>
         </div>
-        <span
-          className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em]"
-          style={{
-            background:
-              status === 'running'
-                ? SYNTH.accentEmerald
-                : status === 'paused'
-                  ? SYNTH.accentAmber
-                  : status === 'finished'
-                    ? SYNTH.accentBlack
-                    : 'rgba(255,255,255,0.18)',
-            color: status === 'idle' ? SYNTH.inkOnBrand : SYNTH.inkOnBrand,
-            fontFamily: SYNTH.font,
-          }}
-        >
-          {status === 'idle' ? 'Ready' : status}
-        </span>
       </div>
 
-      {/* HUGE timer */}
       <div className="flex flex-1 flex-col items-center justify-center">
         <p
           className="text-[10px] font-semibold uppercase tracking-[0.32em]"
@@ -426,14 +652,14 @@ function BoatTimerPage({
             color: SYNTH.inkOnBrand,
             fontFamily: SYNTH.font,
             fontVariantNumeric: 'tabular-nums',
-            fontSize: 'clamp(64px, 20vw, 104px)',
+            fontSize: 'clamp(56px, 18vw, 88px)',
             fontWeight: 800,
           }}
         >
           {fmtClock(live)}
         </p>
         <p
-          className="mt-3 text-[12px] font-semibold uppercase tracking-[0.18em]"
+          className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
           style={{ color: SYNTH.inkOnBrandMuted }}
         >
           {splitsTaken} / {splitsTarget} splits
@@ -441,10 +667,9 @@ function BoatTimerPage({
         </p>
       </div>
 
-      {/* Splits chips */}
-      {timer.splitTimes.length > 0 ? (
+      {timer.splits.length > 0 ? (
         <div className="mb-3 flex flex-wrap gap-1.5">
-          {timer.splitTimes.map((ts, i) => (
+          {timer.splits.map((ts, i) => (
             <span
               key={i}
               className="rounded-full px-2.5 py-1 text-[10px] font-bold"
@@ -461,33 +686,38 @@ function BoatTimerPage({
         </div>
       ) : null}
 
-      {/* Per-boat controls */}
       <div className="mb-4 grid shrink-0 grid-cols-3 gap-2">
         {status === 'idle' || status === 'paused' ? (
-          <ControlButton
+          <Ctrl
             onClick={onStart}
             color={SYNTH.accentEmerald}
             icon={<Play size={20} strokeWidth={2.6} fill={SYNTH.inkOnBrand} />}
             label={status === 'paused' ? 'Resume' : 'Start'}
           />
         ) : status === 'running' ? (
-          <ControlButton
+          <Ctrl
             onClick={onPause}
             color={SYNTH.accentAmber}
             icon={<Pause size={20} strokeWidth={2.6} fill={SYNTH.inkOnBrand} />}
             label="Pause"
           />
         ) : (
-          <ControlButton onClick={() => {}} color="rgba(255,255,255,0.16)" icon={null} label="Done" disabled />
+          <Ctrl
+            onClick={() => {}}
+            color="rgba(255,255,255,0.16)"
+            icon={null}
+            label="Done"
+            disabled
+          />
         )}
-        <ControlButton
+        <Ctrl
           onClick={onSplit}
           color="rgba(255,255,255,0.18)"
           icon={<Flag size={18} strokeWidth={2.6} color={SYNTH.inkOnBrand} />}
           label="Split"
           disabled={status !== 'running'}
         />
-        <ControlButton
+        <Ctrl
           onClick={onFinish}
           color="#FC4C02"
           icon={<Square size={18} strokeWidth={2.8} fill="#FFFFFF" />}
@@ -499,7 +729,7 @@ function BoatTimerPage({
   )
 }
 
-function ControlButton({
+function Ctrl({
   onClick,
   color,
   icon,
@@ -528,5 +758,126 @@ function ControlButton({
       {icon}
       <span className="text-[11px] font-bold uppercase tracking-[0.12em]">{label}</span>
     </motion.button>
+  )
+}
+
+// ─── Race-together sheet ───────────────────────────────────────────────────
+
+function RaceTogetherSheet({
+  open,
+  onClose,
+  idleBoats,
+  onStart,
+}: {
+  open: boolean
+  onClose: () => void
+  idleBoats: Boat[]
+  onStart: (boatIds: string[]) => void
+}) {
+  const [picked, setPicked] = useState<string[]>([])
+  useEffect(() => {
+    if (open) setPicked(idleBoats.map((b) => b.id))
+  }, [open, idleBoats])
+
+  if (!open) return null
+
+  const toggle = (id: string) => {
+    setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[70] flex items-end justify-center"
+      style={{ background: 'rgba(8,8,40,0.55)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        exit={{ y: 100 }}
+        className="w-full max-w-[420px] rounded-t-3xl p-5"
+        style={{ background: '#FFFFFF', fontFamily: SYNTH.font }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: SYNTH.sheetMuted }} />
+        <p
+          className="text-[12px] font-bold uppercase tracking-[0.16em]"
+          style={{ color: SYNTH.inkMuted }}
+        >
+          <ArrowLeftRight size={11} className="-mt-0.5 inline" /> Race together
+        </p>
+        <p className="mt-2 text-[14px]" style={{ color: SYNTH.ink }}>
+          Pick which boats start at the same time.
+        </p>
+
+        <div className="mt-3 flex flex-col gap-2">
+          {idleBoats.map((b) => {
+            const isOn = picked.includes(b.id)
+            return (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => toggle(b.id)}
+                className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left"
+                style={{
+                  background: isOn ? `${b.color}26` : SYNTH.sheetMuted,
+                  border: `1px solid ${isOn ? b.color : 'transparent'}`,
+                }}
+              >
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-[12px] font-bold"
+                  style={{ background: b.color, color: SYNTH.ink }}
+                >
+                  {b.size}
+                </span>
+                <p
+                  className="flex-1 text-[14px] font-bold"
+                  style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
+                >
+                  {b.name}
+                </p>
+                <span
+                  className="flex h-6 w-6 items-center justify-center rounded-full"
+                  style={{
+                    background: isOn ? SYNTH.accentEmerald : 'transparent',
+                    border: `2px solid ${isOn ? SYNTH.accentEmerald : 'rgba(0,0,0,0.18)'}`,
+                  }}
+                >
+                  {isOn ? (
+                    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path
+                        d="M5 13l4 4L19 7"
+                        stroke="#FFFFFF"
+                        strokeWidth={3}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : null}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onStart(picked)}
+          disabled={picked.length === 0}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[14px] font-bold disabled:opacity-40"
+          style={{
+            background: SYNTH.accentEmerald,
+            color: SYNTH.inkOnBrand,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          <Play size={14} strokeWidth={2.8} fill={SYNTH.inkOnBrand} />
+          Start race ({picked.length} boat{picked.length === 1 ? '' : 's'})
+        </button>
+      </motion.div>
+    </motion.div>
   )
 }

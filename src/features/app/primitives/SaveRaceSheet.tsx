@@ -35,6 +35,9 @@ type Props = {
   /** True for stopwatch (single boat / lap mode) — hides rating UI */
   lapMode?: boolean
   onSave: (result: SaveRaceResult) => void
+  /** Optional — when present, shows a "Save without rating" CTA that
+   * lets the coach skip rating now and rate later. */
+  onSkip?: () => void
 }
 
 /**
@@ -44,7 +47,7 @@ type Props = {
  * the rating (so it shows up tagged in history), private notes, and
  * visibility scope.
  */
-export function SaveRaceSheet({ open, onClose, boats, elapsedMs, splits, lapMode = false, onSave }: Props) {
+export function SaveRaceSheet({ open, onClose, boats, elapsedMs, splits, lapMode = false, onSave, onSkip }: Props) {
   const [name, setName] = useState(`Race · ${new Date().toLocaleDateString()}`)
   const [description, setDescription] = useState('')
   const [raceType, setRaceType] = useState<string>(RACE_TYPES[0])
@@ -224,8 +227,24 @@ export function SaveRaceSheet({ open, onClose, boats, elapsedMs, splits, lapMode
         }}
       >
         <Check size={14} strokeWidth={2.6} />
-        Save race
+        Save with ratings
       </button>
+
+      {/* Skip rating — saves the run without ratings; session lands in
+          'needs-rating' so the coach can add them later. */}
+      {onSkip ? (
+        <button
+          type="button"
+          onClick={() => {
+            onSkip()
+            onClose()
+          }}
+          className="text-[13px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: SYNTH.inkMuted, fontFamily: SYNTH.font }}
+        >
+          Save without rating · rate later
+        </button>
+      ) : null}
     </SheetShell>
   )
 }

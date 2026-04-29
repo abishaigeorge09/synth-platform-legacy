@@ -20,25 +20,28 @@ export function SheetShell({ open, onClose, title, children }: Props) {
     <AnimatePresence>
       {open ? (
         <>
+          {/* Backdrop sits above the floating tab bar (z-40). Tap to close. */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             style={{ background: 'rgba(8,8,40,0.55)', backdropFilter: 'blur(6px)' }}
           />
+          {/* Sheet always fills ~75dvh from the bottom (consistent height
+              regardless of content) and covers the floating tab bar. */}
           <motion.div
-            initial={{ y: 600 }}
+            initial={{ y: 800 }}
             animate={{ y: 0 }}
-            exit={{ y: 600 }}
+            exit={{ y: 800 }}
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden"
+            className="fixed inset-x-0 bottom-0 z-[70] flex flex-col overflow-hidden"
             style={{
               background: SYNTH.sheet,
               borderRadius: `${SYNTH.radius.sheet}px ${SYNTH.radius.sheet}px 0 0`,
-              maxHeight: '88dvh',
+              height: '78dvh',
               color: SYNTH.ink,
               fontFamily: SYNTH.font,
               boxShadow: SYNTH.shadow.sheet,

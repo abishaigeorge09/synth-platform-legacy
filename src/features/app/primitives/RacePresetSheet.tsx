@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Check } from 'lucide-react'
+import { Plus, Check, X as XIcon } from 'lucide-react'
 import { SheetShell } from './SheetShell'
 import { SYNTH } from '../lib/theme'
 import { useLineupBuilderStore, type RacePreset } from '../data/lineupBuilderStore'
@@ -73,6 +73,7 @@ export function RacePresetSheet({ open, onClose }: Props) {
   const applyPreset = useLineupBuilderStore((s) => s.applyPreset)
   const setPreset = useLineupBuilderStore((s) => s.setPreset)
   const addCustomPreset = useLineupBuilderStore((s) => s.addCustomPreset)
+  const removeCustomPreset = useLineupBuilderStore((s) => s.removeCustomPreset)
 
   const [creating, setCreating] = useState(false)
 
@@ -93,56 +94,83 @@ export function RacePresetSheet({ open, onClose }: Props) {
         {all.map((t, i) => {
           const isActive = preset.raceFor === t.raceFor && preset.distance === t.distance
           return (
-            <button
+            <div
               key={`${t.raceFor}-${t.distance}-${i}`}
-              type="button"
-              onClick={() => apply(t)}
-              className="flex flex-col gap-1.5 rounded-2xl px-4 py-3.5 text-left active:opacity-80"
+              className="relative rounded-2xl"
               style={{
                 background: isActive ? `${SYNTH.accentEmerald}26` : SYNTH.sheetMuted,
                 border: `1px solid ${isActive ? SYNTH.accentEmerald : 'transparent'}`,
               }}
             >
-              <div className="flex items-center gap-2">
-                <p
-                  className="text-[14px] font-bold"
-                  style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
-                >
-                  {t.raceFor}
-                </p>
-                {t.custom ? (
+              <button
+                type="button"
+                onClick={() => apply(t)}
+                className="flex w-full flex-col gap-1.5 px-4 py-3.5 pr-12 text-left active:opacity-80"
+              >
+                <div className="flex items-center gap-2">
+                  <p
+                    className="text-[14px] font-bold"
+                    style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
+                  >
+                    {t.raceFor}
+                  </p>
+                  {t.custom ? (
+                    <span
+                      className="rounded-full px-1.5 py-px text-[8px] font-bold uppercase tracking-[0.12em]"
+                      style={{
+                        background: SYNTH.accentEmerald,
+                        color: SYNTH.inkOnBrand,
+                        fontFamily: SYNTH.font,
+                      }}
+                    >
+                      Custom
+                    </span>
+                  ) : null}
                   <span
-                    className="rounded-full px-1.5 py-px text-[8px] font-bold uppercase tracking-[0.12em]"
+                    className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]"
                     style={{
-                      background: SYNTH.accentEmerald,
+                      background: SYNTH.ink,
                       color: SYNTH.inkOnBrand,
                       fontFamily: SYNTH.font,
                     }}
                   >
-                    Custom
+                    {t.splits.length} split{t.splits.length === 1 ? '' : 's'}
                   </span>
-                ) : null}
-                <span
-                  className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]"
+                </div>
+                <p
+                  className="text-[12px]"
+                  style={{ color: SYNTH.inkMuted, fontFamily: SYNTH.font }}
+                >
+                  {t.distance} · timing in{' '}
+                  <span style={{ color: SYNTH.ink, fontWeight: 700 }}>
+                    {t.splitUnit === 'ms' ? 'milliseconds' : 'seconds'}
+                  </span>
+                </p>
+              </button>
+              {/* Delete custom preset */}
+              {t.custom && t.id ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (
+                      typeof window !== 'undefined' &&
+                      !window.confirm(`Delete "${t.raceFor}"?`)
+                    )
+                      return
+                    removeCustomPreset(t.id!)
+                  }}
+                  aria-label="Delete custom preset"
+                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full"
                   style={{
-                    background: SYNTH.ink,
-                    color: SYNTH.inkOnBrand,
-                    fontFamily: SYNTH.font,
+                    background: 'rgba(0,0,0,0.06)',
+                    color: SYNTH.inkMuted,
                   }}
                 >
-                  {t.splits.length} split{t.splits.length === 1 ? '' : 's'}
-                </span>
-              </div>
-              <p
-                className="text-[12px]"
-                style={{ color: SYNTH.inkMuted, fontFamily: SYNTH.font }}
-              >
-                {t.distance} · timing in{' '}
-                <span style={{ color: SYNTH.ink, fontWeight: 700 }}>
-                  {t.splitUnit === 'ms' ? 'milliseconds' : 'seconds'}
-                </span>
-              </p>
-            </button>
+                  <XIcon size={13} strokeWidth={2.4} />
+                </button>
+              ) : null}
+            </div>
           )
         })}
 

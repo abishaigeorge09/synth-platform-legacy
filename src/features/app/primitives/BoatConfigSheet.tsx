@@ -6,7 +6,9 @@ import { SYNTH } from '../lib/theme'
 import { APP_MOCK_ATHLETES, type AppMockAthlete } from '../data/mockTeam'
 import {
   type BoatSize,
-  SEAT_COUNT,
+  COXED,
+  totalSeats,
+  seatSide,
   BOAT_SIZE_LABEL,
   useLineupBuilderStore,
 } from '../data/lineupBuilderStore'
@@ -27,6 +29,7 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
   const addBoat = useLineupBuilderStore((s) => s.addBoat)
   const removeBoat = useLineupBuilderStore((s) => s.removeBoat)
   const renameBoat = useLineupBuilderStore((s) => s.renameBoat)
+  const setBoatSize = useLineupBuilderStore((s) => s.setBoatSize)
   const setSeatAthlete = useLineupBuilderStore((s) => s.setSeatAthlete)
 
   const editing = boatId ? boats.find((b) => b.id === boatId) ?? null : null
@@ -53,16 +56,17 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
 
   const onSubmit = () => {
     if (!editing) {
-      const finalName = name.trim() || `Boat ${boats.length + 1}`
-      addBoat(finalName, size)
+      // Empty name → store auto-names by size (e.g. "8+ A").
+      addBoat(name.trim(), size)
       onClose()
       return
     }
     if (name.trim() && name.trim() !== editing.name) {
       renameBoat(editing.id, name.trim())
     }
-    // Size changes for existing boats are intentionally not supported
-    // (would invalidate seat assignments). Save is implicit otherwise.
+    if (size !== editing.size) {
+      setBoatSize(editing.id, size)
+    }
     onClose()
   }
 
@@ -92,19 +96,18 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
           />
         </Field>
 
-        {/* Size */}
+        {/* Size — fully editable. Changing for an existing boat trims or
+            extends seat assignments (see migrateSeatsForSize). */}
         <Field label="Boat type">
           <div className="grid grid-cols-4 gap-1.5">
             {SIZES.map((s) => {
               const active = size === s
-              const disabled = !!editing && editing.size !== s
               return (
                 <button
                   key={s}
                   type="button"
-                  onClick={() => !disabled && setSize(s)}
-                  disabled={disabled}
-                  className="rounded-xl px-2 py-3 text-center disabled:opacity-30"
+                  onClick={() => setSize(s)}
+                  className="rounded-xl px-2 py-3 text-center"
                   style={{
                     background: active ? SYNTH.ink : SYNTH.sheetMuted,
                     color: active ? SYNTH.inkOnBrand : SYNTH.ink,
@@ -113,7 +116,8 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
                 >
                   <p className="text-[18px] font-bold leading-none">{s}</p>
                   <p className="mt-1 text-[9px] uppercase tracking-[0.1em] opacity-70">
-                    {SEAT_COUNT[s]} seat{SEAT_COUNT[s] === 1 ? '' : 's'}
+                    {totalSeats(s)} seat{totalSeats(s) === 1 ? '' : 's'}
+                    {COXED[s] ? ' · cox' : ''}
                   </p>
                 </button>
               )
@@ -124,16 +128,25 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
             style={{ color: SYNTH.inkMuted, fontFamily: SYNTH.font }}
           >
             {BOAT_SIZE_LABEL[size]}
-            {editing ? ' · type cannot be changed once a boat is created' : ''}
+            {editing && size !== editing.size
+              ? ' · changing type will trim or extend seats; some athletes may be unassigned'
+              : ''}
           </p>
         </Field>
 
-        {/* Seats — only when editing */}
+        {/* Seats — only when editing. Reflects the live size (cox included). */}
         {editing ? (
-          <Field label={`${SEAT_COUNT[editing.size]} seats`}>
+          <Field label={`${totalSeats(editing.size)} seats`}>
             <div className="flex flex-col gap-1.5">
               {editing.seats.map((s) => {
                 const a = APP_MOCK_ATHLETES.find((x) => x.id === s.athleteId)
+                const side = seatSide(editing.size, s.position)
+                const tint =
+                  side === 'X'
+                    ? SYNTH.accentBlack
+                    : side === 'S'
+                      ? SYNTH.sideStarboard
+                      : SYNTH.sidePort
                 return (
                   <button
                     key={s.position}
@@ -143,16 +156,14 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
                     style={{ background: SYNTH.sheetMuted }}
                   >
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold"
                       style={{
-                        background: editing.color,
-                        color: SYNTH.ink,
+                        background: tint,
+                        color: SYNTH.inkOnBrand,
                         fontFamily: SYNTH.font,
-                        fontWeight: 800,
-                        fontSize: 11,
                       }}
                     >
-                      {s.position}
+                      {side === 'X' ? 'C' : s.position}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p
@@ -227,7 +238,20 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
             ? editing.seats.find((s) => s.position === pickerSeat)?.athleteId ?? null
             : null
         }
+        forSide={
+          editing && pickerSeat !== null ? seatSide(editing.size, pickerSeat) : undefined
+        }
         onPick={onPickAthlete}
+        onClear={
+          editing && pickerSeat !== null && editing.seats.find((s) => s.position === pickerSeat)?.athleteId
+            ? () => {
+                if (editing && pickerSeat !== null) {
+                  setSeatAthlete(editing.id, pickerSeat, null)
+                  setPickerSeat(null)
+                }
+              }
+            : undefined
+        }
       />
     </>
   )

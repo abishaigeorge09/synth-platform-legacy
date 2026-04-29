@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, Check } from 'lucide-react'
+import { Search, Check, X as XIcon } from 'lucide-react'
 import { SheetShell } from './SheetShell'
 import { SYNTH } from '../lib/theme'
 import { APP_MOCK_ATHLETES, type AppMockAthlete } from '../data/mockTeam'
 
-type SideFilter = 'all' | 'P' | 'S'
+type SideFilter = 'all' | 'P' | 'S' | 'X'
 
 const PREF_LABEL: Record<NonNullable<AppMockAthlete['preferredSeat']>, string> = {
   stroke: 'Stroke',
@@ -26,8 +26,14 @@ type Props = {
   /** Currently assigned athlete (single mode highlight). */
   selectedId?: string | null
   title?: string
+  /** When the picker is opened for a specific seat side, auto-filter to
+   * matching athletes and surface the cox chip if the seat is the cox. */
+  forSide?: 'P' | 'S' | 'X'
   onPick?: (athlete: AppMockAthlete) => void
   onMultiPick?: (athleteIds: string[]) => void
+  /** Single-mode only — when present and a current athlete is assigned,
+   * shows a "Remove from boat" button. */
+  onClear?: () => void
 }
 
 /**
@@ -43,24 +49,27 @@ export function AthletePickerSheet({
   maxPicks,
   selectedId,
   title,
+  forSide,
   onPick,
   onMultiPick,
+  onClear,
 }: Props) {
   const [q, setQ] = useState('')
   const [side, setSide] = useState<SideFilter>('all')
   const [picked, setPicked] = useState<string[]>([])
 
-  // Reset transient state when re-opened
+  // Reset transient state when re-opened. If the seat the picker is opened
+  // for has a side preference, default-filter to that side.
   useEffect(() => {
     if (!open) return
     setQ('')
-    setSide('all')
+    setSide(forSide ?? 'all')
     setPicked([])
-  }, [open])
+  }, [open, forSide])
 
   const filtered = useMemo(() => {
     let rows = APP_MOCK_ATHLETES
-    if (side === 'P' || side === 'S') {
+    if (side !== 'all') {
       rows = rows.filter((a) => a.side === side)
     }
     const trimmed = q.trim().toLowerCase()
@@ -108,8 +117,9 @@ export function AthletePickerSheet({
         />
       </label>
 
-      {/* Side filter chips */}
-      <div className="flex items-center gap-2">
+      {/* Side filter chips — Cox chip surfaces only when the picker is
+          opened for a cox seat (forSide === 'X'). */}
+      <div className="flex flex-wrap items-center gap-2">
         <FilterChip
           active={side === 'all'}
           onClick={() => setSide('all')}
@@ -130,6 +140,15 @@ export function AthletePickerSheet({
           accent={SYNTH.sidePort}
           dot
         />
+        {forSide === 'X' ? (
+          <FilterChip
+            active={side === 'X'}
+            onClick={() => setSide('X')}
+            label="Cox"
+            accent={SYNTH.accentBlack}
+            dot
+          />
+        ) : null}
         {mode === 'multi' && fillCount !== undefined ? (
           <span
             className="ml-auto text-[10px] font-semibold uppercase tracking-[0.14em]"
@@ -156,7 +175,7 @@ export function AthletePickerSheet({
                 ? SYNTH.sidePort
                 : a.side === 'S'
                   ? SYNTH.sideStarboard
-                  : SYNTH.inkMuted
+                  : SYNTH.accentBlack
             const pickIndex = picked.indexOf(a.id)
             const isPicked = pickIndex !== -1
             const isSingleSelected = a.id === selectedId
@@ -259,6 +278,28 @@ export function AthletePickerSheet({
         >
           <Check size={14} strokeWidth={2.8} />
           Done · Fill {picked.length} seat{picked.length === 1 ? '' : 's'}
+        </button>
+      ) : null}
+
+      {/* Single-mode "Remove from boat" — only when a seat is currently
+          assigned (parent passed onClear + selectedId). */}
+      {mode === 'single' && onClear ? (
+        <button
+          type="button"
+          onClick={() => {
+            onClear()
+            onClose()
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-full border py-3 text-[13px] font-semibold"
+          style={{
+            background: 'transparent',
+            borderColor: '#FCA5A5',
+            color: '#B91C1C',
+            fontFamily: SYNTH.font,
+          }}
+        >
+          <XIcon size={14} strokeWidth={2.6} />
+          Remove from boat
         </button>
       ) : null}
     </SheetShell>

@@ -5,12 +5,8 @@ import { ArrowUpRight, BarChart3 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_TEAM, APP_MOCK_SCHEDULE } from '../data/mockTeam'
-import { LaunchActionSheet } from './LaunchActionSheet'
-import { useLaunchSheetStore } from '../../../shared/store/useLaunchSheetStore'
 import { LineupHeroPanel } from './lineupHero/LineupHeroPanel'
 import { useUiStore } from '../../../shared/store/useUiStore'
-
-const LAUNCH_SHEET_DELAY_MS = 400
 
 /**
  * Coach home — horizontal pager.
@@ -99,18 +95,6 @@ function DashboardPanel() {
   const greeting = greetingForNow()
   const weekItems = APP_MOCK_SCHEDULE
   const [statsOpen, setStatsOpen] = useState(false)
-  const launchShouldShow = useLaunchSheetStore((s) => s.shouldShow)
-  const launchShow = useLaunchSheetStore((s) => s.show)
-
-  // Auto-present the quick-start sheet on coach Home, after the entrance
-  // animation has settled. Honors dismissal streak + manual disable in store.
-  useEffect(() => {
-    if (!launchShouldShow()) return
-    const t = window.setTimeout(launchShow, LAUNCH_SHEET_DELAY_MS)
-    return () => window.clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   return (
     <div
       className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-[120px]"
@@ -391,7 +375,6 @@ function DashboardPanel() {
         </div>
       </section>
 
-      <LaunchActionSheet />
     </div>
   )
 }

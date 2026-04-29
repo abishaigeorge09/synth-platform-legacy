@@ -139,19 +139,51 @@ const DEFAULT_PRESET: RacePreset = {
   expectedDurationMs: 400_000, // ~6:40
 }
 
+export type SessionMeta = {
+  name: string
+  type: string
+  date: string // YYYY-MM-DD
+  notes: string
+}
+
+const SESSION_TYPES = [
+  'Practice piece',
+  'Steady state',
+  'Time trial',
+  'Seat race',
+  'Race',
+  'Open',
+] as const
+export const SESSION_TYPE_OPTIONS: readonly string[] = SESSION_TYPES
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 type State = {
   boats: Boat[]
   preset: RacePreset
+  meta: SessionMeta
   addBoat: (name: string, size: BoatSize) => void
   removeBoat: (id: string) => void
   renameBoat: (id: string, name: string) => void
   setSeatAthlete: (boatId: string, position: number, athleteId: string | null) => void
   setPreset: (patch: Partial<RacePreset>) => void
+  setMeta: (patch: Partial<SessionMeta>) => void
+  resetDraft: () => void
+}
+
+const DEFAULT_META: SessionMeta = {
+  name: '',
+  type: 'Steady state',
+  date: todayIso(),
+  notes: '',
 }
 
 export const useLineupBuilderStore = create<State>((set, get) => ({
   boats: DEFAULT_BOATS,
   preset: DEFAULT_PRESET,
+  meta: DEFAULT_META,
   addBoat: (name, size) => {
     const boats = get().boats
     set({ boats: [...boats, makeBoat(name, size, boats.length)] })
@@ -180,5 +212,11 @@ export const useLineupBuilderStore = create<State>((set, get) => ({
   },
   setPreset: (patch) => {
     set({ preset: { ...get().preset, ...patch } })
+  },
+  setMeta: (patch) => {
+    set({ meta: { ...get().meta, ...patch } })
+  },
+  resetDraft: () => {
+    set({ boats: DEFAULT_BOATS, preset: DEFAULT_PRESET, meta: { ...DEFAULT_META, date: todayIso() } })
   },
 }))

@@ -1,10 +1,23 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Star, Calendar } from 'lucide-react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import { ComingSoonSheet } from '../primitives/SettingsSheets'
+import { RaceRecorder, type Split } from '../primitives/RaceRecorder'
+import { SaveRaceSheet, type SaveRaceResult } from '../primitives/SaveRaceSheet'
 import { APP_MOCK_ATHLETES, APP_MOCK_TEAM } from '../data/mockTeam'
 import { SYNTH } from '../lib/theme'
+
+type TabKey = 'builder' | 'sessions' | 'timer' | 'ratings' | 'history'
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'builder', label: 'Builder' },
+  { key: 'timer', label: 'Timer' },
+  { key: 'ratings', label: 'Ratings' },
+  { key: 'sessions', label: 'Sessions' },
+  { key: 'history', label: 'History' },
+]
 
 const TODAY_LINEUP = [
   { seat: 'S', label: 'Stroke', athleteId: 'a-juno-okafor', side: 'S' as const },
@@ -17,7 +30,76 @@ const TODAY_LINEUP = [
   { seat: 'B', label: 'Bow', athleteId: 'a-star-miller', side: 'P' as const },
 ]
 
+const RACE_BOATS = [
+  { id: 'v8a', name: 'V8 A', color: SYNTH.cardSky },
+  { id: 'v8b', name: 'V8 B', color: SYNTH.cardPink },
+  { id: 'v4a', name: 'V4 A', color: SYNTH.cardLemon },
+  { id: 'v4b', name: 'V4 B', color: SYNTH.cardMint },
+]
+
 export function LineupsPage() {
+  const [tab, setTab] = useState<TabKey>('builder')
+
+  return (
+    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
+      <CoachPageHeader title="Lineup Builder" back="/app/coach/tools" />
+
+      {/* Tab strip */}
+      <div className="px-5">
+        <div
+          className="synth-scroll flex gap-1.5 overflow-x-auto rounded-full p-1"
+          style={{
+            background: SYNTH.glass,
+            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+            border: `1px solid ${SYNTH.glassBorder}`,
+            scrollbarWidth: 'none',
+          }}
+        >
+          {TABS.map((t) => {
+            const active = tab === t.key
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className="shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors"
+                style={{
+                  background: active ? SYNTH.inkOnBrand : 'transparent',
+                  color: active ? SYNTH.ink : SYNTH.inkOnBrandMuted,
+                  fontFamily: SYNTH.font,
+                }}
+              >
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.2 }}
+          className="mt-3"
+        >
+          {tab === 'builder' && <BuilderTab />}
+          {tab === 'timer' && <TimerTab />}
+          {tab === 'ratings' && <RatingsTab />}
+          {tab === 'sessions' && <SessionsTab />}
+          {tab === 'history' && <HistoryTab />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Builder ────────────────────────────────────────────────────────────────
+
+function BuilderTab() {
   const navigate = useNavigate()
   const [editOpen, setEditOpen] = useState(false)
   const [shareToast, setShareToast] = useState<string | null>(null)
@@ -26,10 +108,10 @@ export function LineupsPage() {
     const text = `${APP_MOCK_TEAM.name} · V8 — Wednesday AM\n8 × 500m at 22 spm — water at 06:30.`
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ title: 'Today’s lineup', text })
+        await navigator.share({ title: "Today's lineup", text })
         return
       } catch {
-        /* user cancelled or share unavailable — fall through to clipboard */
+        /* fall through */
       }
     }
     try {
@@ -43,28 +125,16 @@ export function LineupsPage() {
   }
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
-      <CoachPageHeader
-        title="V8 — Wednesday AM"
-        subtitle="Today's lineup"
-        back="/app/coach/home"
-      />
-
+    <>
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32 }}
         className="mx-5 mt-2 rounded-3xl p-5"
-        style={{
-          background: SYNTH.cardMint,
-          boxShadow: SYNTH.shadow.card,
-        }}
+        style={{ background: SYNTH.cardMint, boxShadow: SYNTH.shadow.card }}
       >
         <div className="flex items-center gap-2">
-          <span
-            className="inline-flex h-1.5 w-1.5 rounded-full"
-            style={{ background: SYNTH.ink }}
-          />
+          <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ background: SYNTH.ink }} />
           <span
             className="text-[10px] font-semibold uppercase tracking-[0.18em]"
             style={{ color: SYNTH.ink, opacity: 0.7, fontFamily: SYNTH.font }}
@@ -87,7 +157,6 @@ export function LineupsPage() {
               background: SYNTH.accentBlack,
               color: SYNTH.inkOnBrand,
               fontFamily: SYNTH.font,
-              letterSpacing: '0.02em',
             }}
           >
             Edit lineup
@@ -101,7 +170,6 @@ export function LineupsPage() {
               borderColor: SYNTH.ink,
               color: SYNTH.ink,
               fontFamily: SYNTH.font,
-              letterSpacing: '0.02em',
             }}
           >
             Share
@@ -110,7 +178,6 @@ export function LineupsPage() {
             <motion.span
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
               className="ml-1 text-[11px] font-semibold uppercase tracking-[0.12em]"
               style={{ color: SYNTH.ink, opacity: 0.55, fontFamily: SYNTH.font }}
             >
@@ -191,12 +258,172 @@ export function LineupsPage() {
           })}
         </div>
       </section>
+    </>
+  )
+}
+
+// ─── Timer (Strava-translated) ──────────────────────────────────────────────
+
+function TimerTab() {
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [result, setResult] = useState<{ elapsedMs: number; splits: Split[] } | null>(null)
+
+  return (
+    <section className="mx-5 mt-2">
+      <RaceRecorder
+        boats={RACE_BOATS}
+        totalSplits={4}
+        onFinish={(r) => {
+          setResult(r)
+          setSaveOpen(true)
+        }}
+      />
+      {result ? (
+        <SaveRaceSheet
+          open={saveOpen}
+          onClose={() => setSaveOpen(false)}
+          boats={RACE_BOATS}
+          elapsedMs={result.elapsedMs}
+          splits={result.splits}
+          onSave={(saved: SaveRaceResult) => {
+            console.log('Race saved', saved, result)
+          }}
+        />
+      ) : null}
+    </section>
+  )
+}
+
+// ─── Sessions / Ratings / History stubs ─────────────────────────────────────
+
+function SessionsTab() {
+  return (
+    <section className="mx-5 mt-2">
+      <StubCard
+        kicker="Sessions"
+        title="Recent practices + races for this lineup"
+        body="Each timer run shows up here automatically with its splits, ratings, and the coach who logged it. Tap to open the full session detail."
+      />
+    </section>
+  )
+}
+
+function RatingsTab() {
+  return (
+    <section className="mx-5 mt-2">
+      <StubCard
+        kicker="Ratings"
+        title="Boat-level ratings, tagged by coach"
+        body="Every post-race form contributes a rating (technique / power / sync) and the coach who rated it. Aggregate trends + rating-coach attribution land in the next pass."
+      />
+    </section>
+  )
+}
+
+function HistoryTab() {
+  // Lightweight static demo: 3 history rows
+  const items = [
+    { date: 'Apr 21', name: 'V8 A — race pace pieces', time: '06:42.1', rating: 4.4, coach: 'Coach Geri' },
+    { date: 'Apr 14', name: 'V8 B — seat race', time: '07:01.6', rating: 3.8, coach: 'Coach Mike' },
+    { date: 'Apr 07', name: 'V4 A — time trial', time: '07:18.3', rating: 4.1, coach: 'Coach Geri' },
+  ]
+  return (
+    <section className="mx-5 mt-2">
+      <p
+        className="pb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+      >
+        Past races
+      </p>
+      <div
+        className="flex flex-col gap-2"
+      >
+        {items.map((it) => (
+          <div
+            key={it.date}
+            className="rounded-2xl border p-4"
+            style={{
+              background: SYNTH.glass,
+              backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              borderColor: SYNTH.glassBorder,
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <Calendar size={12} color={SYNTH.inkOnBrandFaint} />
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
+              >
+                {it.date} · rated by {it.coach}
+              </span>
+            </div>
+            <p
+              className="mt-1 text-[14px] font-bold"
+              style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+            >
+              {it.name}
+            </p>
+            <div className="mt-2 flex items-center gap-3">
+              <span
+                className="text-[18px] font-bold"
+                style={{
+                  color: SYNTH.inkOnBrand,
+                  fontFamily: SYNTH.font,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {it.time}
+              </span>
+              <span className="flex items-center gap-1">
+                <Star size={12} color={SYNTH.accentEmerald} fill={SYNTH.accentEmerald} />
+                <span
+                  className="text-[12px] font-semibold"
+                  style={{ color: SYNTH.accentEmerald, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {it.rating.toFixed(1)}
+                </span>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function StubCard({ kicker, title, body }: { kicker: string; title: string; body: string }) {
+  return (
+    <div
+      className="rounded-3xl p-5"
+      style={{
+        background: SYNTH.inlineCard,
+        border: `1px solid ${SYNTH.inlineCardBorder}`,
+      }}
+    >
+      <p
+        className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+      >
+        {kicker}
+      </p>
+      <p
+        className="mt-1 text-[16px] font-bold"
+        style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+      >
+        {title}
+      </p>
+      <p
+        className="mt-2 text-[13px] leading-[1.5]"
+        style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+      >
+        {body}
+      </p>
     </div>
   )
 }
 
 function BoatVisual() {
-  // Horizontal V8: bow on right, cox on left. 8 rower seats alternating P/S
   return (
     <div className="px-5 pt-5">
       <svg width="100%" viewBox="0 0 760 180" className="block">
@@ -212,12 +439,18 @@ function BoatVisual() {
           stroke="rgba(255,255,255,0.32)"
           strokeWidth="1.5"
         />
-        <line x1="80" y1="90" x2="720" y2="90" stroke="rgba(255,255,255,0.22)" strokeWidth="1" strokeDasharray="4 6" />
-        {/* Cox compartment */}
+        <line
+          x1="80"
+          y1="90"
+          x2="720"
+          y2="90"
+          stroke="rgba(255,255,255,0.22)"
+          strokeWidth="1"
+          strokeDasharray="4 6"
+        />
         <rect x="92" y="76" width="42" height="28" rx="6" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.32)" />
         <text x="113" y="94" textAnchor="middle" fill={SYNTH.inkOnBrandMuted} fontSize="9" fontWeight="700" fontFamily="Geist, Inter, sans-serif">COX</text>
 
-        {/* Seats */}
         {[
           { x: 180, side: 'S', n: 'S' },
           { x: 250, side: 'P', n: '7' },
@@ -229,30 +462,42 @@ function BoatVisual() {
           { x: 670, side: 'P', n: 'B' },
         ].map((seat) => (
           <g key={seat.n}>
-            {/* Rigger */}
             <line
               x1={seat.x}
-              y1={seat.side === 'P' ? 90 : 90}
+              y1="90"
               x2={seat.x}
               y2={seat.side === 'P' ? 60 : 120}
               stroke={seat.side === 'P' ? SYNTH.cardSky : SYNTH.cardYellow}
               strokeWidth="2.5"
               strokeLinecap="round"
             />
-            {/* Seat dot */}
             <circle cx={seat.x} cy="90" r="11" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.40)" />
-            <text x={seat.x} y="93" textAnchor="middle" fill={SYNTH.inkOnBrand} fontSize="9" fontWeight="800" fontFamily="Geist, Inter, sans-serif">
+            <text
+              x={seat.x}
+              y="93"
+              textAnchor="middle"
+              fill={SYNTH.inkOnBrand}
+              fontSize="9"
+              fontWeight="800"
+              fontFamily="Geist, Inter, sans-serif"
+            >
               {seat.n}
             </text>
           </g>
         ))}
       </svg>
       <div className="mt-2 flex items-center justify-center gap-4">
-        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
+        <span
+          className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]"
+          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+        >
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: SYNTH.cardSky }} />
           Port
         </span>
-        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
+        <span
+          className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]"
+          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+        >
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: SYNTH.cardYellow }} />
           Starboard
         </span>

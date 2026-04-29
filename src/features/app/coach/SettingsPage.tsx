@@ -19,11 +19,12 @@ import {
   SynthAISheet,
   PrivacySheet,
 } from '../primitives/SettingsSheets'
+import { InviteCoachesSheet } from '../primitives/InviteCoachesSheet'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import { APP_MOCK_TEAM } from '../data/mockTeam'
 import { SYNTH } from '../lib/theme'
 
-type OpenSheet = 'notifications' | 'synth-ai' | 'privacy' | null
+type OpenSheet = 'notifications' | 'synth-ai' | 'privacy' | 'invite-coaches' | null
 
 export function SettingsPage() {
   const navigate = useNavigate()
@@ -152,7 +153,7 @@ export function SettingsPage() {
           icon={<UserPlus size={18} />}
           label="Invite coaches"
           sub="Add assistant coaches to this team"
-          onClick={() => alert("Coach invite flow — coming next.")}
+          onClick={() => setOpenSheet('invite-coaches')}
         />
         <Row
           icon={<Database size={18} />}
@@ -186,6 +187,7 @@ export function SettingsPage() {
       <NotificationsSheet open={openSheet === 'notifications'} onClose={() => setOpenSheet(null)} />
       <SynthAISheet open={openSheet === 'synth-ai'} onClose={() => setOpenSheet(null)} />
       <PrivacySheet open={openSheet === 'privacy'} onClose={() => setOpenSheet(null)} role="coach" />
+      <InviteCoachesSheet open={openSheet === 'invite-coaches'} onClose={() => setOpenSheet(null)} />
 
       <section className="mx-5 mt-6">
         <button

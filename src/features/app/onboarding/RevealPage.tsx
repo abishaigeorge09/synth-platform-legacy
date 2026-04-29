@@ -60,7 +60,9 @@ export function RevealPage() {
   }, [])
 
   const onContinue = () => {
-    navigate(role === 'coach' ? '/app/coach/home' : '/app/athlete/home')
+    // Walk the user through the app's main features before dropping them
+    // on home. The tour finishes by routing to the role-appropriate home.
+    navigate('/app/onboarding/tour')
   }
 
   return (

@@ -1,65 +1,55 @@
-import { useNavigate } from 'react-router-dom'
-import { Timer } from 'lucide-react'
+import { useState } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
+import { RaceRecorder, type Split } from '../primitives/RaceRecorder'
+import { SaveRaceSheet, type SaveRaceResult } from '../primitives/SaveRaceSheet'
 import { SYNTH } from '../lib/theme'
 
+const STOPWATCH_BOAT = {
+  id: 'stopwatch',
+  name: 'Stopwatch',
+  color: SYNTH.cardLemon,
+}
+
 /**
- * Stub for the stopwatch tool. Next pass: large running clock, lap
- * captures, then on stop a sheet asking "What was this for?" + athlete
- * picker so the timing gets attributed to a session.
+ * Stopwatch — uses the same RaceRecorder primitive as the Lineup Builder
+ * Race Timer, but runs in single-boat lap mode. On finish, the save
+ * sheet asks "what was this for?" + which athletes ran it, so the
+ * timing attaches to a session log.
  */
 export function StopwatchPage() {
-  const navigate = useNavigate()
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [result, setResult] = useState<{ elapsedMs: number; splits: Split[] } | null>(null)
 
   return (
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
       <CoachPageHeader title="Stopwatch" back="/app/coach/tools" />
 
-      <section className="mx-5 mt-2 flex flex-col items-center gap-6 rounded-3xl p-8"
-        style={{
-          background: SYNTH.inlineCard,
-          border: `1px solid ${SYNTH.inlineCardBorder}`,
-        }}
-      >
-        <span
-          className="flex h-14 w-14 items-center justify-center rounded-2xl"
-          style={{
-            background: SYNTH.glass,
-            border: `1px solid ${SYNTH.glassBorder}`,
-            color: SYNTH.inkOnBrand,
+      <section className="mx-5 mt-2">
+        <RaceRecorder
+          boats={[STOPWATCH_BOAT]}
+          totalSplits={10}
+          lapMode
+          onFinish={(r) => {
+            setResult(r)
+            setSaveOpen(true)
           }}
-        >
-          <Timer size={26} strokeWidth={2.2} />
-        </span>
-        <div className="text-center">
-          <p
-            className="text-[18px] font-bold"
-            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-          >
-            Stopwatch — coming next
-          </p>
-          <p
-            className="mt-2 text-[13px] leading-[1.5]"
-            style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
-          >
-            Large running clock with lap capture. On stop, pick what the
-            timer was for and tag the athletes who ran it — the result
-            attaches to the session log.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate('/app/coach/tools')}
-          className="rounded-full px-5 py-2.5 text-[13px] font-semibold"
-          style={{
-            background: SYNTH.inkOnBrand,
-            color: SYNTH.ink,
-            fontFamily: SYNTH.font,
-          }}
-        >
-          Back to tools
-        </button>
+        />
       </section>
+
+      {result ? (
+        <SaveRaceSheet
+          open={saveOpen}
+          onClose={() => setSaveOpen(false)}
+          boats={[STOPWATCH_BOAT]}
+          elapsedMs={result.elapsedMs}
+          splits={result.splits}
+          lapMode
+          onSave={(saved: SaveRaceResult) => {
+            // Stub: would write to session log in real flow
+            console.log('Stopwatch saved', saved, result)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

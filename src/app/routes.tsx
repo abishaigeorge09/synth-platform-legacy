@@ -20,6 +20,7 @@ import { AthleteConnectorsPage as AppOnboardingAthleteConnectorsPage } from '../
 import { TrustCardPage as AppOnboardingTrustPage } from '../features/app/onboarding/TrustCardPage'
 import { ScanningPage as AppOnboardingScanningPage } from '../features/app/onboarding/ScanningPage'
 import { RevealPage as AppOnboardingRevealPage } from '../features/app/onboarding/RevealPage'
+import { TourPage as AppOnboardingTourPage } from '../features/app/onboarding/TourPage'
 import { AppCoachShell } from '../features/app/coach/AppCoachShell'
 import { HomePage as AppCoachHomePage } from '../features/app/coach/HomePage'
 import { AttentionPage as AppCoachAttentionPage } from '../features/app/coach/AttentionPage'
@@ -265,6 +266,7 @@ export const routes: RouteObject[] = [
       { path: 'onboarding/trust', element: withSuspense(<AppOnboardingTrustPage />, 'Privacy') },
       { path: 'onboarding/scanning', element: withSuspense(<AppOnboardingScanningPage />, 'Scanning') },
       { path: 'onboarding/reveal', element: withSuspense(<AppOnboardingRevealPage />, 'synth is ready') },
+      { path: 'onboarding/tour', element: withSuspense(<AppOnboardingTourPage />, 'Tour') },
       {
         path: 'coach',
         element: <AppCoachShell />,

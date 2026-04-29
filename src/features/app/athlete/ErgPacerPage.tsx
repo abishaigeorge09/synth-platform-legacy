@@ -64,6 +64,7 @@ export function ErgPacerPage() {
           </div>
         </motion.div>
         <p
+          data-tour="athlete-pacer-target"
           className="mt-2 text-[12px] font-semibold uppercase tracking-[0.16em]"
           style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
         >
@@ -105,7 +106,7 @@ export function ErgPacerPage() {
         </div>
       </section>
 
-      <section className="mx-5 mt-3 rounded-3xl p-5"
+      <section data-tour="athlete-pacer-chart" className="mx-5 mt-3 rounded-3xl p-5"
                style={{ background: SYNTH.cardSky, boxShadow: SYNTH.shadow.card }}>
         <p
           className="text-[10px] font-semibold uppercase tracking-[0.18em]"

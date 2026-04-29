@@ -8,8 +8,16 @@ import {
   Database,
   LogOut,
   Sparkles,
-  Users,
+  UserPlus,
+  Copy,
+  Check,
+  HelpCircle,
+  RotateCcw,
+  Zap,
 } from 'lucide-react'
+import { useTutorialStore } from '../../../shared/tutorial'
+import { toast } from '../../../shared/store/useToastStore'
+import { useLaunchSheetStore } from '../../../shared/store/useLaunchSheetStore'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import {
@@ -17,17 +25,56 @@ import {
   SynthAISheet,
   PrivacySheet,
 } from '../primitives/SettingsSheets'
+import { InviteCoachesSheet } from '../primitives/InviteCoachesSheet'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import { APP_MOCK_TEAM } from '../data/mockTeam'
 import { SYNTH } from '../lib/theme'
 
-type OpenSheet = 'notifications' | 'synth-ai' | 'privacy' | null
+type OpenSheet = 'notifications' | 'synth-ai' | 'privacy' | 'invite-coaches' | null
 
 export function SettingsPage() {
   const navigate = useNavigate()
   const user = useAppAuthStore((s) => s.user)
   const signOut = useAppAuthStore((s) => s.signOut)
+  const replayTour = useTutorialStore((s) => s.replay)
+  const resetAll = useTutorialStore((s) => s.resetAll)
+  const launchDisabled = useLaunchSheetStore((s) => s.disabled)
+  const launchEnable = useLaunchSheetStore((s) => s.enable)
+  const launchDisable = useLaunchSheetStore((s) => s.disable)
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null)
+
+  const replayCurrent = () => {
+    // Send the coach to home and replay that tour. Defer the replay so the
+    // route mount happens before the overlay tries to find the anchor.
+    navigate('/app/coach/home')
+    window.setTimeout(() => replayTour('coachHome'), 80)
+  }
+  const resetEverything = () => {
+    resetAll()
+    toast('All tutorials reset — they will fire again on next visit.', 'success')
+  }
+  const toggleLaunchSheet = () => {
+    if (launchDisabled) {
+      launchEnable()
+      toast('Quick start sheet will appear on Home', 'success')
+    } else {
+      launchDisable()
+      toast("Quick start sheet won't auto-open", 'info')
+    }
+  }
+
+  const [copied, setCopied] = useState(false)
+  const inviteCode = 'CAL-W26'
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    } catch {
+      /* ignore */
+    }
+  }
 
   const onSignOut = async () => {
     await signOut()
@@ -90,27 +137,73 @@ export function SettingsPage() {
       </motion.section>
 
       <Section title="Team">
+        <div
+          data-tour="coach-settings-invite"
+          className="flex items-center gap-3 px-4 py-3.5"
+          style={{ borderTop: 'none' }}
+        >
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+            style={{
+              background: SYNTH.glass,
+              color: SYNTH.inkOnBrand,
+              border: `1px solid ${SYNTH.glassBorder}`,
+            }}
+          >
+            <UserPlus size={18} strokeWidth={2.2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-[14px] font-semibold leading-tight"
+              style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+            >
+              Team invite code
+            </p>
+            <p
+              className="mt-0.5 text-[12px]"
+              style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+            >
+              Share with athletes joining {APP_MOCK_TEAM.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCopy}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold"
+            style={{
+              background: copied ? SYNTH.accentEmerald : SYNTH.inkOnBrand,
+              color: copied ? SYNTH.inkOnBrand : SYNTH.ink,
+              fontFamily: SYNTH.font,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {copied ? <Check size={12} strokeWidth={3} /> : <Copy size={12} strokeWidth={2.4} />}
+            {copied ? 'Copied' : inviteCode}
+          </button>
+        </div>
         <Row
-          icon={<Users size={18} />}
-          label="Roster"
-          sub={`${APP_MOCK_TEAM.athleteCount} athletes`}
-          onClick={() => navigate('/app/coach/roster')}
+          icon={<UserPlus size={18} />}
+          label="Invite coaches"
+          sub="Add assistant coaches to this team"
+          onClick={() => setOpenSheet('invite-coaches')}
         />
         <Row
           icon={<Database size={18} />}
-          label="Connected sources"
-          sub="6 connected · 4m last sync"
+          label="Connector health"
+          sub="6 connected · 4m last sync · all healthy"
           onClick={() => navigate('/app/coach/sources')}
         />
       </Section>
 
       <Section title="Preferences">
-        <Row
-          icon={<Bell size={18} />}
-          label="Notifications"
-          sub="Daily summary, attention alerts"
-          onClick={() => setOpenSheet('notifications')}
-        />
+        <div data-tour="coach-settings-notif">
+          <Row
+            icon={<Bell size={18} />}
+            label="Notifications"
+            sub="Daily summary, attention alerts"
+            onClick={() => setOpenSheet('notifications')}
+          />
+        </div>
         <Row
           icon={<Sparkles size={18} />}
           label="synth AI"
@@ -125,9 +218,33 @@ export function SettingsPage() {
         />
       </Section>
 
+      <Section title="Help &amp; guidance">
+        <Row
+          icon={<Zap size={18} />}
+          label={launchDisabled ? 'Quick start sheet · off' : 'Quick start sheet · on'}
+          sub={launchDisabled ? 'Tap to auto-open the sheet on Home again' : 'Auto-opens Capture / Start session on Home'}
+          onClick={toggleLaunchSheet}
+        />
+        <div data-tour="coach-settings-replay">
+          <Row
+            icon={<HelpCircle size={18} />}
+            label="Replay tutorial"
+            sub="Walk through the home page step-by-step"
+            onClick={replayCurrent}
+          />
+        </div>
+        <Row
+          icon={<RotateCcw size={18} />}
+          label="Reset all tutorials"
+          sub="Make every walkthrough fire on next visit"
+          onClick={resetEverything}
+        />
+      </Section>
+
       <NotificationsSheet open={openSheet === 'notifications'} onClose={() => setOpenSheet(null)} />
       <SynthAISheet open={openSheet === 'synth-ai'} onClose={() => setOpenSheet(null)} />
       <PrivacySheet open={openSheet === 'privacy'} onClose={() => setOpenSheet(null)} role="coach" />
+      <InviteCoachesSheet open={openSheet === 'invite-coaches'} onClose={() => setOpenSheet(null)} />
 
       <section className="mx-5 mt-6">
         <button

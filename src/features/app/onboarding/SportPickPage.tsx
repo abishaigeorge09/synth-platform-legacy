@@ -27,6 +27,7 @@ export function SportPickPage() {
       ctaLabel="Continue"
       ctaDisabled={!sport}
       onCta={() => navigate('/app/onboarding/team')}
+      bgVariant="sport"
     >
       <PillRows options={options} selectedValue={sport} onSelect={setSport} />
     </SingleQuestionScreen>

@@ -100,6 +100,7 @@ export function SourcesPage() {
           <button
             type="button"
             aria-label="Add source"
+            data-tour="athlete-sources-grant"
             onClick={() => setOpenAdd(true)}
             className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
             style={{
@@ -179,17 +180,18 @@ export function SourcesPage() {
           }}
         >
           {enriched.map((row, i) => (
-            <SourceRow
-              key={row.id}
-              brandColor={row.meta.brandColor}
-              initial={row.meta.name.charAt(0)}
-              name={row.meta.name}
-              category={row.meta.category}
-              status={row.status}
-              lastSync={row.lastSync}
-              isFirst={i === 0}
-              onClick={() => setOpenDetailId(row.id)}
-            />
+            <div key={row.id} {...(i === 0 ? { 'data-tour': 'athlete-sources-card' } : {})}>
+              <SourceRow
+                brandColor={row.meta.brandColor}
+                initial={row.meta.name.charAt(0)}
+                name={row.meta.name}
+                category={row.meta.category}
+                status={row.status}
+                lastSync={row.lastSync}
+                isFirst={i === 0}
+                onClick={() => setOpenDetailId(row.id)}
+              />
+            </div>
           ))}
         </div>
       </section>

@@ -95,18 +95,29 @@ export function CapturePage() {
       <CoachPageHeader title="Log it" subtitle="Drop anything, synth synthesizes" back="/app/athlete/home" />
 
       <section className="mx-5 mt-2 grid grid-cols-2 gap-3">
-        {MODES.map((m, i) => (
-          <ModeCard
-            key={m.key}
-            index={i}
-            label={m.label}
-            description={m.description}
-            cardColor={m.cardColor}
-            icon={m.icon}
-            action={m.action}
-            onClick={() => setOpenMode(m.key)}
-          />
-        ))}
+        {MODES.map((m, i) => {
+          const tourAnchor =
+            m.key === 'form-video'
+              ? 'athlete-capture-form-video'
+              : m.key === 'erg-log'
+                ? 'athlete-capture-erg'
+                : m.key === 'wellness'
+                  ? 'athlete-capture-wellness'
+                  : undefined
+          return (
+            <div key={m.key} {...(tourAnchor ? { 'data-tour': tourAnchor } : {})}>
+              <ModeCard
+                index={i}
+                label={m.label}
+                description={m.description}
+                cardColor={m.cardColor}
+                icon={m.icon}
+                action={m.action}
+                onClick={() => setOpenMode(m.key)}
+              />
+            </div>
+          )
+        })}
       </section>
 
       <section className="mt-7 px-5">

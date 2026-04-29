@@ -1,13 +1,15 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
-import { Home, AlertTriangle, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
+import { Home, Boxes, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 
 export type FloatingTabItem = {
   key: string
   label: string
-  to: string
+  /** Either `to` (route) or `onClick` (custom action). */
+  to?: string
+  onClick?: () => void
   match: (pathname: string) => boolean
   icon: ReactNode
 }
@@ -69,11 +71,16 @@ function TabCell({ tab }: { tab: FloatingTabItem }) {
   const { pathname } = useLocation()
   const active = tab.match(pathname)
 
+  const handle = () => {
+    if (tab.onClick) tab.onClick()
+    else if (tab.to) navigate(tab.to)
+  }
+
   return (
     <li>
       <button
         type="button"
-        onClick={() => navigate(tab.to)}
+        onClick={handle}
         aria-label={tab.label}
         aria-current={active ? 'page' : undefined}
         className="relative flex h-12 w-12 items-center justify-center rounded-full"
@@ -113,40 +120,45 @@ function CaptureCell({ capture }: { capture: Props['capture'] }) {
   )
 }
 
-const COACH_TABS_INTERNAL: FloatingTabItem[] = [
-  {
-    key: 'home',
-    label: 'Home',
-    to: '/app/coach/home',
-    match: (p) => p === '/app/coach/home' || p === '/app/coach',
-    icon: <Home size={18} strokeWidth={2.2} />,
-  },
-  {
-    key: 'attention',
-    label: 'Attention',
-    to: '/app/coach/attention',
-    match: (p) => p.startsWith('/app/coach/attention') || p.startsWith('/app/coach/athlete'),
-    icon: <AlertTriangle size={18} strokeWidth={2.2} />,
-  },
-  {
-    key: 'ai',
-    label: 'AI',
-    to: '/app/coach/ai',
-    match: (p) => p.startsWith('/app/coach/ai'),
-    icon: <Sparkles size={18} strokeWidth={2.2} />,
-  },
-  {
-    key: 'more',
-    label: 'More',
-    to: '/app/coach/settings',
-    match: (p) =>
-      p.startsWith('/app/coach/settings') ||
-      p.startsWith('/app/coach/lineups') ||
-      p.startsWith('/app/coach/notes') ||
-      p.startsWith('/app/coach/sources'),
-    icon: <MoreHorizontal size={18} strokeWidth={2.2} />,
-  },
-]
+function buildCoachTabs(onMoreClick: () => void): FloatingTabItem[] {
+  return [
+    {
+      key: 'home',
+      label: 'Home',
+      to: '/app/coach/home',
+      match: (p) => p === '/app/coach/home' || p === '/app/coach',
+      icon: <Home size={18} strokeWidth={2.2} />,
+    },
+    {
+      key: 'tools',
+      label: 'Tools',
+      to: '/app/coach/tools',
+      match: (p) => p.startsWith('/app/coach/tools') || p.startsWith('/app/coach/lineups'),
+      icon: <Boxes size={18} strokeWidth={2.2} />,
+    },
+    {
+      key: 'ai',
+      label: 'AI',
+      to: '/app/coach/ai',
+      match: (p) => p.startsWith('/app/coach/ai'),
+      icon: <Sparkles size={18} strokeWidth={2.2} />,
+    },
+    {
+      key: 'more',
+      label: 'More',
+      onClick: onMoreClick,
+      // Treat the secondary surfaces (roster/attention/sources/settings)
+      // as "More-active" so the dot highlights when the user is on one.
+      match: (p) =>
+        p.startsWith('/app/coach/roster') ||
+        p.startsWith('/app/coach/attention') ||
+        p.startsWith('/app/coach/sources') ||
+        p.startsWith('/app/coach/settings') ||
+        p.startsWith('/app/coach/notes'),
+      icon: <MoreHorizontal size={18} strokeWidth={2.2} />,
+    },
+  ]
+}
 
 const ATHLETE_TABS_INTERNAL: FloatingTabItem[] = [
   {
@@ -182,10 +194,10 @@ const ATHLETE_TABS_INTERNAL: FloatingTabItem[] = [
   },
 ]
 
-export function CoachFloatingTabBar() {
+export function CoachFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }) {
   return (
     <FloatingTabBar
-      tabs={COACH_TABS_INTERNAL}
+      tabs={buildCoachTabs(onMoreClick)}
       capture={{ to: '/app/coach/capture', ariaLabel: 'Capture' }}
     />
   )

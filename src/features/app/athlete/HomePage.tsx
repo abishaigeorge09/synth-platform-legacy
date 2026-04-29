@@ -32,6 +32,7 @@ export function HomePage() {
         <button
           type="button"
           aria-label="My week"
+          data-tour="athlete-home-stats-button"
           onClick={() => setStatsOpen(true)}
           className="flex h-9 items-center gap-1.5 rounded-full px-3"
           style={{
@@ -61,6 +62,7 @@ export function HomePage() {
       />
 
       <motion.h1
+        data-tour="athlete-home-status"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -77,24 +79,28 @@ export function HomePage() {
       <AthleteHero athlete={me} />
 
       <CandyCarousel>
-        <CandyCard
-          color={SYNTH.cardYellow}
-          kicker="Today"
-          headline="8 × 500m at 22 spm — water at 06:30."
-          ctaLabel="See plan"
-          provenance="TrainingPeaks · 12m ago"
-          onClick={() => {
-            /* would link to today's plan */
-          }}
-        />
-        <CandyCard
-          color={SYNTH.cardSky}
-          kicker="Erg pacer"
-          headline="Last 2K avg pace: 1:46.7. Try 1:45.3 today?"
-          ctaLabel="Open pacer"
-          provenance="Concept2 · 4m ago"
-          onClick={() => navigate('/app/athlete/erg-pacer')}
-        />
+        <div data-tour="athlete-home-candy-plan">
+          <CandyCard
+            color={SYNTH.cardYellow}
+            kicker="Today"
+            headline="8 × 500m at 22 spm — water at 06:30."
+            ctaLabel="See plan"
+            provenance="TrainingPeaks · 12m ago"
+            onClick={() => {
+              /* would link to today's plan */
+            }}
+          />
+        </div>
+        <div data-tour="athlete-home-candy-pacer">
+          <CandyCard
+            color={SYNTH.cardSky}
+            kicker="Erg pacer"
+            headline="Last 2K avg pace: 1:46.7. Try 1:45.3 today?"
+            ctaLabel="Open pacer"
+            provenance="Concept2 · 4m ago"
+            onClick={() => navigate('/app/athlete/erg-pacer')}
+          />
+        </div>
         <CandyCard
           color={SYNTH.cardMint}
           kicker="Wellness"

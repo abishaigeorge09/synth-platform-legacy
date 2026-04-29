@@ -182,6 +182,7 @@ export function AIPage() {
           </HeaderIconButton>
           <button
             type="button"
+            data-tour="coach-ai-scope"
             onClick={() => setScopeOpen(true)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-full border px-3 py-2"
             style={{ background: SYNTH.sheet, borderColor: SYNTH.aiBorder, color: SYNTH.ink }}
@@ -191,16 +192,20 @@ export function AIPage() {
             </span>
             <ChevronDown size={14} color={SYNTH.aiTextMuted} strokeWidth={2.2} />
           </button>
-          <HeaderIconButton ariaLabel="Chat history" onClick={() => setHistoryOpen(true)}>
-            <Menu size={16} strokeWidth={2.2} />
-          </HeaderIconButton>
-          <HeaderIconButton
-            ariaLabel="Customize chat"
-            onClick={() => setCustomizeOpen(true)}
-            badge={customizationActive}
-          >
-            <Sliders size={16} strokeWidth={2.2} />
-          </HeaderIconButton>
+          <span data-tour="coach-ai-history">
+            <HeaderIconButton ariaLabel="Chat history" onClick={() => setHistoryOpen(true)}>
+              <Menu size={16} strokeWidth={2.2} />
+            </HeaderIconButton>
+          </span>
+          <span data-tour="coach-ai-customize">
+            <HeaderIconButton
+              ariaLabel="Customize chat"
+              onClick={() => setCustomizeOpen(true)}
+              badge={customizationActive}
+            >
+              <Sliders size={16} strokeWidth={2.2} />
+            </HeaderIconButton>
+          </span>
         </header>
 
         <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-2">
@@ -212,7 +217,7 @@ export function AIPage() {
           />
         </div>
 
-        <div className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+        <div data-tour="coach-ai-input" className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
           <AIComposer
             value={text}
             onChange={setText}

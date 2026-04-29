@@ -25,6 +25,7 @@ export function CoachCapabilitiesPage() {
       ctaLabel="Continue"
       ctaDisabled={capabilities.length === 0}
       onCta={() => navigate('/app/onboarding/sources/coach')}
+      bgVariant="capabilities"
     >
       <MultiSelectChips options={options} selectedValues={capabilities} onToggle={toggle} />
     </SingleQuestionScreen>

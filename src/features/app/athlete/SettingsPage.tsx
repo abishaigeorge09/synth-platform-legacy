@@ -9,7 +9,11 @@ import {
   LogOut,
   User,
   Eye,
+  HelpCircle,
+  RotateCcw,
 } from 'lucide-react'
+import { useTutorialStore } from '../../../shared/tutorial'
+import { toast } from '../../../shared/store/useToastStore'
 import type { ReactNode } from 'react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import {
@@ -28,8 +32,19 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const user = useAppAuthStore((s) => s.user)
   const signOut = useAppAuthStore((s) => s.signOut)
+  const replayTour = useTutorialStore((s) => s.replay)
+  const resetAll = useTutorialStore((s) => s.resetAll)
   const me = APP_MOCK_ATHLETES[0]
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null)
+
+  const replayCurrent = () => {
+    navigate('/app/athlete/home')
+    window.setTimeout(() => replayTour('athleteHome'), 80)
+  }
+  const resetEverything = () => {
+    resetAll()
+    toast('All tutorials reset — they will fire again on next visit.', 'success')
+  }
 
   const onSignOut = async () => {
     await signOut()
@@ -117,12 +132,14 @@ export function SettingsPage() {
       </Section>
 
       <Section title="Preferences">
-        <Row
-          icon={<Bell size={18} />}
-          label="Notifications"
-          sub="Coach notes, daily check-in"
-          onClick={() => setOpenSheet('notifications')}
-        />
+        <div data-tour="athlete-settings-notif">
+          <Row
+            icon={<Bell size={18} />}
+            label="Notifications"
+            sub="Coach notes, daily check-in"
+            onClick={() => setOpenSheet('notifications')}
+          />
+        </div>
         <Row
           icon={<Eye size={18} />}
           label="What coach can see"
@@ -134,6 +151,23 @@ export function SettingsPage() {
           label="Privacy"
           sub="Your data stays yours"
           onClick={() => setOpenSheet('privacy')}
+        />
+      </Section>
+
+      <Section title="Help &amp; guidance">
+        <div data-tour="athlete-settings-replay">
+          <Row
+            icon={<HelpCircle size={18} />}
+            label="Replay tutorial"
+            sub="Walk through the home page step-by-step"
+            onClick={replayCurrent}
+          />
+        </div>
+        <Row
+          icon={<RotateCcw size={18} />}
+          label="Reset all tutorials"
+          sub="Make every walkthrough fire on next visit"
+          onClick={resetEverything}
         />
       </Section>
 

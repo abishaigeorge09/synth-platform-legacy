@@ -30,6 +30,7 @@ export function CoachTeamSetupPage() {
       ctaLabel="Continue"
       ctaDisabled={!canContinue}
       onCta={() => navigate('/app/onboarding/capabilities')}
+      bgVariant="team"
     >
       <div className="flex flex-col gap-6">
         <div>

@@ -3,6 +3,9 @@ import { motion } from 'framer-motion'
 import { ChevronLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { SYNTH } from '../lib/theme'
+import { OnboardingBackground } from './OnboardingBackground'
+
+type BgVariant = 'default' | 'role' | 'sport' | 'team' | 'capabilities' | 'connectors' | 'trust' | 'scanning' | 'reveal'
 
 type Props = {
   step?: number
@@ -15,6 +18,7 @@ type Props = {
   onCta: () => void
   secondary?: { label: string; onClick: () => void }
   children: ReactNode
+  bgVariant?: BgVariant
 }
 
 /**
@@ -45,6 +49,7 @@ export function SingleQuestionScreen({
   onCta,
   secondary,
   children,
+  bgVariant = 'default',
 }: Props) {
   useEffect(() => {
     document.body.setAttribute('data-app-canvas', 'cobalt')
@@ -61,14 +66,16 @@ export function SingleQuestionScreen({
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      className="flex min-h-0 flex-1 flex-col"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
       style={{
         background: `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
         fontFamily: SYNTH.font,
       }}
     >
+      <OnboardingBackground variant={bgVariant} />
+
       {/* Header — back + progress */}
-      <div className="flex shrink-0 items-center gap-3 px-5 pt-[max(env(safe-area-inset-top),20px)] pb-3">
+      <div className="relative z-10 flex shrink-0 items-center gap-3 px-5 pt-[max(env(safe-area-inset-top),20px)] pb-3">
         <button
           type="button"
           onClick={onBack}
@@ -103,7 +110,7 @@ export function SingleQuestionScreen({
       </div>
 
       {/* Centered scroll area */}
-      <div className="synth-scroll min-h-0 flex-1 overflow-y-auto">
+      <div className="synth-scroll relative z-10 min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center px-6 py-6">
           <div className="mx-auto w-full max-w-[420px]">
             <h1
@@ -127,7 +134,7 @@ export function SingleQuestionScreen({
 
       {/* Pinned CTA — shrink-0 so it never falls below the frame */}
       <div
-        className="shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-3"
+        className="relative z-10 shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-3"
         style={{
           background: 'rgba(31, 38, 201, 0.82)',
           backdropFilter: 'blur(18px) saturate(140%)',

@@ -5,6 +5,7 @@ import { Activity, Heart, Flame, TrendingUp, Check } from 'lucide-react'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import { useOnboardingStore } from '../store/useOnboardingStore'
 import { SYNTH } from '../lib/theme'
+import { OnboardingBackground } from '../primitives/OnboardingBackground'
 
 type Card = {
   label: string
@@ -67,13 +68,14 @@ export function RevealPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="flex min-h-0 flex-1 flex-col"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
       style={{
         background: `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
         fontFamily: SYNTH.font,
       }}
     >
-      <div className="synth-scroll min-h-0 flex-1 overflow-y-auto">
+      <OnboardingBackground variant="reveal" />
+      <div className="synth-scroll relative z-10 min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center px-6 py-6">
           <div className="mx-auto w-full max-w-[420px]">
             {/* Hero check */}
@@ -169,7 +171,7 @@ export function RevealPage() {
       </div>
 
       <div
-        className="shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-3"
+        className="relative z-10 shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-3"
         style={{
           background: 'rgba(31, 38, 201, 0.82)',
           backdropFilter: 'blur(18px) saturate(140%)',

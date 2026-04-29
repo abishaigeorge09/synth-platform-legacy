@@ -21,6 +21,7 @@ export function AthleteInviteCodePage() {
       ctaDisabled={!canContinue}
       onCta={() => navigate('/app/onboarding/sources/athlete')}
       secondary={{ label: "I don't have a code", onClick: () => navigate('/app/onboarding/sources/athlete') }}
+      bgVariant="team"
     >
       <div className="flex flex-col gap-3">
         <label

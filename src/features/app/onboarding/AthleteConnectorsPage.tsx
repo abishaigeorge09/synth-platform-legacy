@@ -32,6 +32,7 @@ export function AthleteConnectorsPage() {
           : 'Skip for now'
       }
       onCta={() => navigate('/app/onboarding/trust')}
+      bgVariant="connectors"
     >
       <div className="flex flex-col gap-2">
         {ATHLETE_CONNECTORS.map((c) => (

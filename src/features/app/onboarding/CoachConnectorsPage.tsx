@@ -32,6 +32,7 @@ export function CoachConnectorsPage() {
           : 'Skip for now'
       }
       onCta={() => navigate('/app/onboarding/trust')}
+      bgVariant="connectors"
     >
       <div className="flex flex-col gap-2">
         {COACH_CONNECTORS.map((c) => (

@@ -46,6 +46,7 @@ export function RolePickPage() {
       ctaLabel="Continue"
       ctaDisabled={!selected}
       onCta={onContinue}
+      bgVariant="role"
     >
       <PillRows
         options={options}

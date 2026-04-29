@@ -1,33 +1,41 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, ChevronRight, Calendar, Send, FileText } from 'lucide-react'
+import { Plus, ChevronRight, Calendar, Send, FileText, Star, Settings2 } from 'lucide-react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import { BoatLineupCard } from '../primitives/BoatLineupCard'
 import { BoatConfigSheet } from '../primitives/BoatConfigSheet'
 import { RacePresetSheet } from '../primitives/RacePresetSheet'
-import { useLineupBuilderStore, SESSION_TYPE_OPTIONS } from '../data/lineupBuilderStore'
-import { useSessionsStore, sortSessionsByDate, type Session } from '../data/useSessionsStore'
+import { PublishSessionSheet } from '../primitives/PublishSessionSheet'
+import { useLineupBuilderStore } from '../data/lineupBuilderStore'
+import {
+  useSessionsStore,
+  sortSessionsByDate,
+  type Session,
+} from '../data/useSessionsStore'
 import { SYNTH } from '../lib/theme'
 
-type TabKey = 'builder' | 'sessions'
+type TabKey = 'builder' | 'sessions' | 'ratings'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'builder', label: 'Builder' },
   { key: 'sessions', label: 'Sessions' },
+  { key: 'ratings', label: 'Ratings' },
 ]
 
-const STATUS_COLOR = {
+const STATUS_COLOR: Record<Session['status'], string> = {
   scheduled: SYNTH.cardLemon,
   'in-progress': SYNTH.cardSky,
+  'needs-rating': SYNTH.accentAmber,
   completed: SYNTH.accentEmerald,
-} as const
+}
 
-const STATUS_LABEL = {
+const STATUS_LABEL: Record<Session['status'], string> = {
   scheduled: 'Scheduled',
-  'in-progress': 'In progress',
+  'in-progress': 'Live',
+  'needs-rating': 'Needs rating',
   completed: 'Completed',
-} as const
+}
 
 export function LineupsPage() {
   const [tab, setTab] = useState<TabKey>('builder')
@@ -36,7 +44,6 @@ export function LineupsPage() {
     <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
       <CoachPageHeader title="Lineup Builder" back="/app/coach/tools" />
 
-      {/* Tab strip */}
       <div className="px-5">
         <div
           className="flex gap-1.5 rounded-full p-1"
@@ -79,6 +86,7 @@ export function LineupsPage() {
         >
           {tab === 'builder' && <BuilderTab />}
           {tab === 'sessions' && <SessionsTab />}
+          {tab === 'ratings' && <RatingsTab />}
         </motion.div>
       </AnimatePresence>
     </div>
@@ -90,150 +98,53 @@ export function LineupsPage() {
 function BuilderTab() {
   const navigate = useNavigate()
   const boats = useLineupBuilderStore((s) => s.boats)
-  const meta = useLineupBuilderStore((s) => s.meta)
   const preset = useLineupBuilderStore((s) => s.preset)
-  const setMeta = useLineupBuilderStore((s) => s.setMeta)
-  const setSeatAthlete = useLineupBuilderStore((s) => s.setSeatAthlete)
-  const resetDraft = useLineupBuilderStore((s) => s.resetDraft)
-  const addSession = useSessionsStore((s) => s.addSession)
-
   const [editingBoatId, setEditingBoatId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
-  const [publishing, setPublishing] = useState(false)
+  const [publishOpen, setPublishOpen] = useState(false)
 
-  const canPublish = meta.name.trim().length > 0 && boats.length > 0
-  const isFutureDate = meta.date > new Date().toISOString().slice(0, 10)
-
-  const onPublish = () => {
-    if (!canPublish) return
-    setPublishing(true)
-    const session = addSession({
-      name: meta.name.trim(),
-      type: meta.type,
-      date: meta.date,
-      notes: meta.notes.trim(),
-      boats,
-      preset,
-      status: isFutureDate ? 'scheduled' : 'scheduled',
-    })
-    // Briefly show success then navigate to the session detail
-    setTimeout(() => {
-      setPublishing(false)
-      resetDraft()
-      navigate(`/app/coach/sessions/${session.id}`)
-    }, 700)
-  }
+  const canPublish = boats.length > 0
 
   return (
     <>
-      {/* Session metadata card */}
+      {/* Race preset chip */}
       <section className="mx-5 mt-2">
-        <div
-          className="rounded-3xl border p-4"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            borderColor: SYNTH.glassBorder,
-          }}
+        <button
+          type="button"
+          onClick={() => setPresetOpen(true)}
+          className="flex w-full items-center gap-3 rounded-3xl p-4 text-left active:opacity-90"
+          style={{ background: SYNTH.cardLemon, boxShadow: SYNTH.shadow.card }}
         >
-          <p
-            className="text-[10px] font-semibold uppercase tracking-[0.16em]"
-            style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: SYNTH.accentBlack, color: SYNTH.inkOnBrand }}
           >
-            Session details
-          </p>
-          {/* Name */}
-          <input
-            type="text"
-            value={meta.name}
-            onChange={(e) => setMeta({ name: e.target.value })}
-            placeholder="e.g. Wednesday AM steady state"
-            className="mt-2 w-full bg-transparent text-[18px] font-bold outline-none placeholder:text-white/40"
-            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-          />
-          {/* Type pills */}
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {SESSION_TYPE_OPTIONS.map((type) => {
-              const active = meta.type === type
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setMeta({ type })}
-                  className="rounded-full px-3 py-1 text-[11px] font-semibold"
-                  style={{
-                    background: active ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.10)',
-                    color: active ? SYNTH.ink : SYNTH.inkOnBrandMuted,
-                    fontFamily: SYNTH.font,
-                  }}
-                >
-                  {type}
-                </button>
-              )
-            })}
-          </div>
-          {/* Date + notes inline */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1">
-              <span
-                className="text-[10px] font-semibold uppercase tracking-[0.14em]"
-                style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
-              >
-                Date
-              </span>
-              <input
-                type="date"
-                value={meta.date}
-                onChange={(e) => setMeta({ date: e.target.value })}
-                className="rounded-xl border px-3 py-2 text-[13px] outline-none"
-                style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  borderColor: SYNTH.glassBorder,
-                  color: SYNTH.inkOnBrand,
-                  fontFamily: SYNTH.font,
-                }}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => setPresetOpen(true)}
-              className="flex flex-col gap-1 rounded-xl border px-3 py-2 text-left"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                borderColor: SYNTH.glassBorder,
-              }}
+            <Settings2 size={20} strokeWidth={2.2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+              style={{ color: SYNTH.ink, opacity: 0.6, fontFamily: SYNTH.font }}
             >
-              <span
-                className="text-[10px] font-semibold uppercase tracking-[0.14em]"
-                style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
-              >
-                Race preset
-              </span>
-              <span
-                className="truncate text-[13px] font-bold"
-                style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-              >
-                {preset.raceFor}
-              </span>
-            </button>
+              Session preset · tap to edit
+            </p>
+            <p
+              className="mt-1 text-[15px] font-bold leading-tight"
+              style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
+            >
+              {preset.raceFor}
+            </p>
+            <p
+              className="mt-0.5 text-[11px]"
+              style={{ color: SYNTH.ink, opacity: 0.65, fontFamily: SYNTH.font }}
+            >
+              {preset.distance} · {preset.splits.length} splits · timing in{' '}
+              {preset.splitUnit === 'ms' ? 'milliseconds' : 'seconds'}
+            </p>
           </div>
-          {/* Notes */}
-          <textarea
-            value={meta.notes}
-            onChange={(e) => setMeta({ notes: e.target.value })}
-            placeholder="Optional notes — context for the coaches"
-            rows={2}
-            className="mt-3 w-full resize-none rounded-xl border px-3 py-2 text-[13px] outline-none placeholder:text-white/40"
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              borderColor: SYNTH.glassBorder,
-              color: SYNTH.inkOnBrand,
-              fontFamily: SYNTH.font,
-            }}
-          />
-        </div>
+          <ChevronRight size={16} color={SYNTH.ink} />
+        </button>
       </section>
 
       {/* Boats */}
@@ -242,18 +153,16 @@ function BuilderTab() {
           className="text-[10px] font-semibold uppercase tracking-[0.18em]"
           style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
         >
-          Boats · tap a seat to assign
+          Boats · tap a seat to fill from there
         </p>
         {boats.map((b) => (
           <BoatLineupCard
             key={b.id}
             boat={b}
-            onAssignSeat={(position, athleteId) => setSeatAthlete(b.id, position, athleteId)}
-            onMore={() => setEditingBoatId(b.id)}
+            onEdit={() => setEditingBoatId(b.id)}
           />
         ))}
 
-        {/* Add boat dashed card */}
         <motion.button
           type="button"
           whileTap={{ scale: 0.99 }}
@@ -275,8 +184,8 @@ function BuilderTab() {
         <motion.button
           type="button"
           whileTap={{ scale: 0.985 }}
-          onClick={onPublish}
-          disabled={!canPublish || publishing}
+          onClick={() => setPublishOpen(true)}
+          disabled={!canPublish}
           className="flex w-full items-center justify-center gap-2 rounded-full py-4 text-[14px] font-bold uppercase tracking-[0.04em] disabled:opacity-40"
           style={{
             background: SYNTH.accentEmerald,
@@ -285,22 +194,14 @@ function BuilderTab() {
             boxShadow: `0 14px 32px ${SYNTH.accentEmerald}88`,
           }}
         >
-          {publishing ? (
-            'Publishing…'
-          ) : (
-            <>
-              <Send size={16} strokeWidth={2.6} />
-              Publish session
-            </>
-          )}
+          <Send size={16} strokeWidth={2.6} />
+          Publish session
         </motion.button>
         <p
           className="mt-2 text-center text-[11px]"
           style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
         >
-          {canPublish
-            ? `Saves ${boats.length} boat${boats.length === 1 ? '' : 's'} for ${meta.date}. Start it later from Sessions.`
-            : 'Add a session name + at least one boat to publish.'}
+          Saves to Sessions. Start the timer later from there.
         </p>
       </section>
 
@@ -314,6 +215,11 @@ function BuilderTab() {
         boatId={editingBoatId}
       />
       <RacePresetSheet open={presetOpen} onClose={() => setPresetOpen(false)} />
+      <PublishSessionSheet
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        onPublished={(id) => navigate(`/app/coach/sessions/${id}`)}
+      />
     </>
   )
 }
@@ -371,7 +277,10 @@ function SessionRow({ session }: { session: Session }) {
           className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em]"
           style={{
             background: STATUS_COLOR[session.status],
-            color: SYNTH.ink,
+            color:
+              session.status === 'scheduled' || session.status === 'in-progress'
+                ? SYNTH.ink
+                : SYNTH.inkOnBrand,
             fontFamily: SYNTH.font,
           }}
         >
@@ -409,5 +318,128 @@ function SessionRow({ session }: { session: Session }) {
         ))}
       </div>
     </motion.button>
+  )
+}
+
+// ─── Ratings ────────────────────────────────────────────────────────────────
+
+function RatingsTab() {
+  const sessions = useSessionsStore((s) => s.sessions)
+  const navigate = useNavigate()
+
+  const allRatings = useMemo(() => {
+    const out: {
+      sessionId: string
+      sessionName: string
+      sessionDate: string
+      runId: string
+      runIndex: number
+      ratedByCoach?: string
+      boatId: string
+      boatName: string
+      boatColor: string
+      avg: number
+    }[] = []
+    sessions.forEach((s) => {
+      s.runs.forEach((r, runIdx) => {
+        ;(r.ratings ?? []).forEach((rating) => {
+          const boat = s.boats.find((b) => b.id === rating.boatId)
+          if (!boat) return
+          const avg = (rating.technique + rating.power + rating.sync) / 3
+          out.push({
+            sessionId: s.id,
+            sessionName: s.name,
+            sessionDate: s.date,
+            runId: r.id,
+            runIndex: runIdx + 1,
+            ratedByCoach: r.ratedByCoach,
+            boatId: rating.boatId,
+            boatName: boat.name,
+            boatColor: boat.color,
+            avg,
+          })
+        })
+      })
+    })
+    out.sort((a, b) => b.avg - a.avg)
+    return out
+  }, [sessions])
+
+  return (
+    <section className="mx-5 mt-2 flex flex-col gap-2">
+      <p
+        className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+      >
+        Ratings across all sessions · top first
+      </p>
+      {allRatings.length === 0 ? (
+        <div
+          className="rounded-3xl border-2 border-dashed px-6 py-10 text-center"
+          style={{
+            borderColor: 'rgba(255,255,255,0.25)',
+            color: SYNTH.inkOnBrandMuted,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          <Star size={20} className="mx-auto mb-2 opacity-50" />
+          <p className="text-[13px]">No ratings yet.</p>
+          <p
+            className="mt-1 text-[11px]"
+            style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
+          >
+            Rate a session at finish and the boat ratings show up here.
+          </p>
+        </div>
+      ) : (
+        allRatings.map((r, i) => (
+          <button
+            key={`${r.sessionId}-${r.runId}-${r.boatId}-${i}`}
+            type="button"
+            onClick={() => navigate(`/app/coach/sessions/${r.sessionId}`)}
+            className="flex items-center gap-3 rounded-2xl border p-3 text-left"
+            style={{
+              background: SYNTH.glass,
+              borderColor: SYNTH.glassBorder,
+            }}
+          >
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: r.boatColor, color: SYNTH.ink }}
+            >
+              <Star size={18} fill={SYNTH.ink} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p
+                className="text-[13px] font-bold"
+                style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+              >
+                {r.boatName}
+              </p>
+              <p
+                className="text-[11px]"
+                style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+              >
+                {r.sessionName} · {r.sessionDate} · Run {r.runIndex}
+                {r.ratedByCoach ? ` · ${r.ratedByCoach}` : ''}
+              </p>
+            </div>
+            <span className="flex items-center gap-1">
+              <Star size={12} color={SYNTH.accentEmerald} fill={SYNTH.accentEmerald} />
+              <span
+                className="text-[16px] font-bold"
+                style={{
+                  color: SYNTH.inkOnBrand,
+                  fontFamily: SYNTH.font,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {r.avg.toFixed(1)}
+              </span>
+            </span>
+          </button>
+        ))
+      )}
+    </section>
   )
 }

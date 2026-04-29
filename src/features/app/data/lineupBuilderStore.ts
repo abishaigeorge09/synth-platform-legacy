@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { SYNTH } from '../lib/theme'
 
 export type BoatSize = '1x' | '2x' | '2-' | '4+' | '4-' | '4x' | '8+'
@@ -24,8 +25,8 @@ export const BOAT_SIZE_LABEL: Record<BoatSize, string> = {
 }
 
 export type Seat = {
-  position: number // 1 = stroke for sweep, 1 = bow-side for sculls
-  label: string // "Stroke" / "Bow" / "5 seat"
+  position: number
+  label: string
   athleteId: string | null
 }
 
@@ -42,11 +43,13 @@ export type Boat = {
 export type SplitMarker = { label: string; position: number }
 
 export type RacePreset = {
-  raceFor: string // "Race-pace pieces" / "Time trial" / "Seat race" / "Practice"
-  distance: string // "2K" / "6K" / "30s × 8"
+  raceFor: string
+  distance: string
   splits: SplitMarker[]
   splitUnit: 's' | 'ms'
   expectedDurationMs: number
+  /** Tag custom presets so the UI can show a "Custom" badge */
+  custom?: boolean
 }
 
 const COLORS = [SYNTH.cardSky, SYNTH.cardPink, SYNTH.cardLemon, SYNTH.cardMint, SYNTH.cardCream] as const
@@ -70,6 +73,15 @@ function seatLabel(size: BoatSize, position: number): string {
   return `Seat ${position}`
 }
 
+/**
+ * Alternating rig: position 1 = starboard, 2 = port, 3 = starboard, …
+ * The user can override per-boat in a future build; for now this is the
+ * default and what the container split UI renders against.
+ */
+export function seatSide(_size: BoatSize, position: number): 'P' | 'S' {
+  return position % 2 === 1 ? 'S' : 'P'
+}
+
 function makeSeats(size: BoatSize): Seat[] {
   const total = SEAT_COUNT[size]
   return Array.from({ length: total }, (_, i) => ({
@@ -90,41 +102,14 @@ export function makeBoat(name: string, size: BoatSize, colorIdx: number): Boat {
   }
 }
 
-const DEFAULT_BOATS: Boat[] = [
-  {
-    id: 'boat-v8a',
-    name: 'V8 A',
-    size: '8+',
-    color: SYNTH.cardSky,
-    speed: 1.02,
-    seats: [
-      { position: 1, label: 'Stroke', athleteId: 'a-juno-okafor' },
-      { position: 2, label: '7 seat', athleteId: 'a-isla-park' },
-      { position: 3, label: '6 seat', athleteId: 'a-noor-haidari' },
-      { position: 4, label: '5 seat', athleteId: 'a-star-miller' },
-      { position: 5, label: '4 seat', athleteId: 'a-coral-mendez' },
-      { position: 6, label: '3 seat', athleteId: 'a-rae-akhtar' },
-      { position: 7, label: '2 seat', athleteId: 'a-noor-haidari' },
-      { position: 8, label: 'Bow', athleteId: 'a-star-miller' },
-    ],
-  },
-  {
-    id: 'boat-v8b',
-    name: 'V8 B',
-    size: '8+',
-    color: SYNTH.cardPink,
-    speed: 0.99,
-    seats: makeSeats('8+'),
-  },
-  {
-    id: 'boat-v4',
-    name: 'V4 A',
-    size: '4+',
-    color: SYNTH.cardLemon,
-    speed: 0.97,
-    seats: makeSeats('4+'),
-  },
-]
+const DEFAULT_BOAT: Boat = {
+  id: 'boat-default',
+  name: 'V8',
+  size: '8+',
+  color: SYNTH.cardSky,
+  speed: 1.0,
+  seats: makeSeats('8+'),
+}
 
 const DEFAULT_PRESET: RacePreset = {
   raceFor: 'Race-pace pieces',
@@ -136,87 +121,95 @@ const DEFAULT_PRESET: RacePreset = {
     { label: '2000m', position: 1.0 },
   ],
   splitUnit: 's',
-  expectedDurationMs: 400_000, // ~6:40
-}
-
-export type SessionMeta = {
-  name: string
-  type: string
-  date: string // YYYY-MM-DD
-  notes: string
-}
-
-const SESSION_TYPES = [
-  'Practice piece',
-  'Steady state',
-  'Time trial',
-  'Seat race',
-  'Race',
-  'Open',
-] as const
-export const SESSION_TYPE_OPTIONS: readonly string[] = SESSION_TYPES
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
+  expectedDurationMs: 400_000,
 }
 
 type State = {
   boats: Boat[]
   preset: RacePreset
-  meta: SessionMeta
+  customPresets: RacePreset[]
   addBoat: (name: string, size: BoatSize) => void
   removeBoat: (id: string) => void
   renameBoat: (id: string, name: string) => void
   setSeatAthlete: (boatId: string, position: number, athleteId: string | null) => void
+  /** Multi-fill: assigns athleteIds[i] to seat (startPosition + i), clamped
+   * to the boat's seat count. Used by the multi-select picker. */
+  setSeatAthletes: (boatId: string, startPosition: number, athleteIds: string[]) => void
   setPreset: (patch: Partial<RacePreset>) => void
-  setMeta: (patch: Partial<SessionMeta>) => void
+  applyPreset: (preset: RacePreset) => void
+  addCustomPreset: (preset: RacePreset) => void
   resetDraft: () => void
 }
 
-const DEFAULT_META: SessionMeta = {
-  name: '',
-  type: 'Steady state',
-  date: todayIso(),
-  notes: '',
-}
-
-export const useLineupBuilderStore = create<State>((set, get) => ({
-  boats: DEFAULT_BOATS,
-  preset: DEFAULT_PRESET,
-  meta: DEFAULT_META,
-  addBoat: (name, size) => {
-    const boats = get().boats
-    set({ boats: [...boats, makeBoat(name, size, boats.length)] })
-  },
-  removeBoat: (id) => {
-    set({ boats: get().boats.filter((b) => b.id !== id) })
-  },
-  renameBoat: (id, name) => {
-    set({
-      boats: get().boats.map((b) => (b.id === id ? { ...b, name } : b)),
-    })
-  },
-  setSeatAthlete: (boatId, position, athleteId) => {
-    set({
-      boats: get().boats.map((b) =>
-        b.id === boatId
-          ? {
-              ...b,
-              seats: b.seats.map((s) =>
-                s.position === position ? { ...s, athleteId } : s,
-              ),
-            }
-          : b,
-      ),
-    })
-  },
-  setPreset: (patch) => {
-    set({ preset: { ...get().preset, ...patch } })
-  },
-  setMeta: (patch) => {
-    set({ meta: { ...get().meta, ...patch } })
-  },
-  resetDraft: () => {
-    set({ boats: DEFAULT_BOATS, preset: DEFAULT_PRESET, meta: { ...DEFAULT_META, date: todayIso() } })
-  },
-}))
+export const useLineupBuilderStore = create<State>()(
+  persist(
+    (set, get) => ({
+      boats: [DEFAULT_BOAT],
+      preset: DEFAULT_PRESET,
+      customPresets: [],
+      addBoat: (name, size) => {
+        const boats = get().boats
+        set({ boats: [...boats, makeBoat(name, size, boats.length)] })
+      },
+      removeBoat: (id) => {
+        set({ boats: get().boats.filter((b) => b.id !== id) })
+      },
+      renameBoat: (id, name) => {
+        set({
+          boats: get().boats.map((b) => (b.id === id ? { ...b, name } : b)),
+        })
+      },
+      setSeatAthlete: (boatId, position, athleteId) => {
+        set({
+          boats: get().boats.map((b) =>
+            b.id === boatId
+              ? {
+                  ...b,
+                  seats: b.seats.map((s) =>
+                    s.position === position ? { ...s, athleteId } : s,
+                  ),
+                }
+              : b,
+          ),
+        })
+      },
+      setSeatAthletes: (boatId, startPosition, athleteIds) => {
+        set({
+          boats: get().boats.map((b) => {
+            if (b.id !== boatId) return b
+            const total = SEAT_COUNT[b.size]
+            const seats = b.seats.map((s) => {
+              const offset = s.position - startPosition
+              if (offset < 0 || offset >= athleteIds.length) return s
+              if (s.position > total) return s
+              return { ...s, athleteId: athleteIds[offset] ?? s.athleteId }
+            })
+            return { ...b, seats }
+          }),
+        })
+      },
+      setPreset: (patch) => {
+        set({ preset: { ...get().preset, ...patch } })
+      },
+      applyPreset: (preset) => {
+        set({ preset })
+      },
+      addCustomPreset: (preset) => {
+        set({
+          customPresets: [...get().customPresets, { ...preset, custom: true }],
+          preset: { ...preset, custom: true },
+        })
+      },
+      resetDraft: () => {
+        set({
+          boats: [{ ...DEFAULT_BOAT, id: `boat-default-${Date.now()}`, seats: makeSeats('8+') }],
+          preset: DEFAULT_PRESET,
+        })
+      },
+    }),
+    {
+      name: 'synth:app:lineup-builder',
+      partialize: (s) => ({ boats: s.boats, preset: s.preset, customPresets: s.customPresets }),
+    },
+  ),
+)

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Boat, RacePreset } from './lineupBuilderStore'
 
-export type SessionStatus = 'scheduled' | 'in-progress' | 'completed'
+export type SessionStatus = 'scheduled' | 'in-progress' | 'needs-rating' | 'completed'
 
 export type RunSplit = {
   boatId: string

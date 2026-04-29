@@ -53,6 +53,11 @@ export const SYNTH = {
   accentBlack: '#0A0A12',
   accentEmerald: '#10B981',
 
+  // Side colors — global rule across builder + picker + lanes + recorder.
+  // From the rower's POV (facing stern): starboard = left = green; port = right = red.
+  sidePort: '#E64A3C',
+  sideStarboard: '#10B981',
+
   // Provenance — synth's signature element
   provenanceOnBrand: 'rgba(255,255,255,0.55)',
   provenanceOnSheet: '#9A9AAB',

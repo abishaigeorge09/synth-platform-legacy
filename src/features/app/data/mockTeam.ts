@@ -4,6 +4,9 @@ export type AppMockAthlete = {
   initials: string
   position: string
   side: 'P' | 'S' | 'X'
+  /** Coach-set preferred seat type — surfaces in the picker so you know
+   * who likes stroke vs bow vs middle vs cox. */
+  preferredSeat?: 'stroke' | 'bow' | 'middle' | 'cox' | 'any'
   recoveryScore: number
   twoKBestSeconds: number
   twoKAvg30dSeconds: number
@@ -107,6 +110,7 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     initials: 'SM',
     position: 'V8 — 5 seat',
     side: 'P',
+    preferredSeat: 'middle',
     recoveryScore: 78,
     twoKBestSeconds: 7 * 60 + 6,
     twoKAvg30dSeconds: 7 * 60 + 14,
@@ -121,6 +125,7 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     initials: 'JO',
     position: 'V8 — Stroke',
     side: 'S',
+    preferredSeat: 'stroke',
     recoveryScore: 64,
     twoKBestSeconds: 7 * 60 + 1,
     twoKAvg30dSeconds: 7 * 60 + 8,
@@ -135,6 +140,7 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     initials: 'IP',
     position: 'V8 — 7 seat',
     side: 'S',
+    preferredSeat: 'middle',
     recoveryScore: 42,
     twoKBestSeconds: 7 * 60 + 9,
     twoKAvg30dSeconds: 7 * 60 + 19,
@@ -149,6 +155,7 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     initials: 'RA',
     position: 'V8 — Bow',
     side: 'P',
+    preferredSeat: 'bow',
     recoveryScore: 81,
     twoKBestSeconds: 7 * 60 + 12,
     twoKAvg30dSeconds: 7 * 60 + 17,
@@ -163,6 +170,7 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     initials: 'CM',
     position: '2V8 — 4 seat',
     side: 'P',
+    preferredSeat: 'middle',
     recoveryScore: 58,
     twoKBestSeconds: 7 * 60 + 18,
     twoKAvg30dSeconds: 7 * 60 + 24,
@@ -177,6 +185,7 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     initials: 'NH',
     position: '2V8 — 2 seat',
     side: 'S',
+    preferredSeat: 'any',
     recoveryScore: 73,
     twoKBestSeconds: 7 * 60 + 22,
     twoKAvg30dSeconds: 7 * 60 + 26,

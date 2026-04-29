@@ -4,7 +4,7 @@ import { ClipboardList, Users } from 'lucide-react'
 import { SingleQuestionScreen } from '../primitives/SingleQuestionScreen'
 import { PillRows, type PillRowOption } from '../primitives/PillRows'
 import { useAppAuthStore, type AppRole } from '../store/useAppAuthStore'
-import { APP_THEME } from '../lib/theme'
+import { SYNTH } from '../lib/theme'
 
 export function RolePickPage() {
   const navigate = useNavigate()
@@ -16,13 +16,13 @@ export function RolePickPage() {
       value: 'coach',
       label: 'Coach',
       description: 'See your whole team, leave notes, plan lineups',
-      icon: <Users size={18} color={selected === 'coach' ? '#FFFFFF' : APP_THEME.brand} />,
+      icon: <Users size={18} color={SYNTH.inkOnBrand} strokeWidth={2.2} />,
     },
     {
       value: 'athlete',
       label: 'Athlete',
       description: 'Track your own data, log sessions, get coach notes',
-      icon: <ClipboardList size={18} color={selected === 'athlete' ? '#FFFFFF' : APP_THEME.brand} />,
+      icon: <ClipboardList size={18} color={SYNTH.inkOnBrand} strokeWidth={2.2} />,
     },
   ]
 

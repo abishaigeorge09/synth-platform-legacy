@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { SingleQuestionScreen } from '../primitives/SingleQuestionScreen'
 import { useOnboardingStore } from '../store/useOnboardingStore'
-import { APP_THEME } from '../lib/theme'
+import { SYNTH } from '../lib/theme'
 
 export function AthleteInviteCodePage() {
   const navigate = useNavigate()
@@ -24,8 +24,8 @@ export function AthleteInviteCodePage() {
     >
       <div className="flex flex-col gap-3">
         <label
-          className="text-[11px] font-semibold uppercase tracking-[0.14em]"
-          style={{ fontFamily: APP_THEME.fontMono, color: APP_THEME.textMuted }}
+          className="text-center text-[11px] font-semibold uppercase tracking-[0.14em]"
+          style={{ fontFamily: SYNTH.font, color: SYNTH.inkOnBrandMuted }}
         >
           Invite code
         </label>
@@ -37,13 +37,15 @@ export function AthleteInviteCodePage() {
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="—  —  —  —  —  —"
           maxLength={8}
-          className="w-full rounded-2xl border px-4 py-5 text-center text-[24px] font-bold tracking-[0.32em] outline-none transition-colors focus:border-[var(--app-brand)]"
+          className="w-full rounded-2xl border px-4 py-5 text-center text-[24px] font-bold tracking-[0.32em] outline-none transition-colors placeholder:text-white/35 focus:border-[var(--app-emerald)]"
           style={{
-            background: APP_THEME.surface,
-            borderColor: APP_THEME.divider,
-            color: APP_THEME.text,
-            fontFamily: APP_THEME.fontMono,
-            ['--app-brand' as never]: APP_THEME.brand,
+            background: SYNTH.glass,
+            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+            borderColor: SYNTH.glassBorder,
+            color: SYNTH.inkOnBrand,
+            fontFamily: SYNTH.font,
+            ['--app-emerald' as never]: SYNTH.accentEmerald,
           }}
         />
       </div>

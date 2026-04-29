@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { SingleQuestionScreen } from '../primitives/SingleQuestionScreen'
 import { PillRows, type PillRowOption } from '../primitives/PillRows'
 import { useOnboardingStore } from '../store/useOnboardingStore'
-import { APP_THEME } from '../lib/theme'
+import { SYNTH } from '../lib/theme'
 
 const ATHLETE_COUNT_BANDS: PillRowOption[] = [
   { value: 'lt-10', label: 'Under 10' },
@@ -34,8 +34,8 @@ export function CoachTeamSetupPage() {
       <div className="flex flex-col gap-6">
         <div>
           <label
-            className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em]"
-            style={{ fontFamily: APP_THEME.fontMono, color: APP_THEME.textMuted }}
+            className="mb-2 block text-center text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{ fontFamily: SYNTH.font, color: SYNTH.inkOnBrandMuted }}
           >
             Team name
           </label>
@@ -44,21 +44,23 @@ export function CoachTeamSetupPage() {
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
             placeholder="e.g. Cal Women's Rowing"
-            className="w-full rounded-2xl border px-4 py-4 text-[15px] outline-none transition-colors focus:border-[var(--app-brand)]"
+            className="w-full rounded-2xl border px-4 py-4 text-center text-[16px] outline-none transition-colors placeholder:text-white/40 focus:border-[var(--app-emerald)]"
             style={{
-              background: APP_THEME.surface,
-              borderColor: APP_THEME.divider,
-              color: APP_THEME.text,
-              fontFamily: APP_THEME.fontSans,
-              ['--app-brand' as never]: APP_THEME.brand,
+              background: SYNTH.glass,
+              backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              borderColor: SYNTH.glassBorder,
+              color: SYNTH.inkOnBrand,
+              fontFamily: SYNTH.font,
+              ['--app-emerald' as never]: SYNTH.accentEmerald,
             }}
           />
         </div>
 
         <div>
           <label
-            className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em]"
-            style={{ fontFamily: APP_THEME.fontMono, color: APP_THEME.textMuted }}
+            className="mb-2 block text-center text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{ fontFamily: SYNTH.font, color: SYNTH.inkOnBrandMuted }}
           >
             Roster size
           </label>

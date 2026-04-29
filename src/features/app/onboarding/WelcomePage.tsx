@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
@@ -17,6 +17,13 @@ export function WelcomePage() {
   const setDemoUser = useAppAuthStore((s) => s.setDemoUser)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'google' | 'email' | null>(null)
+
+  useEffect(() => {
+    document.body.setAttribute('data-app-canvas', 'cobalt')
+    return () => {
+      document.body.removeAttribute('data-app-canvas')
+    }
+  }, [])
 
   const onGoogle = async () => {
     setError(null)

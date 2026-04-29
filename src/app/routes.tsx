@@ -45,6 +45,8 @@ import { CapturePage as AppAthleteCapturePage } from '../features/app/athlete/Ca
 import { NotesPage as AppAthleteNotesPage } from '../features/app/athlete/NotesPage'
 import { SourcesPage as AppAthleteSourcesPage } from '../features/app/athlete/SourcesPage'
 import { SettingsPage as AppAthleteSettingsPage } from '../features/app/athlete/SettingsPage'
+import { TelemetryPage as AppAthleteTelemetryPage } from '../features/app/athlete/TelemetryPage'
+import { MyProfilePage as AppAthleteMyProfilePage } from '../features/app/athlete/MyProfilePage'
 
 // Phase 12 — route-level code splitting. Each feature page becomes its own
 // chunk that's only fetched when the route is visited. Keeps the landing /
@@ -305,6 +307,8 @@ export const routes: RouteObject[] = [
           { path: 'notes', element: withSuspense(<AppAthleteNotesPage />, 'Notes') },
           { path: 'sources', element: withSuspense(<AppAthleteSourcesPage />, 'Sources') },
           { path: 'settings', element: withSuspense(<AppAthleteSettingsPage />, 'Settings') },
+          { path: 'telemetry', element: withSuspense(<AppAthleteTelemetryPage />, 'Telemetry') },
+          { path: 'profile', element: withSuspense(<AppAthleteMyProfilePage />, 'My profile') },
         ],
       },
     ],

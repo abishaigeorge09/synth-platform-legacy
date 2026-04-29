@@ -19,6 +19,12 @@ type Props = {
   secondary?: { label: string; onClick: () => void }
   children: ReactNode
   bgVariant?: BgVariant
+  /**
+   * When true, the title + helper sit above the scroll area instead of
+   * inside it. Use for long lists (e.g. connectors) so the header stays
+   * fixed while the list scrolls underneath. Default false (centered).
+   */
+  pinTitle?: boolean
 }
 
 /**
@@ -50,6 +56,7 @@ export function SingleQuestionScreen({
   secondary,
   children,
   bgVariant = 'default',
+  pinTitle = false,
 }: Props) {
   useEffect(() => {
     document.body.setAttribute('data-app-canvas', 'cobalt')
@@ -109,28 +116,58 @@ export function SingleQuestionScreen({
         )}
       </div>
 
-      {/* Centered scroll area */}
-      <div className="synth-scroll relative z-10 min-h-0 flex-1 overflow-y-auto">
-        <div className="flex min-h-full flex-col justify-center px-6 py-6">
-          <div className="mx-auto w-full max-w-[420px]">
-            <h1
-              className="text-center text-[30px] font-bold leading-[1.1] tracking-[-0.01em]"
-              style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-            >
-              {title}
-            </h1>
-            {helper ? (
-              <p
-                className="mx-auto mt-3 max-w-[340px] text-center text-[14px] leading-[1.5]"
-                style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+      {pinTitle ? (
+        <>
+          {/* Pinned title block (above scroll) */}
+          <div className="relative z-10 shrink-0 px-6 pb-4 pt-2">
+            <div className="mx-auto w-full max-w-[420px]">
+              <h1
+                className="text-center text-[28px] font-bold leading-[1.1] tracking-[-0.01em]"
+                style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
               >
-                {helper}
-              </p>
-            ) : null}
-            <div className="mt-8">{children}</div>
+                {title}
+              </h1>
+              {helper ? (
+                <p
+                  className="mx-auto mt-2 max-w-[340px] text-center text-[13px] leading-[1.45]"
+                  style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+                >
+                  {helper}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Scrollable list area — only the children scroll */}
+          <div className="synth-scroll relative z-10 min-h-0 flex-1 overflow-y-auto">
+            <div className="px-6 pb-6 pt-2">
+              <div className="mx-auto w-full max-w-[420px]">{children}</div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="synth-scroll relative z-10 min-h-0 flex-1 overflow-y-auto">
+          <div className="flex min-h-full flex-col justify-center px-6 py-6">
+            <div className="mx-auto w-full max-w-[420px]">
+              <h1
+                className="text-center text-[30px] font-bold leading-[1.1] tracking-[-0.01em]"
+                style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+              >
+                {title}
+              </h1>
+              {helper ? (
+                <p
+                  className="mx-auto mt-3 max-w-[340px] text-center text-[14px] leading-[1.5]"
+                  style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+                >
+                  {helper}
+                </p>
+              ) : null}
+              <div className="mt-8">{children}</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Pinned CTA — shrink-0 so it never falls below the frame */}
       <div

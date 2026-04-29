@@ -4,6 +4,7 @@ import {
   ConnectorSwitchRow,
   useConnectorSwitchStates,
 } from '../primitives/ConnectorSwitchRow'
+import { RequestConnectorRow } from '../primitives/RequestConnectorRow'
 import { ATHLETE_CONNECTORS } from '../data/mockConnectors'
 import { useOnboardingStore } from '../store/useOnboardingStore'
 
@@ -33,6 +34,7 @@ export function AthleteConnectorsPage() {
       }
       onCta={() => navigate('/app/onboarding/trust')}
       bgVariant="connectors"
+      pinTitle
     >
       <div className="flex flex-col gap-2">
         {ATHLETE_CONNECTORS.map((c) => (
@@ -49,6 +51,7 @@ export function AthleteConnectorsPage() {
             onAuthComplete={() => switches.markConnected(c.id)}
           />
         ))}
+        <RequestConnectorRow />
       </div>
     </SingleQuestionScreen>
   )

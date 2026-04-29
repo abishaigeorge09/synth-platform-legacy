@@ -8,6 +8,12 @@ type Props = {
   onClose: () => void
   title: string
   children: ReactNode
+  /**
+   * When true, the sheet always fills ~78dvh from the bottom
+   * (use for content-heavy sheets like the athlete picker).
+   * Default false — sheet sizes to its content with an 88dvh ceiling.
+   */
+  tall?: boolean
 }
 
 /**
@@ -15,7 +21,7 @@ type Props = {
  * cream/white sheet body. Used across capture / settings / sources /
  * lineups for any modal that's contextual to a page.
  */
-export function SheetShell({ open, onClose, title, children }: Props) {
+export function SheetShell({ open, onClose, title, children, tall = false }: Props) {
   return (
     <AnimatePresence>
       {open ? (
@@ -30,8 +36,9 @@ export function SheetShell({ open, onClose, title, children }: Props) {
             className="fixed inset-0 z-[60]"
             style={{ background: 'rgba(8,8,40,0.55)', backdropFilter: 'blur(6px)' }}
           />
-          {/* Sheet always fills ~75dvh from the bottom (consistent height
-              regardless of content) and covers the floating tab bar. */}
+          {/* Sheet — sizes to its content by default, or fills 78dvh when
+              the consumer asks (tall=true). Always covers the floating
+              tab bar via z-[70]. */}
           <motion.div
             initial={{ y: 800 }}
             animate={{ y: 0 }}
@@ -41,7 +48,7 @@ export function SheetShell({ open, onClose, title, children }: Props) {
             style={{
               background: SYNTH.sheet,
               borderRadius: `${SYNTH.radius.sheet}px ${SYNTH.radius.sheet}px 0 0`,
-              height: '78dvh',
+              ...(tall ? { height: '78dvh' } : { maxHeight: '88dvh' }),
               color: SYNTH.ink,
               fontFamily: SYNTH.font,
               boxShadow: SYNTH.shadow.sheet,

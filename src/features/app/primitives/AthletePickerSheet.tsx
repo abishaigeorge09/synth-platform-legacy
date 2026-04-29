@@ -100,7 +100,7 @@ export function AthletePickerSheet({
       : undefined
 
   return (
-    <SheetShell open={open} onClose={onClose} title={titleText}>
+    <SheetShell open={open} onClose={onClose} title={titleText} tall>
       {/* Search */}
       <label
         className="flex items-center gap-2 rounded-2xl px-3"

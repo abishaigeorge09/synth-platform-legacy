@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Send, Calendar, Clock } from 'lucide-react'
 import { SheetShell } from './SheetShell'
+import { AppleCalendar } from './AppleCalendar'
 import { SYNTH } from '../lib/theme'
 import { useLineupBuilderStore } from '../data/lineupBuilderStore'
 import { useSessionsStore } from '../data/useSessionsStore'
@@ -48,9 +49,11 @@ export function PublishSessionSheet({ open, onClose, onPublished }: Props) {
   }, [open])
 
   const finalType = raceType === 'Other' ? (otherType.trim() || 'Other') : raceType
+  const hasEmptySeats = boats.some((b) => b.seats.some((s) => s.athleteId === null))
   const canPublish =
     title.trim().length > 0 &&
     boats.length > 0 &&
+    !hasEmptySeats &&
     (raceType !== 'Other' || otherType.trim().length > 0)
 
   const submit = () => {
@@ -209,6 +212,16 @@ export function PublishSessionSheet({ open, onClose, onPublished }: Props) {
         </p>
       </div>
 
+      {/* Empty-seat warning */}
+      {hasEmptySeats ? (
+        <p
+          className="text-center text-[12px] font-medium"
+          style={{ color: SYNTH.accentRed, fontFamily: SYNTH.font }}
+        >
+          Fill all seats before publishing — empty seats found.
+        </p>
+      ) : null}
+
       <button
         type="button"
         onClick={submit}
@@ -269,10 +282,6 @@ function fmtTime12h(hhmm: string): string {
   return `${display}:${mStr ?? '00'} ${meridiem}`
 }
 
-function isoFromDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 // ─── Picker trigger ──────────────────────────────────────────────────────────
 
 function PickerTrigger({
@@ -311,168 +320,9 @@ function PickerTrigger({
   )
 }
 
-// ─── Apple-style calendar ────────────────────────────────────────────────────
+// ─── Apple-style time picker ─────────────────────────────────────────────────
 
 const APPLE_BLUE = '#0A84FF'
-const APPLE_RED = '#FF3B30'
-const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-
-function AppleCalendar({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange: (iso: string) => void
-}) {
-  const initial = useMemo(() => {
-    const [y, m] = value.split('-').map(Number)
-    if (y && m) return new Date(y, m - 1, 1)
-    const d = new Date()
-    d.setDate(1)
-    return d
-  }, [value])
-  const [view, setView] = useState<Date>(initial)
-
-  const todayIso = isoFromDate(new Date())
-
-  // Build the 6×7 grid: starts from the Sunday on or before the 1st of the
-  // viewed month, runs 42 days forward.
-  const cells = useMemo(() => {
-    const start = new Date(view.getFullYear(), view.getMonth(), 1)
-    start.setDate(start.getDate() - start.getDay())
-    return Array.from({ length: 42 }, (_, i) => {
-      const d = new Date(start)
-      d.setDate(start.getDate() + i)
-      return d
-    })
-  }, [view])
-
-  const monthLabel = view.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-
-  const stepMonth = (dir: 1 | -1) => {
-    const next = new Date(view)
-    next.setMonth(next.getMonth() + dir)
-    setView(next)
-  }
-
-  return (
-    <div
-      className="mt-2 rounded-2xl p-3"
-      style={{
-        background: '#FFFFFF',
-        border: `1px solid ${SYNTH.sheetMuted}`,
-        boxShadow: '0 12px 32px -16px rgba(8,8,40,0.18)',
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-1 pb-2">
-        <span
-          className="text-[15px] font-bold"
-          style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
-        >
-          {monthLabel}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => stepMonth(-1)}
-            aria-label="Previous month"
-            className="flex h-8 w-8 items-center justify-center rounded-full"
-            style={{ color: APPLE_BLUE }}
-          >
-            <ChevronLeft size={18} strokeWidth={2.6} />
-          </button>
-          <button
-            type="button"
-            onClick={() => stepMonth(1)}
-            aria-label="Next month"
-            className="flex h-8 w-8 items-center justify-center rounded-full"
-            style={{ color: APPLE_BLUE }}
-          >
-            <ChevronRight size={18} strokeWidth={2.6} />
-          </button>
-        </div>
-      </div>
-
-      {/* Weekday letters */}
-      <div className="grid grid-cols-7 px-0.5 pb-1.5">
-        {WEEKDAY_LETTERS.map((d, i) => (
-          <span
-            key={i}
-            className="text-center text-[10px] font-semibold uppercase tracking-[0.06em]"
-            style={{ color: SYNTH.inkMuted, fontFamily: SYNTH.font }}
-          >
-            {d}
-          </span>
-        ))}
-      </div>
-
-      {/* Day grid */}
-      <div className="grid grid-cols-7 gap-y-0.5 px-0.5">
-        {cells.map((d) => {
-          const iso = isoFromDate(d)
-          const inMonth = d.getMonth() === view.getMonth()
-          const isToday = iso === todayIso
-          const isSelected = iso === value
-          const dayColor = !inMonth
-            ? '#C7C7CC'
-            : isSelected
-              ? '#FFFFFF'
-              : isToday
-                ? APPLE_RED
-                : SYNTH.ink
-
-          return (
-            <button
-              key={iso}
-              type="button"
-              onClick={() => onChange(iso)}
-              className="flex h-9 w-full items-center justify-center"
-            >
-              <span
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[14px]"
-                style={{
-                  background: isSelected ? APPLE_BLUE : 'transparent',
-                  color: dayColor,
-                  fontFamily: SYNTH.font,
-                  fontWeight: isToday || isSelected ? 700 : 500,
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {d.getDate()}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Footer — Today shortcut */}
-      <div className="mt-2 flex items-center justify-between px-1">
-        <button
-          type="button"
-          onClick={() => {
-            const t = new Date()
-            t.setDate(1)
-            setView(t)
-            onChange(todayIso)
-          }}
-          className="rounded-full px-2.5 py-1 text-[12px] font-semibold"
-          style={{ color: APPLE_BLUE, fontFamily: SYNTH.font }}
-        >
-          Today
-        </button>
-        <span
-          className="text-[10px] uppercase tracking-[0.14em]"
-          style={{ color: SYNTH.inkMuted, fontFamily: SYNTH.font }}
-        >
-          Tap a day to pick
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Apple-style time picker ─────────────────────────────────────────────────
 
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1) // 1..12
 const MINUTES_5 = Array.from({ length: 12 }, (_, i) => i * 5) // 0,5,...,55

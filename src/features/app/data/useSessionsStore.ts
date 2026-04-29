@@ -2,6 +2,125 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Boat, RacePreset } from './lineupBuilderStore'
 
+// ─── Demo seed data ─────────────────────────────────────────────────────────
+// Seeded once (when localStorage is empty). Dates are relative to 2026-04-29.
+
+const V8A: Boat = {
+  id: 'seed-boat-v8a',
+  name: 'V8 A',
+  size: '8+',
+  color: '#BAE6FD', // cardSky
+  speed: 1.0,
+  seats: [
+    { position: 1, label: 'Stroke',  athleteId: 'a-juno-okafor'  },
+    { position: 2, label: '7 seat',  athleteId: 'a-star-miller'  },
+    { position: 3, label: '6 seat',  athleteId: 'a-noor-haidari' },
+    { position: 4, label: '5 seat',  athleteId: 'a-rae-akhtar'   },
+    { position: 5, label: '4 seat',  athleteId: 'a-coral-mendez' },
+    { position: 6, label: '3 seat',  athleteId: 'a-isla-park'    },
+    { position: 7, label: '2 seat',  athleteId: 'a-lu-chen'      },
+    { position: 8, label: 'Bow',     athleteId: 'a-brit-cross'   },
+    { position: 9, label: 'Cox',     athleteId: 'a-andie-vega'   },
+  ],
+}
+
+const V4A: Boat = {
+  id: 'seed-boat-v4a',
+  name: 'V4+ A',
+  size: '4+',
+  color: '#BBF7D0', // cardMint
+  speed: 0.988,
+  seats: [
+    { position: 1, label: 'Stroke', athleteId: 'a-star-miller'  },
+    { position: 2, label: '3 seat', athleteId: 'a-coral-mendez' },
+    { position: 3, label: '2 seat', athleteId: 'a-rae-akhtar'   },
+    { position: 4, label: 'Bow',    athleteId: 'a-isla-park'    },
+    { position: 5, label: 'Cox',    athleteId: 'a-pia-roman'    },
+  ],
+}
+
+const V8B: Boat = {
+  id: 'seed-boat-v8b',
+  name: 'V8 B',
+  size: '8+',
+  color: '#FBCFE8', // cardPink
+  speed: 0.988,
+  seats: [
+    { position: 1, label: 'Stroke',  athleteId: 'a-noor-haidari' },
+    { position: 2, label: '7 seat',  athleteId: 'a-brit-cross'   },
+    { position: 3, label: '6 seat',  athleteId: 'a-lu-chen'      },
+    { position: 4, label: '5 seat',  athleteId: 'a-isla-park'    },
+    { position: 5, label: '4 seat',  athleteId: 'a-rae-akhtar'   },
+    { position: 6, label: '3 seat',  athleteId: 'a-coral-mendez' },
+    { position: 7, label: '2 seat',  athleteId: 'a-star-miller'  },
+    { position: 8, label: 'Bow',     athleteId: 'a-juno-okafor'  },
+    { position: 9, label: 'Cox',     athleteId: 'a-tess-kim'     },
+  ],
+}
+
+const SEED_PRESET: RacePreset = {
+  raceFor: 'Steady state',
+  distance: '20 min',
+  splits: [],
+  splitUnit: 's',
+  expectedDurationMs: 20 * 60 * 1000,
+}
+
+const DEMO_SESSIONS: Session[] = [
+  {
+    id: 'seed-sess-today',
+    name: 'AM steady state · V8',
+    type: 'Steady state',
+    date: '2026-04-29',
+    time: '06:30',
+    notes: '',
+    status: 'scheduled',
+    boats: [V8A],
+    preset: SEED_PRESET,
+    runs: [],
+    createdAt: '2026-04-28T18:00:00.000Z',
+  },
+  {
+    id: 'seed-sess-tomorrow',
+    name: 'Race-pace pieces · 4 × 500m',
+    type: 'Practice piece',
+    date: '2026-04-30',
+    time: '06:00',
+    notes: '',
+    status: 'scheduled',
+    boats: [V8A, V8B],
+    preset: SEED_PRESET,
+    runs: [],
+    createdAt: '2026-04-28T18:01:00.000Z',
+  },
+  {
+    id: 'seed-sess-may1',
+    name: 'V8 seat race · stroke vs 7',
+    type: 'Seat race',
+    date: '2026-05-01',
+    time: '06:00',
+    notes: '',
+    status: 'scheduled',
+    boats: [V8A, V4A],
+    preset: SEED_PRESET,
+    runs: [],
+    createdAt: '2026-04-28T18:02:00.000Z',
+  },
+  {
+    id: 'seed-sess-race',
+    name: 'Cal Invite Regatta · grand finals',
+    type: 'Race',
+    date: '2026-05-03',
+    time: '05:30',
+    notes: 'Race day — arrive early.',
+    status: 'scheduled',
+    boats: [V8A, V4A],
+    preset: SEED_PRESET,
+    runs: [],
+    createdAt: '2026-04-28T18:03:00.000Z',
+  },
+]
+
 export type SessionStatus = 'scheduled' | 'in-progress' | 'needs-rating' | 'completed'
 
 export type RunSplit = {
@@ -64,6 +183,8 @@ export type Session = {
 
 type State = {
   sessions: Session[]
+  _seeded: boolean
+  seedIfEmpty: () => void
   addSession: (session: Omit<Session, 'id' | 'runs' | 'createdAt' | 'status'> & { status?: SessionStatus }) => Session
   updateSession: (id: string, patch: Partial<Session>) => void
   removeSession: (id: string) => void
@@ -76,12 +197,21 @@ type State = {
   finishSession: (sessionId: string) => void
 }
 
-const STORAGE_KEY = 'synth:app:sessions'
+const STORAGE_KEY = 'synth:app:sessions:v2'
 
 export const useSessionsStore = create<State>()(
   persist(
     (set, get) => ({
       sessions: [],
+      _seeded: false,
+      seedIfEmpty: () => {
+        const { sessions, _seeded } = get()
+        if (_seeded || sessions.length > 0) {
+          set({ _seeded: true })
+          return
+        }
+        set({ sessions: DEMO_SESSIONS, _seeded: true })
+      },
       addSession: (input) => {
         const session: Session = {
           ...input,

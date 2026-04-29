@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { Home, Boxes, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import { useUiStore } from '../../../shared/store/useUiStore'
 
 export type FloatingTabItem = {
   key: string
@@ -120,12 +121,12 @@ function CaptureCell({ capture }: { capture: Props['capture'] }) {
   )
 }
 
-function buildCoachTabs(onMoreClick: () => void): FloatingTabItem[] {
+function buildCoachTabs(onMoreClick: () => void, onHomeClick: () => void): FloatingTabItem[] {
   return [
     {
       key: 'home',
       label: 'Home',
-      to: '/app/coach/home',
+      onClick: onHomeClick,
       match: (p) => p === '/app/coach/home' || p === '/app/coach',
       icon: <Home size={18} strokeWidth={2.2} />,
     },
@@ -195,9 +196,21 @@ const ATHLETE_TABS_INTERNAL: FloatingTabItem[] = [
 ]
 
 export function CoachFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }) {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const setHomePanelRequest = useUiStore((s) => s.setHomePanelRequest)
+
+  const onHomeClick = () => {
+    // Always request the dashboard panel (page 1) when Home is pressed
+    setHomePanelRequest(1)
+    if (pathname !== '/app/coach/home' && pathname !== '/app/coach') {
+      navigate('/app/coach/home')
+    }
+  }
+
   return (
     <FloatingTabBar
-      tabs={buildCoachTabs(onMoreClick)}
+      tabs={buildCoachTabs(onMoreClick, onHomeClick)}
       capture={{ to: '/app/coach/capture', ariaLabel: 'Capture' }}
     />
   )

@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { CoachFloatingTabBar } from '../primitives/FloatingTabBar'
 import { MoreSheet } from '../primitives/MoreSheet'
 import { SYNTH } from '../lib/theme'
+import { useUiStore } from '../../../shared/store/useUiStore'
 
 const HIDE_TAB_BAR_PREFIXES = [
   '/app/coach/ai',
@@ -12,7 +13,9 @@ const HIDE_TAB_BAR_PREFIXES = [
 export function AppCoachShell() {
   const { pathname } = useLocation()
   const isAI = pathname.startsWith('/app/coach/ai')
-  const hideTabBar = HIDE_TAB_BAR_PREFIXES.some((p) => pathname.startsWith(p))
+  const heroPageActive = useUiStore((s) => s.heroPageActive)
+  const hideTabBar =
+    HIDE_TAB_BAR_PREFIXES.some((p) => pathname.startsWith(p)) || heroPageActive
   const [moreOpen, setMoreOpen] = useState(false)
 
   // Tag the body so the surrounding wrappers (.app-shell-root,

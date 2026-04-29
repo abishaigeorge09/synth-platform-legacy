@@ -25,6 +25,7 @@ import {
   Cell,
 } from 'recharts'
 import { SYNTH } from '../lib/theme'
+import { toast } from '../../../shared/store/useToastStore'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import {
@@ -1036,6 +1037,36 @@ function TelemetryTab() {
           })}
         </div>
       </Card>
+
+      {/* Generate AI Report */}
+      <div
+        className="rounded-3xl p-5"
+        style={{
+          background: 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(59,130,246,0.12) 100%)',
+          border: `1px solid rgba(16,185,129,0.30)`,
+        }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: SYNTH.accentEmerald, fontFamily: SYNTH.font }}>AI analysis</p>
+            <h3 className="mt-1 text-[15px] font-bold leading-tight" style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}>Generate telemetry report</h3>
+            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
+              synth. will synthesise stroke rate, power, and HR data into a personalised performance breakdown for this athlete.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider"
+            style={{ background: `${SYNTH.accentAmber}33`, color: SYNTH.accentAmber, fontFamily: SYNTH.font }}>Soon</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => toast('AI report generation coming soon — stay tuned!', 'info')}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold"
+          style={{ background: SYNTH.accentEmerald, color: '#FFFFFF', fontFamily: SYNTH.font }}
+        >
+          <Sparkles size={14} strokeWidth={2.4} />
+          Generate AI Report
+        </button>
+      </div>
     </div>
   )
 }

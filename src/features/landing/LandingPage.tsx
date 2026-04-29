@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { THEME } from '../../lib/theme'
@@ -621,6 +621,11 @@ function Footer() {
 export function LandingPage() {
   const { canInstall, installed, isIos, trigger } = useInstallPrompt()
   const [showIosTip, setShowIosTip] = useState(false)
+
+  useEffect(() => {
+    document.body.setAttribute('data-app-canvas', 'green')
+    return () => document.body.removeAttribute('data-app-canvas')
+  }, [])
 
   function handleDownload() {
     if (canInstall) { trigger(); return }

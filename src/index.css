@@ -124,6 +124,40 @@ body[data-app-canvas='cobalt'] .app-shell-frame {
   }
 }
 
+/* Dark-water canvas (lineup hero panel). Overscroll exposes dark water
+   instead of cobalt so the hero blends into the surrounding frame. */
+body[data-app-canvas='dark-water'] {
+  background: #050B1C;
+}
+body[data-app-canvas='dark-water'] .app-shell-root {
+  background: #050B1C;
+}
+body[data-app-canvas='dark-water'] .app-shell-frame {
+  background: #050B1C;
+}
+@media (display-mode: standalone) {
+  body[data-app-canvas='dark-water'] .app-shell-root {
+    background: #050B1C;
+  }
+}
+
+/* Green canvas (landing page). Body paints brand green so the PWA
+   splash and overscroll match the hero section. */
+body[data-app-canvas='green'] {
+  background: #059669;
+}
+body[data-app-canvas='green'] .app-shell-root {
+  background: #059669;
+}
+body[data-app-canvas='green'] .app-shell-frame {
+  background: #059669;
+}
+@media (display-mode: standalone) {
+  body[data-app-canvas='green'] .app-shell-root {
+    background: #059669;
+  }
+}
+
 /* Cream-canvas surfaces (synth AI). Same pattern — overscroll exposes
    cream (matching SYNTH.aiCanvas) instead of cobalt or white. */
 body[data-app-canvas='cream'] {

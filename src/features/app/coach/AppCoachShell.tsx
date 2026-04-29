@@ -21,20 +21,26 @@ export function AppCoachShell() {
   // Tag the body so the surrounding wrappers (.app-shell-root,
   // .app-shell-frame, body) paint the right canvas color — keeps overscroll
   // from exposing the default white frame.
+  const canvas = isAI ? 'cream' : heroPageActive ? 'dark-water' : 'cobalt'
+
   useEffect(() => {
-    document.body.setAttribute('data-app-canvas', isAI ? 'cream' : 'cobalt')
+    document.body.setAttribute('data-app-canvas', canvas)
     return () => {
       document.body.removeAttribute('data-app-canvas')
     }
-  }, [isAI])
+  }, [canvas])
+
+  const shellBg = isAI
+    ? SYNTH.aiCanvas
+    : heroPageActive
+      ? '#050B1C'
+      : `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`
 
   return (
     <div
       className="relative flex flex-1 flex-col"
       style={{
-        background: isAI
-          ? SYNTH.aiCanvas
-          : `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
+        background: shellBg,
         fontFamily: SYNTH.font,
       }}
     >

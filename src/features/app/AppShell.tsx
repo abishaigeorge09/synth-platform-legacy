@@ -8,6 +8,7 @@ import { GuidedTourOrchestrator } from '../../shared/tutorial/GuidedTourOrchestr
 import { useSessionsStore } from './data/useSessionsStore'
 import { DesktopAppIntercept } from './desktopIntercept/DesktopAppIntercept'
 import { useMediaQuery } from './desktopIntercept/useMediaQuery'
+import { PWAExperience } from './primitives/PWAExperience'
 
 const DISMISS_KEY = 'synth-desktop-intercept-dismissed'
 
@@ -64,6 +65,7 @@ export function AppShell() {
       </div>
       {isReady && <TutorialProvider />}
       {isReady && <GuidedTourOrchestrator />}
+      <PWAExperience />
     </div>
   )
 }

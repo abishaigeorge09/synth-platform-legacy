@@ -207,7 +207,7 @@ export function AIPage() {
           const richParts = parseAIResponse(accumulated)
           setMessages((m) =>
             m.map((msg) =>
-              msg.id === aiId ? { ...msg, parts: richParts.length ? richParts : msg.parts } : msg,
+              msg.id === aiId && msg.role === 'ai' ? { ...msg, parts: richParts.length ? richParts : msg.parts } : msg,
             ),
           )
           setIsStreaming(false)

@@ -1,30 +1,41 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Mic, Sparkles } from 'lucide-react'
+import { Camera, Mic, Sparkles, Upload, Pencil } from 'lucide-react'
 import { SYNTH } from '../../lib/theme'
 import { AuroraVoiceOverlay } from '../../primitives/AuroraVoiceOverlay'
+import { PhotoCaptureSheet, QuickNoteSheet } from '../../primitives/CaptureSheets'
 import { toast } from '../../../../shared/store/useToastStore'
 
 /**
  * Right-edge column of small circular FABs that sit alongside the lineup
- * hero. Capture, voice memo, AI — same three jobs the launch sheet
- * surfaced, but always-on instead of pop-up.
+ * hero. Photo / Voice / Note / Upload / AI — the five jobs the coach
+ * reaches for from anywhere.
  *
- * Stays tucked at the right of the viewport with a vertical stack.
+ * Each FAB opens its action in-place (sheet) where possible — only AI
+ * leaves the page (it's a full chat surface, deserves its own canvas).
  */
 export function MicroActions() {
   const navigate = useNavigate()
   const [voiceOpen, setVoiceOpen] = useState(false)
+  const [photoOpen, setPhotoOpen] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
+
+  const onUpload = (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const count = files.length
+    toast(`${count} file${count === 1 ? '' : 's'} queued for sync`, 'success')
+  }
 
   return (
     <>
       <div className="flex flex-col items-center gap-2.5">
         <FabButton
-          ariaLabel="Capture photo, screenshot, or upload"
+          ariaLabel="Photo capture"
           accent="#FFFFFF"
           icon={<Camera size={16} strokeWidth={2.4} />}
-          onClick={() => navigate('/app/coach/capture')}
+          onClick={() => setPhotoOpen(true)}
         />
         <FabButton
           ariaLabel="Voice memo"
@@ -34,12 +45,34 @@ export function MicroActions() {
           onClick={() => setVoiceOpen(true)}
         />
         <FabButton
+          ariaLabel="Quick note"
+          accent="#FFFFFF"
+          icon={<Pencil size={15} strokeWidth={2.4} />}
+          onClick={() => setNoteOpen(true)}
+        />
+        <FabButton
+          ariaLabel="Upload files"
+          accent="#FFFFFF"
+          icon={<Upload size={15} strokeWidth={2.4} />}
+          onClick={() => uploadInputRef.current?.click()}
+        />
+        <FabButton
           ariaLabel="Ask synth AI"
           accent="#FFFFFF"
           icon={<Sparkles size={16} strokeWidth={2.4} />}
           onClick={() => navigate('/app/coach/ai')}
         />
       </div>
+
+      {/* Hidden multi-file input for Upload */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        multiple
+        accept="image/*,application/pdf,.csv,.xlsx,.txt"
+        className="hidden"
+        onChange={(e) => onUpload(e.target.files)}
+      />
 
       <AuroraVoiceOverlay
         open={voiceOpen}
@@ -48,6 +81,20 @@ export function MicroActions() {
           if (transcript) toast('Voice memo saved', 'success')
         }}
         scopeLabel="your team"
+      />
+
+      <PhotoCaptureSheet
+        open={photoOpen}
+        onClose={() => setPhotoOpen(false)}
+        onSave={() => toast('Photo saved', 'success')}
+      />
+
+      <QuickNoteSheet
+        open={noteOpen}
+        onClose={() => setNoteOpen(false)}
+        onSave={(text) => {
+          if (text.trim()) toast('Note saved', 'success')
+        }}
       />
     </>
   )

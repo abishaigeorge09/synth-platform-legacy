@@ -104,7 +104,7 @@ and lets you make decisions from one place.
 Set up your team
 
 TEAM NAME
-[Cal Women's Rowing          ]
+[Pacific Women's Rowing          ]
 
 SCHOOL
 [UC Berkeley                 ]
@@ -161,7 +161,7 @@ Share this link with your team. Athletes sign up
 and join automatically.
 
 ┌─────────────────────────────────────────┐
-│  synth.app/invite/CAL-WR-2026    [Copy] │
+│  synth.app/invite/PAC-WR-2026    [Copy] │
 └─────────────────────────────────────────┘
 
 Or send invites by email:
@@ -170,7 +170,7 @@ Or send invites by email:
 
 [Send invites →]
 
-[IMAGE NEEDED: Simple illustration of a phone with a notification "You've been invited to Cal Women's Rowing" — showing what the athlete sees when they receive the invite. Dark background, the notification card glows slightly green.]
+[IMAGE NEEDED: Simple illustration of a phone with a notification "You've been invited to Pacific Women's Rowing" — showing what the athlete sees when they receive the invite. Dark background, the notification card glows slightly green.]
 
 You can also invite assistant coaches:
 
@@ -181,7 +181,7 @@ This generates a separate invite link with role=coach pre-assigned.
 [Next →]
 ```
 
-"Send invites →" sends an email to each address with the invite link. Uses SendGrid (or mock in demo). The email contains: "Coach Demo invited you to Cal Women's Rowing on synth. Tap to join: [link]"
+"Send invites →" sends an email to each address with the invite link. Uses SendGrid (or mock in demo). The email contains: "Coach Demo invited you to Pacific Women's Rowing on synth. Tap to join: [link]"
 
 "Send coach invite →" generates an invite link with role=coach. The coach can share this with assistant coaches.
 
@@ -298,10 +298,10 @@ When tapped:
 A minimal horizontal strip below the boat showing today's key info:
 
 ```
-3 flagged · Cal Invite Sat · 47/52 checked in · ● synth. agent active
+3 flagged · Pacific Invite Sat · 47/52 checked in · ● synth. agent active
 ```
 
-Tapping any item navigates: "3 flagged" → athletes list filtered to flagged, "Cal Invite Sat" → session details, "47/52 checked in" → wellness compliance view.
+Tapping any item navigates: "3 flagged" → athletes list filtered to flagged, "Pacific Invite Sat" → session details, "47/52 checked in" → wellness compliance view.
 
 ---
 
@@ -434,7 +434,7 @@ Tap avatar (top-right) → drawer slides from right:
 
 ```
 Coach Demo
-Cal Women's Rowing
+Pacific Women's Rowing
 Head Coach
 
 ────────────────
@@ -442,7 +442,7 @@ Team Management
   Switch team (Women's/Men's)
   Invite athletes [→ sends email with invite link]
   Invite a coach [→ generates coach invite link]
-  Team code: CAL-WR-2026 [Copy]
+  Team code: PAC-WR-2026 [Copy]
 
 Personal Tools
   My connected sources
@@ -486,7 +486,7 @@ The coach can invite people from two places:
 ### Inviting Athletes
 - Coach enters email addresses (comma-separated or one at a time)
 - "Send invites →" sends an email to each address via SendGrid
-- The email contains: subject "Join Cal Women's Rowing on synth." + the invite link + coach name
+- The email contains: subject "Join Pacific Women's Rowing on synth." + the invite link + coach name
 - The invite link: `synth.app/invite/ATH-[unique-code]` with role=athlete pre-assigned
 - When the athlete taps the link → app opens → auth → account created with role=athlete → athlete onboarding
 
@@ -496,7 +496,7 @@ The coach can invite people from two places:
 - When the assistant coach taps the link → auth → account created with role=coach for the same team
 
 ### Invite Code Sharing
-The team also has a generic invite code (CAL-WR-2026) that athletes can enter manually if they don't have the link. This is shown in the profile drawer and on onboarding.
+The team also has a generic invite code (PAC-WR-2026) that athletes can enter manually if they don't have the link. This is shown in the profile drawer and on onboarding.
 
 ---
 
@@ -509,7 +509,7 @@ Build everything with production in mind. No `isDemo` flag. No mock data as the 
 - The app is functional even without data — the coach can still build lineups manually, run the timer, record voice notes.
 - When Google Sheets is connected, data starts flowing in. When athletes join and connect Apple Health, their sleep data appears.
 
-**For the pilot (Cal Rowing):**
+**For the pilot (Pacific Rowing):**
 - Real Google Sheets connection pulling real erg data
 - Real Concept2 Logbook connection (if API access is available)
 - Real Apple Health data from athlete phones

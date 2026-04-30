@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { THEME } from '../../lib/theme'
+import { posthog } from '../../shared/analytics/posthog'
 
 export function JoinWithInvitePage() {
   const { code } = useParams()
@@ -23,6 +24,8 @@ export function JoinWithInvitePage() {
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault()
+            const inviteCode = (e.currentTarget.querySelector('input') as HTMLInputElement)?.value ?? code ?? ''
+            posthog.capture('athlete_joined_via_invite', { invite_code: inviteCode })
             navigate('/athlete/home')
           }}
         >

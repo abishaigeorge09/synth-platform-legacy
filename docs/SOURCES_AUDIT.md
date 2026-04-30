@@ -113,7 +113,7 @@ Same 13 tabs, each ported to the cobalt/glass app aesthetic. **All read-only —
 | Whoop | Failed-state hero (red border) + blurred 4-metric snapshot. **No Reconnect button** — replace with caption "Reconnect from the desktop dashboard." |
 | Bridge | Status header + gym session cards (exercise list + trend arrows). |
 | TrainingPeaks | Pending-state hero (amber border) + weekly compliance bar + 6-day plan grid (2 cols × 3 rows on mobile). **No Configure link** — caption only. |
-| Calendar | 5-day grid → swap for a vertical day list (Mon Apr 21 → Fri Apr 25) with event chips per day. Cal Invite "next regatta" card stays. |
+| Calendar | 5-day grid → swap for a vertical day list (Mon Apr 21 → Fri Apr 25) with event chips per day. Pacific Invite "next regatta" card stays. |
 | Garmin / Oura | Empty-state caption "Connect from the desktop dashboard to view {name} data here." |
 | Coach Notes | Voice-note cards (transcript + extracted bullets + tags). **No Play button** (would need real audio). |
 | AI Import | Extracted-record cards (source type · extracted summary · imported/pending pill). |

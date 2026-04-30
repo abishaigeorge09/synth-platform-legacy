@@ -28,7 +28,7 @@ Coaches don't have a data problem. They have a **dispersion problem**. The thesi
 | **Athlete**                      | Logs wellness, does the workout, competes                           | A personal view of their own data, plus whatever their coach chooses to share.                           |
 
 
-synth. starts with **collegiate rowing** because the founders lived this problem there (Cal Men's + Women's pilot). The architecture is sport-agnostic — a rowing team is just the v1 shape of what every program in every sport needs.
+synth. starts with **collegiate rowing** because the founders lived this problem there (Pacific Men's + Women's pilot). The architecture is sport-agnostic — a rowing team is just the v1 shape of what every program in every sport needs.
 
 ## The core value proposition
 
@@ -234,7 +234,7 @@ synth. is the unifier. It doesn't replace any of the above — it ingests them a
 
 | Phase                             | What ships                                                                                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0 — UI-first prototype (now)** | All five systems as UI with seeded mock data. Cal Women's Rowing (52 athletes, real erg data) as the demo team. No backend; auth mocked; AI responses canned. |
+| **P0 — UI-first prototype (now)** | All five systems as UI with seeded mock data. Pacific Women's Rowing (52 athletes, real erg data) as the demo team. No backend; auth mocked; AI responses canned. |
 | **P1 — Backend MVP**              | Supabase (auth, tables per `SCHEMA.md`, RLS). Google Sheets + manual CSV connectors live. Real invite-code onboarding. Session Timer writes real data.        |
 | **P2 — Agent + more connectors**  | Chrome extension (Manifest v3). TeamWorks, Bridge, Slack connectors. Scheduled scans, real scan reports.                                                      |
 | **P3 — synth. AI**                | Real LLM calls (Claude) with citation-backed responses. Streaming. Athlete-scoped guardrails.                                                                 |
@@ -249,7 +249,7 @@ See `CLAUDE.md` for the engineering-side state. As of this commit:
 
 - Feature branch `build/full-app` on `synth-platform`
 - Folder structure staged for all 5 systems
-- Cal Women's Rowing seed data (real erg data from 2026-03-16 sheet) imported from the rowIQ prototypes
+- Pacific Women's Rowing seed data (real erg data from 2026-03-16 sheet) imported from the rowIQ prototypes
 - Sidebar shell, routing, and Phase 2 (Coach Dashboard) are the next build milestones
 
 Everything is UI-first — when backends land, we swap `src/shared/data/seeds/`* for live Supabase queries and the rest of the app keeps working unchanged.

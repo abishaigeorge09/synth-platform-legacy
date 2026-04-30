@@ -223,7 +223,7 @@ export function ProductPrototypeApp() {
             synth<span style={{ color: THEME.logoDotColor }}>.</span>
           </div>
           <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400" style={{ fontFamily: THEME.fontMono }}>
-            Cal Women&apos;s Rowing
+            Pacific Women&apos;s Rowing
           </p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2 sm:px-4">

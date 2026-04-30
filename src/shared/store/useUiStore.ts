@@ -8,6 +8,14 @@ type UiState = {
   coachProfileOpen: boolean
   requestToolOpen: boolean
   hideTopRightControls: boolean
+  // Which panel index the home page should snap to (set by nav Home button).
+  // null = no pending request. HomePage clears this after consuming it.
+  homePanelRequest: number | null
+  setHomePanelRequest: (panel: number | null) => void
+  // True when the lineup-hero panel (page 0) is the visible page in the home
+  // swiper. AppCoachShell hides the floating tab bar while this is true.
+  heroPageActive: boolean
+  setHeroPageActive: (v: boolean) => void
   toggleSidebar: () => void
   setSidebarCollapsed: (v: boolean) => void
   openAgentModal: () => void
@@ -32,6 +40,10 @@ export const useUiStore = create<UiState>((set) => ({
   coachProfileOpen: false,
   requestToolOpen: false,
   hideTopRightControls: false,
+  homePanelRequest: null,
+  setHomePanelRequest: (panel) => set({ homePanelRequest: panel }),
+  heroPageActive: false,
+  setHeroPageActive: (v) => set({ heroPageActive: v }),
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
   openAgentModal: () => set({ agentModalOpen: true }),

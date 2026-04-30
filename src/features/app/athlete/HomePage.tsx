@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Flame, ArrowUpRight, BarChart3 } from 'lucide-react'
+import { Flame, ArrowUpRight, BarChart3, User } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_ATHLETES, fmtErgTime, fmtAgo } from '../data/mockTeam'
@@ -29,22 +29,39 @@ export function HomePage() {
         >
           synth · athlete
         </span>
-        <button
-          type="button"
-          aria-label="My week"
-          data-tour="athlete-home-stats-button"
-          onClick={() => setStatsOpen(true)}
-          className="flex h-9 items-center gap-1.5 rounded-full px-3"
-          style={{
-            background: SYNTH.glass,
-            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-            border: `1px solid ${SYNTH.glassBorder}`,
-            color: SYNTH.inkOnBrand,
-          }}
-        >
-          <BarChart3 size={14} strokeWidth={2.2} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            aria-label="My profile"
+            onClick={() => navigate('/app/athlete/profile')}
+            className="flex h-9 items-center gap-1.5 rounded-full px-3"
+            style={{
+              background: SYNTH.glass,
+              backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              border: `1px solid ${SYNTH.glassBorder}`,
+              color: SYNTH.inkOnBrand,
+            }}
+          >
+            <User size={14} strokeWidth={2.2} />
+          </button>
+          <button
+            type="button"
+            aria-label="My week"
+            data-tour="athlete-home-stats-button"
+            onClick={() => setStatsOpen(true)}
+            className="flex h-9 items-center gap-1.5 rounded-full px-3"
+            style={{
+              background: SYNTH.glass,
+              backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+              border: `1px solid ${SYNTH.glassBorder}`,
+              color: SYNTH.inkOnBrand,
+            }}
+          >
+            <BarChart3 size={14} strokeWidth={2.2} />
+          </button>
+        </div>
       </header>
 
       <QuickStatsSheet
@@ -112,7 +129,7 @@ export function HomePage() {
         <CandyCard
           color={SYNTH.cardPink}
           kicker="Race"
-          headline="Cal Cup heat in 9 days."
+          headline="Pacific Cup heat in 9 days."
           ctaLabel="Race plan"
           provenance="Coach Geri · 2d ago"
           onClick={() => navigate('/app/athlete/notes')}

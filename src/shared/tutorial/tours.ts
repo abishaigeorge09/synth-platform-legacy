@@ -35,7 +35,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachHome',
     route: '/app/coach/home',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-home-greeting',
@@ -66,7 +66,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachAttention',
     route: '/app/coach/attention',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-attention-row',
@@ -85,7 +85,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachRoster',
     route: '/app/coach/roster',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-roster-search',
@@ -105,7 +105,7 @@ export const TOURS: Tour[] = [
     id: 'coachAthleteDetail',
     route: '/app/coach/athlete',
     routeMatch: (p) => p.startsWith('/app/coach/athlete/'),
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-athlete-tabs',
@@ -124,7 +124,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachCapture',
     route: '/app/coach/capture',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-capture-voice',
@@ -155,7 +155,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachAI',
     route: '/app/coach/ai',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-ai-scope',
@@ -186,7 +186,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachNotes',
     route: '/app/coach/notes',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-notes-add',
@@ -205,7 +205,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachSources',
     route: '/app/coach/sources',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-sources-card',
@@ -224,7 +224,7 @@ export const TOURS: Tour[] = [
   {
     id: 'coachSettings',
     route: '/app/coach/settings',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'coach-settings-invite',
@@ -251,7 +251,7 @@ export const TOURS: Tour[] = [
   {
     id: 'athleteHome',
     route: '/app/athlete/home',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'athlete-home-status',
@@ -282,7 +282,7 @@ export const TOURS: Tour[] = [
   {
     id: 'athleteCapture',
     route: '/app/athlete/capture',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'athlete-capture-form-video',
@@ -307,7 +307,7 @@ export const TOURS: Tour[] = [
   {
     id: 'athleteErgPacer',
     route: '/app/athlete/erg-pacer',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'athlete-pacer-target',
@@ -326,7 +326,7 @@ export const TOURS: Tour[] = [
   {
     id: 'athleteAI',
     route: '/app/athlete/ai',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'athlete-ai-customize',
@@ -351,7 +351,7 @@ export const TOURS: Tour[] = [
   {
     id: 'athleteNotes',
     route: '/app/athlete/notes',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'athlete-notes-row',
@@ -364,7 +364,7 @@ export const TOURS: Tour[] = [
   {
     id: 'athleteSources',
     route: '/app/athlete/sources',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'athlete-sources-card',
@@ -383,7 +383,7 @@ export const TOURS: Tour[] = [
   {
     id: 'athleteSettings',
     route: '/app/athlete/settings',
-    autoStart: true,
+    autoStart: false,
     steps: [
       {
         anchor: 'athlete-settings-notif',

@@ -1,11 +1,19 @@
+/**
+ * All athlete data is derived from the real Pacific Women's Rowing 2025-26 erg
+ * workbook (ERG_316_2K — 2026-03-16 benchmark test).
+ * Wellness, volume, and recovery fields are deterministically generated from
+ * each athlete's erg performance so the data is stable across reloads.
+ */
+import { ERG_316_2K } from '../../../prototype/rowiqWomensData'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 export type AppMockAthlete = {
   id: string
   name: string
   initials: string
   position: string
   side: 'P' | 'S' | 'X'
-  /** Coach-set preferred seat type — surfaces in the picker so you know
-   * who likes stroke vs bow vs middle vs cox. */
   preferredSeat?: 'stroke' | 'bow' | 'middle' | 'cox' | 'any'
   recoveryScore: number
   twoKBestSeconds: number
@@ -16,9 +24,11 @@ export type AppMockAthlete = {
   primarySource: string
 }
 
+// ─── Team ─────────────────────────────────────────────────────────────────────
+
 export const APP_MOCK_TEAM = {
   id: 'team-cal-w-rowing',
-  name: "Cal Women's Rowing",
+  name: "Pacific Women's Rowing",
   sport: 'rowing' as const,
   athleteCount: 46,
   activeToday: 38,
@@ -27,10 +37,12 @@ export const APP_MOCK_TEAM = {
   sessionsToday: 24,
 }
 
+// ─── Schedule ─────────────────────────────────────────────────────────────────
+
 export type AppScheduleItem = {
   id: string
-  when: string // "Tonight" | "Tomorrow" | "Wed" | "Sat" …
-  iconLetter: string // 1–2 char circle label, e.g. "LU" / "RC" / "AB"
+  when: string
+  iconLetter: string
   category: 'lineup' | 'race' | 'practice' | 'attendance' | 'meeting'
   headline: string
   detail: string
@@ -38,8 +50,6 @@ export type AppScheduleItem = {
   severity: 'high' | 'med' | 'low'
 }
 
-// One week of performance + scheduling items shown under "This week" on
-// home. Excludes fatigue/wellness — those live on the Attention tab.
 export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
   {
     id: 'sch-lineup-tomorrow',
@@ -47,7 +57,7 @@ export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
     iconLetter: 'LU',
     category: 'lineup',
     headline: 'V8 lineup posted for AM practice',
-    detail: 'Stroke seat changed — Juno → Star. Confirm before 10pm.',
+    detail: 'Stroke seat change — Irmler → Wheeler. Confirm before 10pm.',
     provenance: 'Lineups · just now',
     severity: 'med',
   },
@@ -56,7 +66,7 @@ export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
     when: 'Sat',
     iconLetter: 'RC',
     category: 'race',
-    headline: 'Cal Invite Regatta — race day',
+    headline: 'Pacific Invite Regatta — race day',
     detail: 'V8 + V4+ entries · report time 5:30 AM · 3 days out',
     provenance: 'Google Calendar · 8m ago',
     severity: 'high',
@@ -67,7 +77,7 @@ export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
     iconLetter: 'AB',
     category: 'attendance',
     headline: '2 athletes missed AM practice',
-    detail: 'Coral Mendez (excused) · Rae Akhtar (no notice)',
+    detail: 'Lola Crampin (excused) · Charly Johnson (no notice)',
     provenance: 'TeamWorks · 2h ago',
     severity: 'med',
   },
@@ -103,101 +113,101 @@ export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
   },
 ]
 
-export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
-  {
-    id: 'a-star-miller',
-    name: 'Star Miller',
-    initials: 'SM',
-    position: 'V8 — 5 seat',
-    side: 'P',
-    preferredSeat: 'middle',
-    recoveryScore: 78,
-    twoKBestSeconds: 7 * 60 + 6,
-    twoKAvg30dSeconds: 7 * 60 + 14,
-    weeklyVolumeMeters: 142_000,
-    streakDays: 11,
-    lastSyncMinutes: 4,
-    primarySource: 'Concept2',
-  },
-  {
-    id: 'a-juno-okafor',
-    name: 'Juno Okafor',
-    initials: 'JO',
-    position: 'V8 — Stroke',
-    side: 'S',
-    preferredSeat: 'stroke',
-    recoveryScore: 64,
-    twoKBestSeconds: 7 * 60 + 1,
-    twoKAvg30dSeconds: 7 * 60 + 8,
-    weeklyVolumeMeters: 156_000,
-    streakDays: 23,
-    lastSyncMinutes: 12,
-    primarySource: 'Concept2',
-  },
-  {
-    id: 'a-isla-park',
-    name: 'Isla Park',
-    initials: 'IP',
-    position: 'V8 — 7 seat',
-    side: 'S',
-    preferredSeat: 'middle',
-    recoveryScore: 42,
-    twoKBestSeconds: 7 * 60 + 9,
-    twoKAvg30dSeconds: 7 * 60 + 19,
-    weeklyVolumeMeters: 121_000,
-    streakDays: 3,
-    lastSyncMinutes: 36,
-    primarySource: 'WHOOP',
-  },
-  {
-    id: 'a-rae-akhtar',
-    name: 'Rae Akhtar',
-    initials: 'RA',
-    position: 'V8 — Bow',
-    side: 'P',
-    preferredSeat: 'bow',
-    recoveryScore: 81,
-    twoKBestSeconds: 7 * 60 + 12,
-    twoKAvg30dSeconds: 7 * 60 + 17,
-    weeklyVolumeMeters: 134_000,
-    streakDays: 14,
-    lastSyncMinutes: 18,
-    primarySource: 'Strava',
-  },
-  {
-    id: 'a-coral-mendez',
-    name: 'Coral Mendez',
-    initials: 'CM',
-    position: '2V8 — 4 seat',
-    side: 'P',
-    preferredSeat: 'middle',
-    recoveryScore: 58,
-    twoKBestSeconds: 7 * 60 + 18,
-    twoKAvg30dSeconds: 7 * 60 + 24,
-    weeklyVolumeMeters: 118_000,
-    streakDays: 7,
-    lastSyncMinutes: 8,
-    primarySource: 'Concept2',
-  },
-  {
-    id: 'a-noor-haidari',
-    name: 'Noor Haidari',
-    initials: 'NH',
-    position: '2V8 — 2 seat',
-    side: 'S',
-    preferredSeat: 'any',
-    recoveryScore: 73,
-    twoKBestSeconds: 7 * 60 + 22,
-    twoKAvg30dSeconds: 7 * 60 + 26,
-    weeklyVolumeMeters: 102_000,
-    streakDays: 5,
-    lastSyncMinutes: 22,
-    primarySource: 'Apple Health',
-  },
-  // ─── Coxswains ─────────────────────────────────────────────────────────
-  // Cox athletes don't row, so 2K + volume fields are minimal/representative.
-  // Surfaces in AthletePickerSheet under the COX filter chip when picking
-  // for a cox seat (forSide === 'X').
+// ─── Athlete generation helpers ──────────────────────────────────────────────
+
+function toSlug(lastFirst: string): string {
+  return lastFirst
+    .toLowerCase()
+    .replace(/'/g, '')
+    .replace(/[^a-z]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function toFirstLast(lastFirst: string): string {
+  const comma = lastFirst.indexOf(', ')
+  if (comma === -1) return lastFirst
+  return `${lastFirst.slice(comma + 2)} ${lastFirst.slice(0, comma)}`
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(' ')
+  return ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase()
+}
+
+function ergToSeconds(time: string): number {
+  const [m, s] = time.split(':')
+  return parseInt(m, 10) * 60 + parseFloat(s)
+}
+
+function prand(seed: number, min: number, max: number): number {
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453
+  const frac = x - Math.floor(x)
+  return Math.round(min + frac * (max - min))
+}
+
+const SEAT_8 = ['Stroke', '7', '6', '5', '4', '3', '2', 'Bow'] as const
+const SEAT_4 = ['Stroke', '3', '2', 'Bow'] as const
+
+function positionLabel(i: number): string {
+  if (i < 8)  return `V8 — ${SEAT_8[i]} seat`
+  if (i < 16) return `2V8 — ${SEAT_8[i - 8]} seat`
+  if (i < 20) return `V4 — ${SEAT_4[i - 16]} seat`
+  if (i < 24) return `2V4 — ${SEAT_4[i - 20]} seat`
+  return 'Reserve'
+}
+
+function sideLabel(i: number): 'P' | 'S' {
+  // Stroke & even seats: S, odd seats (7, 5, 3, Bow): P
+  return (i % 8) % 2 === 0 ? 'S' : 'P'
+}
+
+function preferredSeatLabel(i: number): 'stroke' | 'bow' | 'middle' | 'any' {
+  const seat = i % 8
+  if (seat === 0) return 'stroke'
+  if (seat === 7) return 'bow'
+  if (seat === 3 || seat === 4) return 'middle'
+  return 'any'
+}
+
+const SOURCES = ['Concept2', 'WHOOP', 'Apple Health', 'Strava', 'Concept2', 'Garmin', 'Oura', 'Concept2'] as const
+
+// ─── Rowers from real erg data ────────────────────────────────────────────────
+// Star Miller is placed first so she serves as the athlete-view "self" demo.
+// All other athletes are ordered by erg performance (best first).
+
+const STAR_IDX = ERG_316_2K.findIndex((r) => r.lastFirst === 'Miller, Star')
+const REORDERED_ERG = [
+  ERG_316_2K[STAR_IDX],
+  ...ERG_316_2K.slice(0, STAR_IDX),
+  ...ERG_316_2K.slice(STAR_IDX + 1),
+]
+
+const ROWER_ATHLETES: AppMockAthlete[] = REORDERED_ERG.map((r, i) => {
+  const name = toFirstLast(r.lastFirst)
+  const bestSec = ergToSeconds(r.time)
+  return {
+    id: `a-${toSlug(r.lastFirst)}`,
+    name,
+    initials: getInitials(name),
+    position: positionLabel(i),
+    side: sideLabel(i),
+    preferredSeat: preferredSeatLabel(i),
+    recoveryScore: prand(i * 7 + 3, 58, 94),
+    twoKBestSeconds: bestSec,
+    twoKAvg30dSeconds: bestSec + prand(i * 3 + 1, 4, 14),
+    weeklyVolumeMeters: Math.round(
+      (r.watts / 362) * 180_000 * (0.85 + prand(i * 11 + 5, 0, 30) / 100),
+    ),
+    streakDays: prand(i * 5 + 2, 3, 28),
+    lastSyncMinutes: prand(i * 4 + 7, 1, 60),
+    primarySource: SOURCES[i % SOURCES.length],
+  }
+})
+
+// ─── Coxswains (not in erg data — they steer the boat) ───────────────────────
+
+const COX_ATHLETES: AppMockAthlete[] = [
   {
     id: 'a-andie-vega',
     name: 'Andie Vega',
@@ -206,9 +216,9 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
     side: 'X',
     preferredSeat: 'cox',
     recoveryScore: 84,
-    twoKBestSeconds: 8 * 60 + 12, // ergs occasionally for fitness tests
+    twoKBestSeconds: 8 * 60 + 12,
     twoKAvg30dSeconds: 8 * 60 + 24,
-    weeklyVolumeMeters: 14_000, // light cross-training rows
+    weeklyVolumeMeters: 14_000,
     streakDays: 19,
     lastSyncMinutes: 6,
     primarySource: 'WHOOP',
@@ -245,6 +255,13 @@ export const APP_MOCK_ATHLETES: AppMockAthlete[] = [
   },
 ]
 
+export const APP_MOCK_ATHLETES: AppMockAthlete[] = [...ROWER_ATHLETES, ...COX_ATHLETES]
+
+// ID of the demo "self" athlete surfaced in the athlete-side views.
+export const DEMO_ATHLETE_ID = ROWER_ATHLETES[0].id // 'a-miller-star'
+
+// ─── Attention ────────────────────────────────────────────────────────────────
+
 export type AppAttentionItem = {
   id: string
   athleteId: string
@@ -256,43 +273,49 @@ export type AppAttentionItem = {
   severity: 'high' | 'med' | 'low'
 }
 
+// Reference real Pacific Women athletes by their computed IDs.
+// Olivia Roth  (index 4 in reordered list): poor-recovery story
+// Lola Crampin (index 7): volume-spike story
+// Ella Wheeler (index 1): race-ready / streak
+// Andie Vega (cox): race-day ready
+
 export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
   {
     id: 'att-1',
-    athleteId: 'a-isla-park',
-    athleteName: 'Isla Park',
-    initials: 'IP',
-    signal: '2K erg slipped 7.2s vs 4-week avg',
+    athleteId: 'a-roth-olivia',
+    athleteName: 'Olivia Roth',
+    initials: 'OR',
+    signal: '2K erg slipped 6.4s vs 4-week avg',
     source: 'Concept2',
     syncedMinutesAgo: 36,
     severity: 'high',
   },
   {
     id: 'att-2',
-    athleteId: 'a-isla-park',
-    athleteName: 'Isla Park',
-    initials: 'IP',
-    signal: 'Recovery 42 — 3 nights of poor sleep',
+    athleteId: 'a-roth-olivia',
+    athleteName: 'Olivia Roth',
+    initials: 'OR',
+    signal: 'Recovery 44 — 3 nights of poor sleep',
     source: 'WHOOP',
     syncedMinutesAgo: 36,
     severity: 'high',
   },
   {
     id: 'att-3',
-    athleteId: 'a-coral-mendez',
-    athleteName: 'Coral Mendez',
-    initials: 'CM',
-    signal: 'Volume up 38% week-over-week',
+    athleteId: 'a-crampin-lola',
+    athleteName: 'Lola Crampin',
+    initials: 'LC',
+    signal: 'Volume up 34% week-over-week',
     source: 'Concept2',
     syncedMinutesAgo: 8,
     severity: 'med',
   },
   {
     id: 'att-4',
-    athleteId: 'a-juno-okafor',
-    athleteName: 'Juno Okafor',
-    initials: 'JO',
-    signal: 'Streak hit 23 days — longest on team',
+    athleteId: 'a-wheeler-ella',
+    athleteName: 'Ella Wheeler',
+    initials: 'EW',
+    signal: 'Streak hit 24 days — longest on team',
     source: 'synth.',
     syncedMinutesAgo: 12,
     severity: 'low',
@@ -308,6 +331,8 @@ export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
     severity: 'low',
   },
 ]
+
+// ─── Session history helpers ──────────────────────────────────────────────────
 
 export type AppSessionPoint = { date: string; seconds: number; meters: number }
 

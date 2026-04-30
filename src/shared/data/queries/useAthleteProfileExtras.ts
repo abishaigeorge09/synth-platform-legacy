@@ -140,7 +140,7 @@ const NOTE_POOL: Array<{ text: string; tags: string[]; daysAgo: number; isTransc
   { text: 'Drive connection at high rates is still the focus area. Try pause-at-finish drill at rate 22 tomorrow.', tags: ['Technique'], daysAgo: 5 },
   { text: 'Recovery score was 38 this morning — reduce intensity by 20%. No hard pieces until score is back above 65.', tags: ['Flag', 'Recovery'], daysAgo: 8 },
   { text: 'Moved to bow pair for the V8 in today\'s seat race. Looked comfortable — blade work solid. Match rate changes faster off the start.', tags: ['Lineup', 'Technique'], daysAgo: 12, isTranscription: true },
-  { text: '2K retest is trending strong based on 5K splits. Sub-6:44 at Cal Invite is realistic if sleep stays consistent.', tags: ['Fitness', 'Positive'], daysAgo: 15 },
+  { text: '2K retest is trending strong based on 5K splits. Sub-6:44 at Pacific Invite is realistic if sleep stays consistent.', tags: ['Fitness', 'Positive'], daysAgo: 15 },
   { text: 'Gym compliance was 11/16 this month. That\'s just below target. One more lift on Thursday closes the gap.', tags: ['Fitness'], daysAgo: 19 },
   { text: 'Best race strategy: go out at 1:41, hold through 750, move at 1250, empty the tank in last 250.', tags: ['Race', 'Positive'], daysAgo: 22, isTranscription: true },
   { text: 'Excellent focus during starts. Blade timing off the catch improved by about 50ms vs last week.', tags: ['Technique', 'Positive'], daysAgo: 28 },

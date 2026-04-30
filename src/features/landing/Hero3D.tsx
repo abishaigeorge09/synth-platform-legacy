@@ -248,7 +248,7 @@ function DashboardCard({ x, y }: CardProps) {
               Coach · dashboard
             </div>
             <div className="mt-0.5 text-[14px] font-semibold" style={{ color: THEME.textPrimary }}>
-              Cal Women's Rowing
+              Pacific Women's Rowing
             </div>
           </div>
           <div className="flex items-center gap-1.5">

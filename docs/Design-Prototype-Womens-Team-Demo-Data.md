@@ -2,7 +2,7 @@
 
 **Version:** 0.1  
 **Audience:** Design, frontend prototype, connector QA  
-**Data:** Demo only — **Cal Women’s 1V + 2V**, **two seasons** of history ingested from a **master Excel workbook** (structure understood before UI build).
+**Data:** Demo only — **Pacific Women’s 1V + 2V**, **two seasons** of history ingested from a **master Excel workbook** (structure understood before UI build).
 
 This document ties **demo datasets** to the **live site theme** (colors, type, surfaces) and to **Team Overview** UI regions: chips, charts, roster table, AI insight.
 
@@ -61,7 +61,7 @@ Every data signal. One platform.
 
 | Field                  | Value                                                                                        |
 | ---------------------- | -------------------------------------------------------------------------------------------- |
-| Team                   | Cal Women’s Rowing — **1V + 2V**                                                             |
+| Team                   | Pacific Women’s Rowing — **1V + 2V**                                                             |
 | Athletes on roster     | 18 (dashboard shows key rows in prototype)                                                   |
 | Historical window      | **Two years**: **Jan 2024 – Dec 2025** (calendar); season labels **2023–24** and **2024–25** |
 | Source of truth (demo) | Excel workbook: `cal_womens_rowing_master.xlsx` (multi-tab, described below)                 |

@@ -2,7 +2,7 @@ export const DEMO_LINEUP_PUBLISHED = true
 
 export const DEMO_ATHLETE_PROFILE = {
   name: 'Star Miller',
-  team: "Cal Women's Rowing",
+  team: "Pacific Women's Rowing",
   side: 'Port',
   status: 'Active',
   year: 'Sophomore',
@@ -14,7 +14,7 @@ export const TODAY_STATUS_SENTENCE =
 export const TODAY_META = {
   dateLabel: 'Friday, April 24',
   raceCountdown: {
-    title: 'Cal Invite Regatta',
+    title: 'Pacific Invite Regatta',
     date: 'Saturday, Apr 26',
     reportTime: '5:30 AM',
     location: 'Oakland Estuary',
@@ -63,7 +63,7 @@ export const COACH_FEEDBACK_HISTORY = [
     takeaway: '2K retest is trending strong; sub-6:44 is realistic.',
     tags: ['Fitness', 'Positive'],
     transcription:
-      "Star's 2K retest is looking strong in training. Should target sub 6:44 at Cal Invite.",
+      "Star's 2K retest is looking strong in training. Should target sub 6:44 at Pacific Invite.",
   },
 ]
 
@@ -296,7 +296,7 @@ export const LINEUP_ENTRIES = [
   {
     id: 'l1',
     date: 'Apr 26',
-    title: 'V8 — Cal Invite Regatta',
+    title: 'V8 — Pacific Invite Regatta',
     athleteSummary: "You're in Seat 3 (Port) — same seat as last week",
     seats: [
       { seat: 'Bow', side: 'Port', name: 'Ella Wheeler' },

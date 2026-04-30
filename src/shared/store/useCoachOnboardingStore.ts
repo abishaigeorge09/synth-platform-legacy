@@ -23,12 +23,12 @@ function read(): Pick<CoachOnboardingState, 'team' | 'csvUploaded' | 'sourcesCon
     const raw = localStorage.getItem(KEY)
     if (!raw) {
       if (isSupabaseConfigured()) return { team: null, csvUploaded: false, sourcesConnected: false }
-      return { team: { teamName: "Cal Women's Rowing", sport: 'Rowing' }, csvUploaded: true, sourcesConnected: true }
+      return { team: { teamName: "Pacific Women's Rowing", sport: 'Rowing' }, csvUploaded: true, sourcesConnected: true }
     }
     const v = JSON.parse(raw) as { team?: CoachOnboardingTeam | null; csvUploaded?: boolean; sourcesConnected?: boolean }
     return { team: v.team ?? null, csvUploaded: !!v.csvUploaded, sourcesConnected: !!v.sourcesConnected }
   } catch {
-    return { team: { teamName: "Cal Women's Rowing", sport: 'Rowing' }, csvUploaded: true, sourcesConnected: true }
+    return { team: { teamName: "Pacific Women's Rowing", sport: 'Rowing' }, csvUploaded: true, sourcesConnected: true }
   }
 }
 

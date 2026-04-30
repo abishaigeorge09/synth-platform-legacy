@@ -168,7 +168,7 @@ const BASE_OVERVIEW: DemoAthleteOverview = {
   schedule: [
     { date: 'Apr 24', items: 'AM practice 6:00-8:00 · Classes 10:00-3:00 · Gym 4:30-5:30', flagged: false },
     { date: 'Apr 25', items: 'AM practice 6:00-8:30 (race pace pieces) · Classes 11:00-2:00', flagged: false },
-    { date: 'Apr 26', items: 'RACE DAY — Cal Invite Regatta · Report time 5:30 AM', flagged: false },
+    { date: 'Apr 26', items: 'RACE DAY — Pacific Invite Regatta · Report time 5:30 AM', flagged: false },
     { date: 'Apr 27', items: 'Rest day', flagged: false },
     { date: 'Apr 28', items: 'AM practice 6:00-8:00 · Midterm Exam 2:00-4:00', flagged: true },
   ],
@@ -184,14 +184,14 @@ const BASE_OVERVIEW: DemoAthleteOverview = {
     {
       date: 'Apr 15',
       transcript:
-        'Ella moved to bow pair for the V8 today. Looked comfortable. Good blade work but needs to match rate changes faster. Keep her there for Cal Invite.',
+        'Ella moved to bow pair for the V8 today. Looked comfortable. Good blade work but needs to match rate changes faster. Keep her there for Pacific Invite.',
       extracted: 'Moved to bow pair V8. Blade work strong. Needs quicker rate-change matching.',
       tags: ['Technique', 'Lineup'],
     },
     {
       date: 'Apr 8',
       transcript:
-        "Ella's 2K retest is looking strong in training. Should target sub 6:35 at Cal Invite. Technically the cleanest rower in the bow four.",
+        "Ella's 2K retest is looking strong in training. Should target sub 6:35 at Pacific Invite. Technically the cleanest rower in the bow four.",
       extracted: '2K target sub-6:35. Technical quality highest in bow four.',
       tags: ['Fitness', 'Positive'],
     },

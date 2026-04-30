@@ -76,10 +76,10 @@ export const SEED_COACH_NOTES: CoachNote[] = [
     athleteId: 'athlete-thompson-grace',
     coachName: 'Demo Coach',
     date: '2026-04-16T17:00:00Z',
-    text: 'Grace has been coxing the 1V all week and the calls are noticeably sharper. She is reading the race plan well and her move calls are more decisive. Confirmed her as 1V cox for Cal Invite.',
+    text: 'Grace has been coxing the 1V all week and the calls are noticeably sharper. She is reading the race plan well and her move calls are more decisive. Confirmed her as 1V cox for Pacific Invite.',
     tags: ['technique', 'mental'],
     hasAudio: true,
-    transcription: 'Grace has been coxing the first varsity all week and the calls are noticeably sharper. She is reading the race plan well and her move calls are more decisive. Confirmed her as first varsity cox for Cal Invite.',
+    transcription: 'Grace has been coxing the first varsity all week and the calls are noticeably sharper. She is reading the race plan well and her move calls are more decisive. Confirmed her as first varsity cox for Pacific Invite.',
   },
   {
     id: 'cnote-8',

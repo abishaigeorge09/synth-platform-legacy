@@ -5,23 +5,26 @@ import { ArrowUpRight, BarChart3 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_TEAM, APP_MOCK_SCHEDULE } from '../data/mockTeam'
-import { LaunchActionSheet } from './LaunchActionSheet'
-import { useLaunchSheetStore } from '../../../shared/store/useLaunchSheetStore'
 import { LineupHeroPanel } from './lineupHero/LineupHeroPanel'
-
-const LAUNCH_SHEET_DELAY_MS = 400
+import { useUiStore } from '../../../shared/store/useUiStore'
+import { useAppAuthStore } from '../store/useAppAuthStore'
 
 /**
- * Coach home — horizontal pager. Page 1 is the lineup-first hero (always
- * the default landing). Page 2 is the dashboard. Swipe right or tap the
- * "Dashboard" pill on the hero to slide over.
+ * Coach home — horizontal pager.
+ *   Page 0 (left)  = Lineup hero — dark water, boat illustration.
+ *   Page 1 (right) = Dashboard  — cobalt canvas, team overview.
  *
- * Each custom tool can register its own hero page later — for now there's
- * just one (the Lineup Builder's), so the pager has 2 pages total.
+ * On every fresh load the pager instantly snaps to page 1 (dashboard) then
+ * smoothly slides back to page 0 (lineup hero) so the user sees both in a
+ * brief reveal. Pressing the Home nav button always snaps to page 1.
  */
 export function HomePage() {
   const pagerRef = useRef<HTMLDivElement | null>(null)
-  const [activePage, setActivePage] = useState(0)
+  const navigate = useNavigate()
+  const homePanelRequest = useUiStore((s) => s.homePanelRequest)
+  const setHomePanelRequest = useUiStore((s) => s.setHomePanelRequest)
+  const setHeroPageActive = useUiStore((s) => s.setHeroPageActive)
+  const signOut = useAppAuthStore((s) => s.signOut)
 
   const goToPage = (index: number) => {
     const el = pagerRef.current
@@ -29,54 +32,68 @@ export function HomePage() {
     el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' })
   }
 
+  // Track which page is visible so the tab bar can hide on the lineup hero.
   const onPagerScroll = () => {
     const el = pagerRef.current
     if (!el) return
-    const idx = Math.round(el.scrollLeft / el.clientWidth)
-    if (idx !== activePage) setActivePage(idx)
+    const pageIdx = Math.round(el.scrollLeft / el.clientWidth)
+    setHeroPageActive(pageIdx === 0)
   }
 
+  // Start on page 0 (lineup hero), hide tab bar immediately.
+  useEffect(() => {
+    setHeroPageActive(true)
+    const pendingPanel = useUiStore.getState().homePanelRequest
+    if (pendingPanel !== null) {
+      const el = pagerRef.current
+      if (el) {
+        el.scrollLeft = pendingPanel * el.clientWidth
+        setHeroPageActive(pendingPanel === 0)
+      }
+      setHomePanelRequest(null)
+    }
+    return () => setHeroPageActive(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // When home button is pressed while already on this page.
+  useEffect(() => {
+    if (homePanelRequest === null) return
+    goToPage(homePanelRequest)
+    setHeroPageActive(homePanelRequest === 0)
+    setHomePanelRequest(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homePanelRequest])
+
   return (
-    <div className="relative flex flex-1 flex-col overflow-hidden">
+    <div
+      className="relative flex flex-col overflow-hidden"
+      style={{
+        height: '100svh',
+        maxHeight: '100svh',
+        background: '#050B1C',
+      }}
+    >
       <div
         ref={pagerRef}
         onScroll={onPagerScroll}
         className="synth-scroll flex flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
         style={{ scrollbarWidth: 'none', overscrollBehaviorX: 'contain' }}
       >
+        {/* Page 0 — Lineup hero */}
         <div className="flex h-full w-full shrink-0 snap-center">
-          <LineupHeroPanel onPeekDashboard={() => goToPage(1)} />
+          <LineupHeroPanel
+            onPeekDashboard={() => goToPage(1)}
+            onLogout={async () => {
+              await signOut()
+              navigate('/app', { replace: true })
+            }}
+          />
         </div>
+        {/* Page 1 — Dashboard */}
         <div className="flex h-full w-full shrink-0 snap-center">
           <DashboardPanel />
         </div>
-      </div>
-
-      {/* Page dots — tells the coach there are two pages */}
-      <div
-        className="pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-2.5 py-1.5"
-        style={{
-          bottom: 'max(env(safe-area-inset-bottom), 96px)',
-          background: 'rgba(8,8,40,0.45)',
-          border: `1px solid ${SYNTH.glassBorder}`,
-          backdropFilter: 'blur(8px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(8px) saturate(140%)',
-        }}
-      >
-        {[0, 1].map((i) => {
-          const active = i === activePage
-          return (
-            <span
-              key={i}
-              className="rounded-full transition-all"
-              style={{
-                width: active ? 16 : 4,
-                height: 4,
-                background: active ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.45)',
-              }}
-            />
-          )
-        })}
       </div>
     </div>
   )
@@ -87,20 +104,11 @@ function DashboardPanel() {
   const greeting = greetingForNow()
   const weekItems = APP_MOCK_SCHEDULE
   const [statsOpen, setStatsOpen] = useState(false)
-  const launchShouldShow = useLaunchSheetStore((s) => s.shouldShow)
-  const launchShow = useLaunchSheetStore((s) => s.show)
-
-  // Auto-present the quick-start sheet on coach Home, after the entrance
-  // animation has settled. Honors dismissal streak + manual disable in store.
-  useEffect(() => {
-    if (!launchShouldShow()) return
-    const t = window.setTimeout(launchShow, LAUNCH_SHEET_DELAY_MS)
-    return () => window.clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   return (
-    <div className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-[120px]">
+    <div
+      className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-[120px]"
+      style={{ background: 'linear-gradient(180deg, #2E37F2 0%, #1F26C9 100%)' }}
+    >
       <header
         className="flex items-center justify-between px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2"
         style={{ color: SYNTH.inkOnBrand }}
@@ -275,7 +283,7 @@ function DashboardPanel() {
           <CandyCard
             color={SYNTH.cardMint}
             kicker="Race"
-            headline="Cal Invite Regatta in 3 days — Saturday, 5:30 AM."
+            headline="Pacific Invite Regatta in 3 days — Saturday, 5:30 AM."
             ctaLabel="Open schedule"
             provenance="Google Calendar · synced 8m ago"
             onClick={() => navigate('/app/coach/lineups')}
@@ -376,7 +384,6 @@ function DashboardPanel() {
         </div>
       </section>
 
-      <LaunchActionSheet />
     </div>
   )
 }

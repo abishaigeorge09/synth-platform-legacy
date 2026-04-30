@@ -25,7 +25,7 @@ export function AthleteOnboardingProfilePage() {
       illustration="athlete"
       stepIndex={2}
       totalSteps={4}
-      backTo={`/athlete/onboarding/confirm/${encodeURIComponent(inviteCode ?? 'CAL-WR-2026')}`}
+      backTo={`/athlete/onboarding/confirm/${encodeURIComponent(inviteCode ?? 'PAC-WR-2026')}`}
     >
       <label className="grid gap-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>

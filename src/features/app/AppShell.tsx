@@ -4,14 +4,21 @@ import { motion } from 'framer-motion'
 import { useAppAuthStore } from './store/useAppAuthStore'
 import { SYNTH } from './lib/theme'
 import { TutorialProvider } from '../../shared/tutorial'
+import { GuidedTourOrchestrator } from '../../shared/tutorial/GuidedTourOrchestrator'
+import { useSessionsStore } from './data/useSessionsStore'
 
 export function AppShell() {
   const hydrate = useAppAuthStore((s) => s.hydrate)
   const isReady = useAppAuthStore((s) => s.isReady)
+  const seedIfEmpty = useSessionsStore((s) => s.seedIfEmpty)
 
   useEffect(() => {
     void hydrate()
   }, [hydrate])
+
+  useEffect(() => {
+    seedIfEmpty()
+  }, [seedIfEmpty])
 
   useEffect(() => {
     document.body.setAttribute('data-surface', 'app')
@@ -26,6 +33,7 @@ export function AppShell() {
         {isReady ? <Outlet /> : <AppShellSplash />}
       </div>
       {isReady && <TutorialProvider />}
+      {isReady && <GuidedTourOrchestrator />}
     </div>
   )
 }

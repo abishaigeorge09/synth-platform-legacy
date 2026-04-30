@@ -27,7 +27,7 @@ One row per coaching program / squad. An athlete or coach belongs to exactly one
 ```sql
 create table teams (
   id           uuid primary key default gen_random_uuid(),
-  name         text not null,                  -- "Cal Women's Rowing"
+  name         text not null,                  -- "Pacific Women's Rowing"
   sport        text not null,                  -- "rowing" | "soccer" | ...
   invite_code  text not null unique,           -- 6-char, coach can rotate
   created_at   timestamptz not null default now(),
@@ -118,7 +118,7 @@ create table sources (
   id             uuid primary key default gen_random_uuid(),
   team_id        uuid not null references teams(id) on delete cascade,
   created_by     uuid references users(id),
-  name           text not null,                              -- "Cal Rowing Google Sheet"
+  name           text not null,                              -- "Pacific Rowing Google Sheet"
   url            text,                                       -- https://docs.google.com/... or https://app.bridgeathletics.com/...
   type           text not null check (type in (
                     'extension', 'google_sheets', 'google_drive', 'slack',
@@ -435,7 +435,7 @@ The UI-first build ships with hand-rolled seed data that exactly mirrors this sc
 
 | Table | Seed file | Notes |
 |---|---|---|
-| `teams` | `src/shared/data/seeds/teams.ts` | Cal Women's Rowing (primary), Cal Men's Rowing (secondary) |
+| `teams` | `src/shared/data/seeds/teams.ts` | Pacific Women's Rowing (primary), Pacific Men's Rowing (secondary) |
 | `users` | `src/shared/data/seeds/users.ts` | coach@berkeley.edu (coach), 52 athlete users |
 | `athletes` | `src/shared/data/seeds/athletes.ts` | derived from `rowiqWomensData.ERG_316_2K` |
 | `sources` | `src/shared/data/seeds/sources.ts` | 4 connectors from `womensDemoData.WOMENS_CONNECTORS` |

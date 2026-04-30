@@ -21,6 +21,8 @@ import { TrustCardPage as AppOnboardingTrustPage } from '../features/app/onboard
 import { ScanningPage as AppOnboardingScanningPage } from '../features/app/onboarding/ScanningPage'
 import { RevealPage as AppOnboardingRevealPage } from '../features/app/onboarding/RevealPage'
 import { TourPage as AppOnboardingTourPage } from '../features/app/onboarding/TourPage'
+import { ComingSoonPage as AppComingSoonPage } from '../features/app/onboarding/ComingSoonPage'
+import { OnboardingGuard } from '../features/app/onboarding/OnboardingGuard'
 import { AppCoachShell } from '../features/app/coach/AppCoachShell'
 import { HomePage as AppCoachHomePage } from '../features/app/coach/HomePage'
 import { AttentionPage as AppCoachAttentionPage } from '../features/app/coach/AttentionPage'
@@ -45,6 +47,8 @@ import { CapturePage as AppAthleteCapturePage } from '../features/app/athlete/Ca
 import { NotesPage as AppAthleteNotesPage } from '../features/app/athlete/NotesPage'
 import { SourcesPage as AppAthleteSourcesPage } from '../features/app/athlete/SourcesPage'
 import { SettingsPage as AppAthleteSettingsPage } from '../features/app/athlete/SettingsPage'
+import { TelemetryPage as AppAthleteTelemetryPage } from '../features/app/athlete/TelemetryPage'
+import { MyProfilePage as AppAthleteMyProfilePage } from '../features/app/athlete/MyProfilePage'
 
 // Phase 12 — route-level code splitting. Each feature page becomes its own
 // chunk that's only fetched when the route is visited. Keeps the landing /
@@ -259,17 +263,23 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <AppRoleGate /> },
       { path: 'welcome', element: withSuspense(<AppWelcomePage />, 'Welcome') },
-      { path: 'onboarding/role', element: withSuspense(<AppOnboardingRolePage />, 'Choose role') },
-      { path: 'onboarding/sport', element: withSuspense(<AppOnboardingSportPage />, 'Choose sport') },
-      { path: 'onboarding/team', element: withSuspense(<AppOnboardingTeamPage />, 'Team setup') },
-      { path: 'onboarding/capabilities', element: withSuspense(<AppOnboardingCapabilitiesPage />, 'Capabilities') },
-      { path: 'onboarding/sources/coach', element: withSuspense(<AppOnboardingCoachConnectorsPage />, 'Connect sources') },
-      { path: 'onboarding/invite-code', element: withSuspense(<AppOnboardingInviteCodePage />, 'Invite code') },
-      { path: 'onboarding/sources/athlete', element: withSuspense(<AppOnboardingAthleteConnectorsPage />, 'Connect your sources') },
-      { path: 'onboarding/trust', element: withSuspense(<AppOnboardingTrustPage />, 'Privacy') },
-      { path: 'onboarding/scanning', element: withSuspense(<AppOnboardingScanningPage />, 'Scanning') },
-      { path: 'onboarding/reveal', element: withSuspense(<AppOnboardingRevealPage />, 'synth is ready') },
-      { path: 'onboarding/tour', element: withSuspense(<AppOnboardingTourPage />, 'Tour') },
+      { path: 'coming-soon', element: <AppComingSoonPage /> },
+      {
+        element: <OnboardingGuard />,
+        children: [
+          { path: 'onboarding/role', element: withSuspense(<AppOnboardingRolePage />, 'Choose role') },
+          { path: 'onboarding/sport', element: withSuspense(<AppOnboardingSportPage />, 'Choose sport') },
+          { path: 'onboarding/team', element: withSuspense(<AppOnboardingTeamPage />, 'Team setup') },
+          { path: 'onboarding/capabilities', element: withSuspense(<AppOnboardingCapabilitiesPage />, 'Capabilities') },
+          { path: 'onboarding/sources/coach', element: withSuspense(<AppOnboardingCoachConnectorsPage />, 'Connect sources') },
+          { path: 'onboarding/invite-code', element: withSuspense(<AppOnboardingInviteCodePage />, 'Invite code') },
+          { path: 'onboarding/sources/athlete', element: withSuspense(<AppOnboardingAthleteConnectorsPage />, 'Connect your sources') },
+          { path: 'onboarding/trust', element: withSuspense(<AppOnboardingTrustPage />, 'Privacy') },
+          { path: 'onboarding/scanning', element: withSuspense(<AppOnboardingScanningPage />, 'Scanning') },
+          { path: 'onboarding/reveal', element: withSuspense(<AppOnboardingRevealPage />, 'synth is ready') },
+          { path: 'onboarding/tour', element: withSuspense(<AppOnboardingTourPage />, 'Tour') },
+        ],
+      },
       {
         path: 'coach',
         element: <AppCoachShell />,
@@ -305,6 +315,8 @@ export const routes: RouteObject[] = [
           { path: 'notes', element: withSuspense(<AppAthleteNotesPage />, 'Notes') },
           { path: 'sources', element: withSuspense(<AppAthleteSourcesPage />, 'Sources') },
           { path: 'settings', element: withSuspense(<AppAthleteSettingsPage />, 'Settings') },
+          { path: 'telemetry', element: withSuspense(<AppAthleteTelemetryPage />, 'Telemetry') },
+          { path: 'profile', element: withSuspense(<AppAthleteMyProfilePage />, 'My profile') },
         ],
       },
     ],

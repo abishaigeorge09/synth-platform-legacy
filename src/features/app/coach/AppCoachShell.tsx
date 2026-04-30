@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { CoachFloatingTabBar } from '../primitives/FloatingTabBar'
 import { MoreSheet } from '../primitives/MoreSheet'
 import { SYNTH } from '../lib/theme'
+import { useUiStore } from '../../../shared/store/useUiStore'
 
 const HIDE_TAB_BAR_PREFIXES = [
   '/app/coach/ai',
@@ -12,26 +13,34 @@ const HIDE_TAB_BAR_PREFIXES = [
 export function AppCoachShell() {
   const { pathname } = useLocation()
   const isAI = pathname.startsWith('/app/coach/ai')
-  const hideTabBar = HIDE_TAB_BAR_PREFIXES.some((p) => pathname.startsWith(p))
+  const heroPageActive = useUiStore((s) => s.heroPageActive)
+  const hideTabBar =
+    HIDE_TAB_BAR_PREFIXES.some((p) => pathname.startsWith(p)) || heroPageActive
   const [moreOpen, setMoreOpen] = useState(false)
 
   // Tag the body so the surrounding wrappers (.app-shell-root,
   // .app-shell-frame, body) paint the right canvas color — keeps overscroll
   // from exposing the default white frame.
+  const canvas = isAI ? 'cream' : heroPageActive ? 'dark-water' : 'cobalt'
+
   useEffect(() => {
-    document.body.setAttribute('data-app-canvas', isAI ? 'cream' : 'cobalt')
+    document.body.setAttribute('data-app-canvas', canvas)
     return () => {
       document.body.removeAttribute('data-app-canvas')
     }
-  }, [isAI])
+  }, [canvas])
+
+  const shellBg = isAI
+    ? SYNTH.aiCanvas
+    : heroPageActive
+      ? '#050B1C'
+      : `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`
 
   return (
     <div
       className="relative flex flex-1 flex-col"
       style={{
-        background: isAI
-          ? SYNTH.aiCanvas
-          : `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
+        background: shellBg,
         fontFamily: SYNTH.font,
       }}
     >

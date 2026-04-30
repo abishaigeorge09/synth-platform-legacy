@@ -3,7 +3,7 @@
  * When backends land, swap these exports for query hooks — the component
  * layer should remain unchanged.
  *
- * Currently sourced from src/prototype/rowiqWomensData.ts (real Cal Women's
+ * Currently sourced from src/prototype/rowiqWomensData.ts (real Pacific Women's
  * Rowing erg test data parsed from the 2025-26 workbooks).
  */
 import type {
@@ -32,17 +32,17 @@ import { SEED_SESSIONS_EXPANDED, SEED_SESSION_BOATS, SEED_SESSION_SPLITS } from 
 
 export const SEED_TEAM_CAL_WOMENS: Team = {
   id: 'team-cal-womens-rowing',
-  name: "Cal Women's Rowing",
+  name: "Pacific Women's Rowing",
   sport: 'rowing',
-  inviteCode: 'CAL-WR-2026',
+  inviteCode: 'PAC-WR-2026',
   createdAt: '2025-08-01T00:00:00Z',
 }
 
 export const SEED_TEAM_CAL_MENS: Team = {
   id: 'team-cal-mens-rowing',
-  name: "Cal Men's Rowing",
+  name: "Pacific Men's Rowing",
   sport: 'rowing',
-  inviteCode: 'CAL-MR-2026',
+  inviteCode: 'PAC-MR-2026',
   createdAt: '2025-08-01T00:00:00Z',
 }
 
@@ -214,7 +214,7 @@ export const SEED_ACTIVITY: ActivityItem[] = [
     id: 'act-2',
     teamId: SEED_TEAM_CAL_WOMENS.id,
     kind: 'lineup_published',
-    title: 'Lineup published: V8 + 2V for Cal Invite',
+    title: 'Lineup published: V8 + 2V for Pacific Invite',
     detail: '16 seats confirmed · report time 5:30 AM Apr 26',
     at: '2026-04-25T18:00:00Z',
   },

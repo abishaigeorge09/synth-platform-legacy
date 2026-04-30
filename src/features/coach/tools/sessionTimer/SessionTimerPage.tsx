@@ -8,6 +8,7 @@ import { SkeletonBlock, SkeletonLine } from '../../../../shared/components/Skele
 import { QueryError } from '../../../../shared/components/QueryError'
 import { useSessionTimerStore } from '../../../../shared/store/useSessionTimerStore'
 import { fmtElapsed, fmtInterval } from './components/useStopwatch'
+import { posthog } from '../../../../shared/analytics/posthog'
 
 export function SessionTimerPage() {
   const { data: athletes, isLoading, isError, error } = useAthletes()
@@ -186,7 +187,15 @@ export function SessionTimerPage() {
             exerciseLabel={exerciseLabel}
             onRename={(name) => renameBoat(boat.id, name)}
             onRemove={boats.length > 1 ? () => removeBoat(boat.id) : undefined}
-            onFinished={recordFinish}
+            onFinished={(args) => {
+              posthog.capture('session_timer_finished', {
+                boat_name: args.boatName,
+                elapsed_ms: args.elapsedMs,
+                split_count: args.splits.length,
+                exercise_type: exerciseType,
+              })
+              recordFinish(args)
+            }}
           />
         ))}
       </motion.div>

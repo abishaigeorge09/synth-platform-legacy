@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
-import { Home, Boxes, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
+import { Home, Boxes, Plus, Sparkles, MoreHorizontal, Activity } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import { useUiStore } from '../../../shared/store/useUiStore'
 
 export type FloatingTabItem = {
   key: string
@@ -120,12 +121,12 @@ function CaptureCell({ capture }: { capture: Props['capture'] }) {
   )
 }
 
-function buildCoachTabs(onMoreClick: () => void): FloatingTabItem[] {
+function buildCoachTabs(onMoreClick: () => void, onHomeClick: () => void): FloatingTabItem[] {
   return [
     {
       key: 'home',
       label: 'Home',
-      to: '/app/coach/home',
+      onClick: onHomeClick,
       match: (p) => p === '/app/coach/home' || p === '/app/coach',
       icon: <Home size={18} strokeWidth={2.2} />,
     },
@@ -176,6 +177,13 @@ const ATHLETE_TABS_INTERNAL: FloatingTabItem[] = [
     icon: <ErgIcon />,
   },
   {
+    key: 'telemetry',
+    label: 'Data',
+    to: '/app/athlete/telemetry',
+    match: (p) => p.startsWith('/app/athlete/telemetry'),
+    icon: <Activity size={18} strokeWidth={2.2} />,
+  },
+  {
     key: 'ai',
     label: 'AI',
     to: '/app/athlete/ai',
@@ -189,15 +197,28 @@ const ATHLETE_TABS_INTERNAL: FloatingTabItem[] = [
     match: (p) =>
       p.startsWith('/app/athlete/settings') ||
       p.startsWith('/app/athlete/notes') ||
-      p.startsWith('/app/athlete/sources'),
+      p.startsWith('/app/athlete/sources') ||
+      p.startsWith('/app/athlete/profile'),
     icon: <MoreHorizontal size={18} strokeWidth={2.2} />,
   },
 ]
 
 export function CoachFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }) {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const setHomePanelRequest = useUiStore((s) => s.setHomePanelRequest)
+
+  const onHomeClick = () => {
+    // Always request the dashboard panel (page 1) when Home is pressed
+    setHomePanelRequest(1)
+    if (pathname !== '/app/coach/home' && pathname !== '/app/coach') {
+      navigate('/app/coach/home')
+    }
+  }
+
   return (
     <FloatingTabBar
-      tabs={buildCoachTabs(onMoreClick)}
+      tabs={buildCoachTabs(onMoreClick, onHomeClick)}
       capture={{ to: '/app/coach/capture', ariaLabel: 'Capture' }}
     />
   )

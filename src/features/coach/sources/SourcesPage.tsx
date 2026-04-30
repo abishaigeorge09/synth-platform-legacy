@@ -7,6 +7,7 @@ import { ScanLogRow } from './components/ScanLogRow'
 import { ScanReportViewer } from './components/ScanReportViewer'
 import { SourceDetailModal } from './components/SourceDetailModal'
 import { THEME } from '../../../lib/theme'
+import { posthog } from '../../../shared/analytics/posthog'
 import {
   useSources,
   useScanLogs,
@@ -117,7 +118,7 @@ export function SourcesPage() {
         </div>
         <button
           type="button"
-          onClick={openAgent}
+          onClick={() => { posthog.capture('add_source_clicked', { source_count: sources.length }); openAgent() }}
           className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
           style={{
             background: THEME.primary,

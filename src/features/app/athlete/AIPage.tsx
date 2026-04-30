@@ -334,7 +334,7 @@ function mockSelfResponse(
 
   if (/race|cup|heat|regatta/.test(lower)) {
     return [
-      { kind: 'illustration', glyph: 'trophy', caption: 'Cal Cup heat · 9 days out' },
+      { kind: 'illustration', glyph: 'trophy', caption: 'Pacific Cup heat · 9 days out' },
       { kind: 'text', text: `${tonePrefix}You're 9 days out. Plan your taper around your pattern: longer Z2 work this week, sharpening at race pace next week. ` },
       { kind: 'chip', source: 'TrainingPeaks', subject: me.name, date: today },
       { kind: 'text', text: `Want a day-by-day breakdown?` },

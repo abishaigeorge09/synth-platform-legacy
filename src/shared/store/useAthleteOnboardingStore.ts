@@ -18,12 +18,12 @@ function read(): Pick<AthleteOnboardingState, 'inviteCode' | 'confirmed' | 'prof
     const raw = localStorage.getItem(KEY)
     if (!raw) {
       if (isSupabaseConfigured()) return { inviteCode: null, confirmed: false, profileName: '' }
-      return { inviteCode: 'CAL-WR-2026', confirmed: true, profileName: 'Athlete' }
+      return { inviteCode: 'PAC-WR-2026', confirmed: true, profileName: 'Athlete' }
     }
     const v = JSON.parse(raw) as { inviteCode?: string | null; confirmed?: boolean; profileName?: string }
     return { inviteCode: v.inviteCode ?? null, confirmed: !!v.confirmed, profileName: v.profileName ?? '' }
   } catch {
-    return { inviteCode: 'CAL-WR-2026', confirmed: true, profileName: 'Athlete' }
+    return { inviteCode: 'PAC-WR-2026', confirmed: true, profileName: 'Athlete' }
   }
 }
 

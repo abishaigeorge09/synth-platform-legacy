@@ -933,7 +933,7 @@ function CalendarTab() {
             className="text-[14px] font-bold"
             style={{ color: '#34D399', fontFamily: SYNTH.font }}
           >
-            CAL INVITE REGATTA
+            PACIFIC INVITE REGATTA
           </p>
           <p
             className="text-[11px]"
@@ -1018,7 +1018,7 @@ function CoachNotesTab() {
 
 const AI_IMPORTS = [
   { id: 'aim-1', sourceType: 'Email attachment', extracted: 'Erg scores for 8 athletes from Apr 19 test', athlete: 'Team-wide', status: 'imported' as const },
-  { id: 'aim-2', sourceType: 'PDF race program', extracted: 'Cal Invite start list · 1V draw at lane 3', athlete: 'Team-wide', status: 'imported' as const },
+  { id: 'aim-2', sourceType: 'PDF race program', extracted: 'Pacific Invite start list · 1V draw at lane 3', athlete: 'Team-wide', status: 'imported' as const },
   { id: 'aim-3', sourceType: 'Image (whiteboard photo)', extracted: 'Workout intervals: 4×8min at 2:02 w/ 4min rest', athlete: 'All', status: 'pending' as const },
 ]
 

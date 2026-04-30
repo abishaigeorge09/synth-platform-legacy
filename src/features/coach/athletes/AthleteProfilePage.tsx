@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCoachNotesStore } from '../../../shared/store/useCoachNotesStore'
+import { posthog } from '../../../shared/analytics/posthog'
 import {
   Line,
   LineChart,
@@ -111,7 +112,7 @@ export function AthleteProfilePage() {
         athleteId={athlete.id}
       />
 
-      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      <ProfileTabs activeTab={activeTab} onTabChange={(tab) => { posthog.capture('athlete_profile_tab_switched', { tab, athlete_id: athleteId }); setActiveTab(tab) }} />
 
       <AnimatePresence mode="wait">
         {activeTab === 'overview' && (

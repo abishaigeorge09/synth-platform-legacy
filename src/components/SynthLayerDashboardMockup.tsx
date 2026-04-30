@@ -319,7 +319,7 @@ export function SynthLayerDashboardMockup({
                   Coach
                 </div>
                 <div className="truncate text-[6px] text-emerald-300/90" style={{ fontFamily: THEME.fontMono }}>
-                  Cal Men&apos;s · signed in
+                  Pacific Men&apos;s · signed in
                 </div>
               </div>
             </div>
@@ -487,7 +487,7 @@ export function SynthLayerDashboardMockup({
                   )
                 ) : (
                   <>
-                    Cal Men&apos;s 1V + 2V · 18 athletes
+                    Pacific Men&apos;s 1V + 2V · 18 athletes
                     {workflowDetail ? (
                       <>
                         {' '}

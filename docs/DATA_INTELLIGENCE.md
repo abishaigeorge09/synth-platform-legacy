@@ -401,7 +401,7 @@ Every Monday at 6 AM, the coach gets an automated digest that no human could com
 **Contents:**
 
 ```
-SYNTH. WEEKLY DIGEST — Cal Rowing
+SYNTH. WEEKLY DIGEST — Pacific Rowing
 Week of April 7-13, 2026
 
 HEADLINE

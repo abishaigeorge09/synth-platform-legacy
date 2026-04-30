@@ -11,7 +11,7 @@ type AuthState = {
   mode: AuthMode
   signIn: (user: User) => void
   signOut: () => void
-  /** Dev convenience — log in as the seeded Cal Women's coach (demo mode). */
+  /** Dev convenience — log in as the seeded Pacific Women's coach (demo mode). */
   signInAsDemoCoach: () => void
 }
 

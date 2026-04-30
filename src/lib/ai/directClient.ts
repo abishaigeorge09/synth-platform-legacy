@@ -8,7 +8,15 @@
  * key server-side in the Supabase Edge Function.
  */
 
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages'
+// In dev the Vite proxy at /api/anthropic forwards server-side to
+// api.anthropic.com, bypassing CORS. In production (Vercel / PWA) there is
+// no proxy, so calls fall back to the Edge Function path — VITE_ANTHROPIC_API_KEY
+// should not be set in production builds.
+const ANTHROPIC_API =
+  import.meta.env.DEV
+    ? '/api/anthropic/v1/messages'
+    : 'https://api.anthropic.com/v1/messages'
+
 const ANTHROPIC_VERSION = '2023-06-01'
 
 function getDirectKey(): string {
@@ -52,7 +60,6 @@ export async function streamDirectMessages(args: {
       'content-type': 'application/json',
       'x-api-key': key,
       'anthropic-version': ANTHROPIC_VERSION,
-      'anthropic-dangerous-allow-browser': 'true',
     },
     body: JSON.stringify({
       model: args.model,

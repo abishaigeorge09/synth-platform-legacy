@@ -70,6 +70,19 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      // Proxy Anthropic API calls to avoid CORS in local dev.
+      // directClient.ts sends to /api/anthropic/... which Vite forwards
+      // server-side to api.anthropic.com — no CORS issue.
+      '/api/anthropic': {
+        target: 'https://api.anthropic.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/anthropic/, ''),
+        secure: true,
+      },
+    },
+  },
   build: {
     // Keep chunking on Vite/Rollup defaults.
     // Our previous manualChunks strategy created circular chunks

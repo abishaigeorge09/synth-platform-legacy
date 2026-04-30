@@ -74,7 +74,7 @@ export function PrivacySheet({ open, onClose, role }: SectionSheetProps & { role
 export function RosterSheet({ open, onClose, count }: SectionSheetProps & { count: number }) {
   return (
     <SheetShell open={open} onClose={onClose} title="Roster">
-      <SheetHero icon={<Users size={20} strokeWidth={2.2} />} title="Roster" subtitle={`${count} athletes in Cal Women's Rowing`} />
+      <SheetHero icon={<Users size={20} strokeWidth={2.2} />} title="Roster" subtitle={`${count} athletes in Pacific Women's Rowing`} />
       <p className="text-[14px]" style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}>
         Roster management lands in a coming release. Today, athletes onboard via your team's invite code.
       </p>

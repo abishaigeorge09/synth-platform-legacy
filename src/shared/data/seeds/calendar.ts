@@ -14,12 +14,12 @@ export interface CalendarEvent {
 }
 
 export const SEED_CALENDAR: CalendarEvent[] = [
-  // ── Regatta: Cal Invite ────────────────────────────────────────────────
+  // ── Regatta: Pacific Invite ────────────────────────────────────────────────
   {
     id: 'cal-1',
     date: '2026-04-26T07:00:00Z',
     endDate: '2026-04-26T15:00:00Z',
-    title: 'Cal Invite Regatta',
+    title: 'Pacific Invite Regatta',
     type: 'regatta',
     location: 'Briones Reservoir, Orinda CA',
     notes: '1V, 2V, V4+ entries. Call time 5:45 AM.',

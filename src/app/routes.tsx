@@ -21,6 +21,8 @@ import { TrustCardPage as AppOnboardingTrustPage } from '../features/app/onboard
 import { ScanningPage as AppOnboardingScanningPage } from '../features/app/onboarding/ScanningPage'
 import { RevealPage as AppOnboardingRevealPage } from '../features/app/onboarding/RevealPage'
 import { TourPage as AppOnboardingTourPage } from '../features/app/onboarding/TourPage'
+import { ComingSoonPage as AppComingSoonPage } from '../features/app/onboarding/ComingSoonPage'
+import { OnboardingGuard } from '../features/app/onboarding/OnboardingGuard'
 import { AppCoachShell } from '../features/app/coach/AppCoachShell'
 import { HomePage as AppCoachHomePage } from '../features/app/coach/HomePage'
 import { AttentionPage as AppCoachAttentionPage } from '../features/app/coach/AttentionPage'
@@ -261,17 +263,23 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <AppRoleGate /> },
       { path: 'welcome', element: withSuspense(<AppWelcomePage />, 'Welcome') },
-      { path: 'onboarding/role', element: withSuspense(<AppOnboardingRolePage />, 'Choose role') },
-      { path: 'onboarding/sport', element: withSuspense(<AppOnboardingSportPage />, 'Choose sport') },
-      { path: 'onboarding/team', element: withSuspense(<AppOnboardingTeamPage />, 'Team setup') },
-      { path: 'onboarding/capabilities', element: withSuspense(<AppOnboardingCapabilitiesPage />, 'Capabilities') },
-      { path: 'onboarding/sources/coach', element: withSuspense(<AppOnboardingCoachConnectorsPage />, 'Connect sources') },
-      { path: 'onboarding/invite-code', element: withSuspense(<AppOnboardingInviteCodePage />, 'Invite code') },
-      { path: 'onboarding/sources/athlete', element: withSuspense(<AppOnboardingAthleteConnectorsPage />, 'Connect your sources') },
-      { path: 'onboarding/trust', element: withSuspense(<AppOnboardingTrustPage />, 'Privacy') },
-      { path: 'onboarding/scanning', element: withSuspense(<AppOnboardingScanningPage />, 'Scanning') },
-      { path: 'onboarding/reveal', element: withSuspense(<AppOnboardingRevealPage />, 'synth is ready') },
-      { path: 'onboarding/tour', element: withSuspense(<AppOnboardingTourPage />, 'Tour') },
+      { path: 'coming-soon', element: <AppComingSoonPage /> },
+      {
+        element: <OnboardingGuard />,
+        children: [
+          { path: 'onboarding/role', element: withSuspense(<AppOnboardingRolePage />, 'Choose role') },
+          { path: 'onboarding/sport', element: withSuspense(<AppOnboardingSportPage />, 'Choose sport') },
+          { path: 'onboarding/team', element: withSuspense(<AppOnboardingTeamPage />, 'Team setup') },
+          { path: 'onboarding/capabilities', element: withSuspense(<AppOnboardingCapabilitiesPage />, 'Capabilities') },
+          { path: 'onboarding/sources/coach', element: withSuspense(<AppOnboardingCoachConnectorsPage />, 'Connect sources') },
+          { path: 'onboarding/invite-code', element: withSuspense(<AppOnboardingInviteCodePage />, 'Invite code') },
+          { path: 'onboarding/sources/athlete', element: withSuspense(<AppOnboardingAthleteConnectorsPage />, 'Connect your sources') },
+          { path: 'onboarding/trust', element: withSuspense(<AppOnboardingTrustPage />, 'Privacy') },
+          { path: 'onboarding/scanning', element: withSuspense(<AppOnboardingScanningPage />, 'Scanning') },
+          { path: 'onboarding/reveal', element: withSuspense(<AppOnboardingRevealPage />, 'synth is ready') },
+          { path: 'onboarding/tour', element: withSuspense(<AppOnboardingTourPage />, 'Tour') },
+        ],
+      },
       {
         path: 'coach',
         element: <AppCoachShell />,

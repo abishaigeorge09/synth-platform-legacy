@@ -189,16 +189,16 @@ Cards:
 ## Slide 11 — Traction (`S05_Traction`)
 
 - Section/page: `04 · TRACTION` · `11 / 19`
-- Validation in the Cal ecosystem.
+- Validation in the Pacific ecosystem.
 - One surface for every coach workflow: pilots where the pain is highest, validation across multiple sports.
 
 Left card:
 
 - Piloting + validating
-- Cal Athletics
+- Pacific Athletics
 - Live pilots
-- Pilot — Cal Rowing — Real roster, lineups, fatigue workflow — Rowing
-- Validating — Cal Tennis — Roster + session capture — Tennis
+- Pilot — Pacific Rowing — Real roster, lineups, fatigue workflow — Rowing
+- Validating — Pacific Tennis — Roster + session capture — Tennis
 
 Right card:
 
@@ -347,15 +347,15 @@ Members:
   - ISF Scholarship holder ’25
   - ISF Dubai Tech Summit winner
 - Star Rose — Co-founder
-  - Cal Women’s Rowing
+  - Pacific Women’s Rowing
   - Australian U23 Women’s Eight · 2024 World Rowing U23 Championships
   - St. Catharines, Canada · Sydney Rowing Club
 - Lily Pember — Co-founder
-  - Cal Women’s Rowing
+  - Pacific Women’s Rowing
   - Gold medalist · Junior World Rowing Championships (USA)
   - Competed at the highest junior international level
 - Matthew Waddell — Co-founder
-  - Cal Men’s Rowing
+  - Pacific Men’s Rowing
   - Silver medalist · U23 World Rowing Championships (New Zealand)
   - Competed at the highest U23 international level
 

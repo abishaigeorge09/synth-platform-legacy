@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { THEME } from '../../lib/theme'
+import { posthog } from '../../shared/analytics/posthog'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -8,7 +9,10 @@ export function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (email.trim() === 'star@synth.app') {
+    const role = email.trim() === 'star@synth.app' ? 'athlete' : 'coach'
+    posthog.identify(email.trim(), { email: email.trim(), role })
+    posthog.capture('signed_in', { email: email.trim(), role })
+    if (role === 'athlete') {
       navigate('/athlete/today')
     } else {
       navigate('/coach/dashboard')
@@ -77,7 +81,7 @@ export function LoginPage() {
             <Link to="/signup" className="hover:underline">
               Create an account →
             </Link>
-            <Link to="/join/CAL-WR-2026" className="hover:underline">
+            <Link to="/join/PAC-WR-2026" className="hover:underline">
               Join with invite code
             </Link>
           </div>

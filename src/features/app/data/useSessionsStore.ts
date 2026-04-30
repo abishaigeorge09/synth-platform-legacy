@@ -5,7 +5,7 @@ import type { Boat, RacePreset } from './lineupBuilderStore'
 // ─── Demo seed data ─────────────────────────────────────────────────────────
 // Seeded once (when localStorage is empty). Dates are relative to 2026-04-29.
 
-// V8 A — top 8 Cal Women athletes by 2026 erg performance
+// V8 A — top 8 Pacific Women athletes by 2026 erg performance
 // (Star Miller first as demo self; then Wheeler, Irmler, Abbott, Roth, Cox, Bouman, Crampin)
 const V8A: Boat = {
   id: 'seed-boat-v8a',
@@ -112,7 +112,7 @@ const DEMO_SESSIONS: Session[] = [
   },
   {
     id: 'seed-sess-race',
-    name: 'Cal Invite Regatta · grand finals',
+    name: 'Pacific Invite Regatta · grand finals',
     type: 'Race',
     date: '2026-05-03',
     time: '05:30',

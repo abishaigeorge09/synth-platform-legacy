@@ -33,7 +33,7 @@ Hero:
 
 3D hero card microcopy:
 - Coach · dashboard
-- Cal Women's Rowing
+- Pacific Women's Rowing
 - live
 - Roster / Sessions / Alerts
 - Signal · monthly

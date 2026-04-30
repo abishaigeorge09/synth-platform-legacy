@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { PageHeader } from '../../dashboard/components/PageHeader'
 import { THEME } from '../../../../lib/theme'
+import { posthog } from '../../../../shared/analytics/posthog'
 import {
   makeEmptyBoat,
   useAthletes,
@@ -104,6 +105,7 @@ export function LineupsPage() {
   }
 
   function applySuggested() {
+    posthog.capture('lineup_suggestion_applied', { boat_count: boats.length })
     // Build a name→id map from the live demo roster
     const nameToId: Record<string, string> = {}
     demoRoster.forEach((a) => { nameToId[a.name] = a.id })
@@ -144,6 +146,13 @@ export function LineupsPage() {
   }
 
   function publish() {
+    const filledCount = boats.reduce((sum, b) => sum + b.seats.filter((s) => s.athleteId).length, 0)
+    const totalCount = boats.reduce((sum, b) => sum + b.seats.length, 0)
+    posthog.capture('lineup_published', {
+      boat_count: boats.length,
+      filled_seats: filledCount,
+      total_seats: totalCount,
+    })
     publishLineup({
       sessionTitle: 'Published lineup',
       date: new Date().toISOString().slice(0, 10),

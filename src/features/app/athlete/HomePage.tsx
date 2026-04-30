@@ -129,7 +129,7 @@ export function HomePage() {
         <CandyCard
           color={SYNTH.cardPink}
           kicker="Race"
-          headline="Cal Cup heat in 9 days."
+          headline="Pacific Cup heat in 9 days."
           ctaLabel="Race plan"
           provenance="Coach Geri · 2d ago"
           onClick={() => navigate('/app/athlete/notes')}

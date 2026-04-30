@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
-import { isSupabaseConfigured, signInWithGoogle } from '../lib/supabase'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 
 /**
@@ -15,8 +14,6 @@ import { useAppAuthStore } from '../store/useAppAuthStore'
 export function WelcomePage() {
   const navigate = useNavigate()
   const setDemoUser = useAppAuthStore((s) => s.setDemoUser)
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState<'google' | 'email' | null>(null)
 
   useEffect(() => {
     document.body.setAttribute('data-app-canvas', 'cobalt')
@@ -25,23 +22,9 @@ export function WelcomePage() {
     }
   }, [])
 
-  const onGoogle = async () => {
-    setError(null)
-    setBusy('google')
-    try {
-      await signInWithGoogle()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in unavailable')
-      setBusy(null)
-    }
-  }
+  const onGoogle = () => navigate('/app/coming-soon')
 
-  const onEmail = () => {
-    // Stubbed for now — falls back to demo so the flow reaches onboarding.
-    setBusy('email')
-    setDemoUser({ id: 'demo-user', email: 'demo@synth.local' })
-    navigate('/app')
-  }
+  const onEmail = () => navigate('/app/coming-soon')
 
   const onDemo = () => {
     setDemoUser({ id: 'demo-user', email: 'demo@synth.local' })
@@ -102,14 +85,12 @@ export function WelcomePage() {
           <PillButton
             primary
             onClick={onGoogle}
-            disabled={busy !== null}
-            label={busy === 'google' ? 'Opening Google…' : 'Continue with Google'}
+            label="Continue with Google"
             icon={<GoogleGlyph />}
           />
           <PillButton
             onClick={onEmail}
-            disabled={busy !== null}
-            label={busy === 'email' ? 'Opening…' : 'Continue with email'}
+            label="Continue with email"
             icon={<Mail size={16} strokeWidth={2.2} color={SYNTH.ink} />}
           />
           <button
@@ -118,17 +99,8 @@ export function WelcomePage() {
             className="mt-1 text-center text-[12px] font-semibold uppercase tracking-[0.16em]"
             style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font }}
           >
-            {isSupabaseConfigured() ? 'Continue as demo' : 'Continue as demo (no auth)'}
+            Continue as demo
           </button>
-
-          {error ? (
-            <p
-              className="mt-1 text-center text-[12px]"
-              style={{ color: SYNTH.accentRed, fontFamily: SYNTH.font }}
-            >
-              {error}
-            </p>
-          ) : null}
         </div>
 
         {/* Footer micro-copy */}
@@ -144,13 +116,11 @@ export function WelcomePage() {
 function PillButton({
   primary,
   onClick,
-  disabled,
   label,
   icon,
 }: {
   primary?: boolean
   onClick: () => void
-  disabled?: boolean
   label: string
   icon?: React.ReactNode
 }) {
@@ -159,8 +129,7 @@ function PillButton({
       type="button"
       whileTap={{ scale: 0.985 }}
       onClick={onClick}
-      disabled={disabled}
-      className="flex w-full items-center justify-center gap-2.5 rounded-full py-3.5 text-[14px] font-semibold disabled:opacity-60"
+      className="flex w-full items-center justify-center gap-2.5 rounded-full py-3.5 text-[14px] font-semibold"
       style={{
         background: primary ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.10)',
         color: primary ? SYNTH.ink : SYNTH.inkOnBrand,

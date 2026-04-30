@@ -19,9 +19,9 @@ synth. is NOT another standalone app. It is the synthesis layer. Zero switching 
 | Name | Role | Background |
 |------|------|------------|
 | Abishai Gosula | CEO & Technical Founder | CS @ UC Berkeley. Built the entire platform solo. Company: Elsheph Systems India Private Limited. |
-| Matthew Waddell | Co-Founder | Silver medalist, 2025 U23 World Championships (NZ). Cal Men's Rowing. Admitted to Cambridge. |
-| Star Miller | Co-Founder (class project) | Cal Women's Rowing. Rowed for Australia at U23 Worlds. |
-| Lily Pember | Co-Founder (class project) | Cal Women's Rowing. USA Junior World gold medalist. |
+| Matthew Waddell | Co-Founder | Silver medalist, 2025 U23 World Championships (NZ). Pacific Men's Rowing. Admitted to Cambridge. |
+| Star Miller | Co-Founder (class project) | Pacific Women's Rowing. Rowed for Australia at U23 Worlds. |
+| Lily Pember | Co-Founder (class project) | Pacific Women's Rowing. USA Junior World gold medalist. |
 
 Going-forward founding team: Abishai and Matt.
 
@@ -65,7 +65,7 @@ src/shared/
   layout/ (Sidebar, CoachLayout, AthleteSidebar, MobileTopBar, etc.)
   components/ (Avatar, Skeleton, OnboardingShell, etc.)
   data/seeds/ (wellness, athleteExtras, trends, lineups, scanLogs, gymSessions, calendar, stravaActivities, coachNotes, sleepHrv, sessions)
-  data/rowiqWomensData.ts (real Cal Women's Rowing erg data)
+  data/rowiqWomensData.ts (real Pacific Women's Rowing erg data)
   data/queries/ (12 TanStack Query hooks — ready for Supabase swap)
   store/ (16 Zustand stores)
   intelligence/metrics.ts (training load, recovery algorithms)
@@ -100,9 +100,9 @@ src/lib/
 ## Data Architecture
 
 **Seed data (demo/development):**
-- 52 athletes from real Cal Women's Rowing 2025-26 erg workbooks
+- 52 athletes from real Pacific Women's Rowing 2025-26 erg workbooks
 - 316 2K erg scores with parsed times and splits
-- 2 teams: Cal Women's Rowing + Cal Men's Rowing
+- 2 teams: Pacific Women's Rowing + Pacific Men's Rowing
 - 30 days wellness check-ins, 14 days sleep/HRV, 10 coach notes, 5 lineups, 4 sessions
 - Demo coach: coach@berkeley.edu
 - Demo athlete: Star Miller
@@ -221,7 +221,7 @@ Projection: $150K Y1 → $450K Y2 → $1.35M Y3 → $4M Y4 → $16M Y5 → $108M
 
 ## Traction
 
-- Validated with Cal Men's and Women's Crew (#2 and #8 nationally)
+- Validated with Pacific Men's and Women's Crew (#2 and #8 nationally)
 - 120 elite athletes, including Olympians
 - 4 coaches engaged
 - 250 pre-launch signups

@@ -41,7 +41,7 @@
 
 Each connector needs: OAuth flow (Edge Function holding client secrets), data parser, schema mapping, sync runner, error handling.
 
-- **Google Sheets** — #1 priority. Read erg workbook → parse → write to `erg_scores`. Cal Women's data lives here. Bi-directional write-back planned for later
+- **Google Sheets** — #1 priority. Read erg workbook → parse → write to `erg_scores`. Pacific Women's data lives here. Bi-directional write-back planned for later
 - **Concept2 Logbook** — Rowing machine data (2k times, steady state)
 - **Strava** — Activity/workout sync via webhooks
 - **Apple Health / Google Health Connect** — Sleep, HRV, steps, heart rate
@@ -120,7 +120,7 @@ Algorithms are documented in `docs/DATA_INTELLIGENCE.md`. Core functions exist i
 - **Product demo video** — Record or create a walkthrough video for the landing page. Currently links to `/product-demo` (an embedded HTML mockup), but no actual video
 - **FAQ / Help section** — Accordion with common questions (What data sources? Is my data safe? How does pricing work? What sports?). Not implemented anywhere
 - **Help center / documentation** — In-app help for coaches and athletes. No help page exists
-- **Testimonials / case studies** — Cal Women's Rowing pilot story. Landing page has no social proof section
+- **Testimonials / case studies** — Pacific Women's Rowing pilot story. Landing page has no social proof section
 - **Blog / content hub** — Optional but expected for SEO and credibility
 - **Contact form** — Only reference is `supportsynth@gmail.com` in pitch deck. No actual contact page or form
 

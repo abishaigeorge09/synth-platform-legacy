@@ -145,7 +145,7 @@ export function SignUpPage() {
                 </span>
                 <input
                   type="text"
-                  placeholder="Cal Women's Rowing"
+                  placeholder="Pacific Women's Rowing"
                   className="rounded-lg border px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-emerald-600"
                   style={{ borderColor: THEME.border, color: THEME.textPrimary }}
                   autoFocus

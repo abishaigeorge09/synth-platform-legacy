@@ -1,6 +1,6 @@
 /**
  * Demo data for the Lineups sub-application.
- * All athlete data sourced from Cal Women's Rowing 2025-26 season.
+ * All athlete data sourced from Pacific Women's Rowing 2025-26 season.
  */
 
 export type DemoAthlete = {
@@ -73,7 +73,7 @@ function mkAthlete(
   return { id, name, initials, side, ergTime, ergSeconds, recovery, avatarColor: COLORS[colorIdx % COLORS.length] }
 }
 
-// All 46 athletes from the Cal Women's Rowing 2025-26 roster
+// All 46 athletes from the Pacific Women's Rowing 2025-26 roster
 export const DEMO_ATHLETES: DemoAthlete[] = [
   mkAthlete('a-wheeler',     'Ella Wheeler',            'starboard', '6:35.6', 395.6, 78,  0),
   mkAthlete('a-irmler',      'Julia Irmler',            'port',      '6:38.6', 398.6, 85,  1),
@@ -152,7 +152,7 @@ export const SUGGESTED_1V: { seat: string; name: string; warn: boolean }[] = [
 
 export const BEST_LINEUPS = [
   { event: 'SDCC — 1V 8+',           date: 'Mar 28, 2026', time: '5:44.2' },
-  { event: 'Cal Invite — 1V 8+',     date: 'Apr 12, 2026', time: '5:46.8' },
+  { event: 'Pacific Invite — 1V 8+',     date: 'Apr 12, 2026', time: '5:46.8' },
   { event: 'Practice Pieces — 1V 8+', date: 'Apr 22, 2026', time: '5:48.1' },
 ]
 
@@ -171,7 +171,7 @@ export const DEMO_SESSIONS: DemoSession[] = [
   {
     id: 's1',
     kind: 'RACE',
-    name: 'Cal Invite Regatta',
+    name: 'Pacific Invite Regatta',
     date: 'Apr 26, 2026',
     type: 'Race Day · 3 events',
     boats: '1V 8+, 2V 8+, V4+',

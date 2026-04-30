@@ -30,7 +30,7 @@ If an athlete tries to open the app without an invite link: "Access is by invite
 ```
 You're in.
 
-Welcome to Cal Women's Rowing on synth.
+Welcome to Pacific Women's Rowing on synth.
 Your coach has set up your team.
 
 [IMAGE NEEDED: The same "tools converging" illustration as onboarding screen 1 for coaches, but with an athlete twist — instead of coaching tools, the icons represent athlete data sources: Apple Health (pink heart), Strava (orange), Whoop (green), Concept2 (blue), etc. All converging into the synth. node.]
@@ -116,7 +116,7 @@ This is not a standard chat interface — it feels more like a personal performa
 A minimal strip at the very top showing today's key numbers:
 
 ```
-● 82 recovery   6:38.2 last erg   Seat 3, 1V   next: Cal Invite Sat
+● 82 recovery   6:38.2 last erg   Seat 3, 1V   next: Pacific Invite Sat
 ```
 
 Tapping any element opens the relevant detail (recovery → wellness detail, last erg → erg history, lineup → current boat, session → session details).
@@ -155,7 +155,7 @@ Suggested questions:
 ```
 
 The suggested questions update based on context:
-- If there's a race this week: "What's the lineup for Cal Invite?"
+- If there's a race this week: "What's the lineup for Pacific Invite?"
 - If their recovery just dropped: "My recovery dropped 15 points — why?"
 - If they PR'd recently: "Break down my new 2K"
 - After a session: "How did today's session compare to last week?"
@@ -349,7 +349,7 @@ The team from the athlete's perspective.
 ```
 CURRENT LINEUP · 1V 8+
 
-Published Nov 28 · Cal Invite Sat
+Published Nov 28 · Pacific Invite Sat
 
     ┌─────────────────┐
     │ COX  Charly J. │
@@ -376,7 +376,7 @@ TEAM
 Nov 28  Coach published 1V lineup →
 Nov 27  Session recap: "Solid day. Focus on..."
 Nov 25  New PR: Wheeler 6:34.2 🎉
-Nov 24  Upcoming: Cal Invite this Saturday
+Nov 24  Upcoming: Pacific Invite this Saturday
 Nov 22  Session recap: "We need more...
 ```
 
@@ -439,7 +439,7 @@ Tap avatar (top-right, or via More → Profile):
 
 ```
 Star Miller
-Cal Women's Rowing · Port
+Pacific Women's Rowing · Port
 #3 · 1V 8+
 
 ────────────────
@@ -500,7 +500,7 @@ Push notifications the athlete receives:
 | New session scheduled | "Practice Friday 6am. 12 boats." |
 | Coach message | "Coach: See you on the water tomorrow." |
 | Session recap available | "Recap: Today's practice — 3 pieces, 6K." |
-| Team announcement | "Cal Invite confirmed — depart 5:30am Sat" |
+| Team announcement | "Pacific Invite confirmed — depart 5:30am Sat" |
 | Weekly summary (optional) | "Your week: 3 sessions, 18K, recovery avg 79" |
 | Streak milestone (optional) | "7-day check-in streak 🔥" |
 
@@ -603,7 +603,7 @@ Tap → a share card is generated:
 ┌─────────────────────────────────────────┐
 │          synth.                         │
 │                                         │
-│  Star Miller · Cal Women's Rowing       │
+│  Star Miller · Pacific Women's Rowing       │
 │                                         │
 │  2K     6:34.8    ↑ Season PR          │
 │  Recovery   82                          │

@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useAppAuthStore } from '../store/useAppAuthStore'
+import { useGuidedTourStore } from '../../../shared/tutorial/useGuidedTourStore'
 import { SYNTH } from '../lib/theme'
 import { OnboardingBackground } from '../primitives/OnboardingBackground'
 
@@ -76,6 +77,8 @@ const STEPS: TourStep[] = [
 export function TourPage() {
   const navigate = useNavigate()
   const role = useAppAuthStore((s) => s.role)
+  const markOnboardingDone = useAppAuthStore((s) => s.markOnboardingDone)
+  const startTour = useGuidedTourStore((s) => s.startTour)
   const [step, setStep] = useState(0)
   const current = STEPS[step]
   const isLast = step === STEPS.length - 1
@@ -88,7 +91,9 @@ export function TourPage() {
   }, [])
 
   const finish = () => {
-    navigate(role === 'coach' ? '/app/coach/home' : '/app/athlete/home')
+    markOnboardingDone()
+    startTour()
+    navigate(role === 'coach' ? '/app/coach/home' : '/app/athlete/home', { replace: true })
   }
 
   const next = () => {

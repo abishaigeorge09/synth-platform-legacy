@@ -44,7 +44,7 @@ export function CoachTeamSetupPage() {
             type="text"
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            placeholder="e.g. Cal Women's Rowing"
+            placeholder="e.g. Pacific Women's Rowing"
             className="w-full rounded-2xl border px-4 py-4 text-center text-[16px] outline-none transition-colors placeholder:text-white/40 focus:border-[var(--app-emerald)]"
             style={{
               background: SYNTH.glass,

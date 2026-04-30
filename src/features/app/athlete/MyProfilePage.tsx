@@ -688,7 +688,7 @@ function SettingsTab({ athleteName }: { athleteName: string }) {
         <div className="flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: SYNTH.accentEmerald }} />
           <p className="text-[13px] font-semibold" style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}>Active</p>
-          <p className="text-[11px]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>· Cal Women's Rowing</p>
+          <p className="text-[11px]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>· Pacific Women's Rowing</p>
         </div>
       </Card>
     </div>

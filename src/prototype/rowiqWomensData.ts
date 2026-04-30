@@ -140,7 +140,7 @@ export const ROWIQ_TABLE_HEADERS = [
   'Status',
 ] as const
 
-export const ROWIQ_TEAM_SUBTITLE = `Cal Women's · ${ROWIQ_ROSTER_COUNT_2526} on Names roster · ${ROWIQ_SESSIONS_2425} sessions (24–25) + ${ROWIQ_SESSIONS_2526} sessions (25–26) · Latest erg: ${ROWIQ_SHEET_316_DATE} sheet 316 2k`
+export const ROWIQ_TEAM_SUBTITLE = `Pacific Women's · ${ROWIQ_ROSTER_COUNT_2526} on Names roster · ${ROWIQ_SESSIONS_2425} sessions (24–25) + ${ROWIQ_SESSIONS_2526} sessions (25–26) · Latest erg: ${ROWIQ_SHEET_316_DATE} sheet 316 2k`
 
 export const ROWIQ_ATHLETE_ROWS: DashboardAthleteRow[] = ERG_316_2K.map(toDashboardRow)
 

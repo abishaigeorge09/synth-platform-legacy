@@ -13,7 +13,7 @@ The build is **UI-first**: every surface is shipping as React/TypeScript against
 1. `docs/PRODUCT.md` — plain-language product spec. Who it's for, what the five systems are, core user journeys.
 2. `docs/SRS-Synth-Platform.md` — functional requirements (FR-AUTH, FR-DASH, FR-CONN, FR-AGENT, FR-FLOW).
 3. `docs/SCHEMA.md` — canonical database contract. Every seed file and TS type matches this.
-4. `docs/Design-Prototype-Womens-Team-Demo-Data.md` — the Cal Women's Rowing demo data schema.
+4. `docs/Design-Prototype-Womens-Team-Demo-Data.md` — the Pacific Women's Rowing demo data schema.
 5. This file — where the code actually lives.
 
 **Related repos**
@@ -108,7 +108,7 @@ src/
 │   ├── store/
 │   │   ├── useUiStore.ts         # sidebarCollapsed, agentModalOpen
 │   │   ├── useAuthStore.ts       # Stubbed, pre-seeded as SEED_COACH
-│   │   └── useTeamStore.ts       # activeTeam (Cal Women's Rowing)
+│   │   └── useTeamStore.ts       # activeTeam (Pacific Women's Rowing)
 │   ├── data/
 │   │   ├── types.ts              # TS types matching docs/SCHEMA.md
 │   │   └── seeds/
@@ -134,7 +134,7 @@ src/
 │   └── athlete/
 │       ├── AthleteLayout.tsx
 │       └── athletePages.tsx      # All athlete stubs in one file
-├── prototype/                    # LEGACY — Cal Women's mock dashboard
+├── prototype/                    # LEGACY — Pacific Women's mock dashboard
 │   ├── ProductPrototypeApp.tsx   # Phase 2 absorbs this into the new Dashboard route
 │   ├── RowiqWomensCharts.tsx
 │   ├── rowiqWomensData.ts        # Real erg data (used by seeds)
@@ -157,7 +157,7 @@ docs/
 ## Data flow — UI-first
 
 ```
-src/prototype/rowiqWomensData.ts          (real Cal Women's erg data)
+src/prototype/rowiqWomensData.ts          (real Pacific Women's erg data)
        │
        ├──→ src/shared/data/seeds/index.ts
        │          │

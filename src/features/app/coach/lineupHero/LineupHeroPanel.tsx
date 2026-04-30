@@ -5,13 +5,11 @@ import {
   Bell,
   Camera,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   LayoutGrid,
+  LogOut,
   Mic,
-  Pencil,
   Sparkles,
-  Upload,
 } from 'lucide-react'
 
 import { SYNTH } from '../../lib/theme'
@@ -20,7 +18,7 @@ import { useSessionsStore, type Session } from '../../data/useSessionsStore'
 import { type AppMockAthlete } from '../../data/mockTeam'
 import { AppleCalendar, isoFromDate } from '../../primitives/AppleCalendar'
 import { AuroraVoiceOverlay } from '../../primitives/AuroraVoiceOverlay'
-import { PhotoCaptureSheet, QuickNoteSheet } from '../../primitives/CaptureSheets'
+import { PhotoCaptureSheet } from '../../primitives/CaptureSheets'
 import { toast } from '../../../../shared/store/useToastStore'
 import { BoatSilhouette } from './BoatSilhouette'
 import { AthleteSheet } from './AthleteSheet'
@@ -35,7 +33,13 @@ type HeroSource =
  * The floating tab bar is hidden while this panel is active (managed via
  * useUiStore.heroPageActive in HomePage + AppCoachShell).
  */
-export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => void }) {
+export function LineupHeroPanel({
+  onPeekDashboard,
+  onLogout,
+}: {
+  onPeekDashboard: () => void
+  onLogout: () => void
+}) {
   const navigate = useNavigate()
   const sessions = useSessionsStore((s) => s.sessions)
 
@@ -47,9 +51,6 @@ export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => vo
   // Quick-capture state
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [photoOpen, setPhotoOpen] = useState(false)
-  const [noteOpen, setNoteOpen] = useState(false)
-  const [toolsExpanded, setToolsExpanded] = useState(false)
-  const uploadInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (sessions.length === 0) return
@@ -96,11 +97,6 @@ export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => vo
     } else {
       navigate('/app/coach/lineups')
     }
-  }
-
-  const onUpload = (files: FileList | null) => {
-    if (!files || files.length === 0) return
-    toast(`${files.length} file${files.length === 1 ? '' : 's'} queued for sync`, 'success')
   }
 
   return (
@@ -157,7 +153,7 @@ export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => vo
         >
           synth · coach
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <GlassPill onClick={() => setPickerOpen((v) => !v)} ariaLabel="Pick date">
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtPillDate(selectedDate)}</span>
             <ChevronDown size={11} strokeWidth={2.6} />
@@ -166,6 +162,24 @@ export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => vo
             Dashboard
             <ChevronRight size={11} strokeWidth={2.6} />
           </GlassPill>
+          <button
+            type="button"
+            onClick={onLogout}
+            aria-label="Sign out"
+            className="flex items-center justify-center rounded-full"
+            style={{
+              width: 28,
+              height: 28,
+              flexShrink: 0,
+              background: 'rgba(239,68,68,0.85)',
+              border: '1px solid rgba(239,68,68,0.5)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              color: '#FFFFFF',
+            }}
+          >
+            <LogOut size={12} strokeWidth={2.4} />
+          </button>
         </div>
       </header>
 
@@ -200,38 +214,11 @@ export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => vo
           ) : null}
         </div>
 
-        {/* Right: collapsible capture icons — 3 default, expand to 5 */}
+        {/* Right: capture icons */}
         <div className="flex items-center gap-2">
           <CircleFab size={44} icon={<Camera size={19} strokeWidth={2} />} ariaLabel="Photo" onClick={() => setPhotoOpen(true)} />
           <CircleFab size={44} icon={<Mic size={19} strokeWidth={2} />} ariaLabel="Voice" onClick={() => setVoiceOpen(true)} />
-          <CircleFab size={44} icon={<Pencil size={18} strokeWidth={2} />} ariaLabel="Note" onClick={() => setNoteOpen(true)} />
-
-          <AnimatePresence initial={false}>
-            {toolsExpanded && (
-              <motion.div
-                key="extra-tools"
-                className="flex items-center gap-2"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-                style={{ overflow: 'hidden' }}
-              >
-                <CircleFab size={44} icon={<Upload size={18} strokeWidth={2} />} ariaLabel="Upload" onClick={() => uploadInputRef.current?.click()} />
-                <CircleFab size={44} icon={<Sparkles size={19} strokeWidth={2} />} ariaLabel="AI" onClick={() => navigate('/app/coach/ai')} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Expand / collapse toggle */}
-          <CircleFab
-            size={44}
-            icon={toolsExpanded
-              ? <ChevronLeft size={18} strokeWidth={2} />
-              : <ChevronRight size={18} strokeWidth={2} />}
-            ariaLabel={toolsExpanded ? 'Collapse tools' : 'More tools'}
-            onClick={() => setToolsExpanded(v => !v)}
-          />
+          <CircleFab size={44} icon={<Sparkles size={19} strokeWidth={2} />} ariaLabel="AI" onClick={() => navigate('/app/coach/ai')} />
         </div>
       </motion.div>
 
@@ -425,15 +412,7 @@ export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => vo
         ) : null}
       </AnimatePresence>
 
-      {/* ── Sheets + hidden file input ──────────────────────────────────────── */}
-      <input
-        ref={uploadInputRef}
-        type="file"
-        multiple
-        accept="image/*,application/pdf,.csv,.xlsx,.txt"
-        className="hidden"
-        onChange={(e) => onUpload(e.target.files)}
-      />
+      {/* ── Sheets ─────────────────────────────────────────────────────────── */}
       <AuroraVoiceOverlay
         open={voiceOpen}
         onClose={() => setVoiceOpen(false)}
@@ -444,11 +423,6 @@ export function LineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => vo
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
         onSave={() => toast('Photo saved', 'success')}
-      />
-      <QuickNoteSheet
-        open={noteOpen}
-        onClose={() => setNoteOpen(false)}
-        onSave={(t) => { if (t.trim()) toast('Note saved', 'success') }}
       />
       <AthleteSheet
         open={openAthlete !== null}

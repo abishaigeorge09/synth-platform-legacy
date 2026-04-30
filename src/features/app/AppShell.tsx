@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useAppAuthStore } from './store/useAppAuthStore'
 import { SYNTH } from './lib/theme'
 import { TutorialProvider } from '../../shared/tutorial'
+import { GuidedTourOrchestrator } from '../../shared/tutorial/GuidedTourOrchestrator'
 import { useSessionsStore } from './data/useSessionsStore'
 
 export function AppShell() {
@@ -32,6 +33,7 @@ export function AppShell() {
         {isReady ? <Outlet /> : <AppShellSplash />}
       </div>
       {isReady && <TutorialProvider />}
+      {isReady && <GuidedTourOrchestrator />}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 /**
- * All athlete data is derived from the real Cal Women's Rowing 2025-26 erg
+ * All athlete data is derived from the real Pacific Women's Rowing 2025-26 erg
  * workbook (ERG_316_2K — 2026-03-16 benchmark test).
  * Wellness, volume, and recovery fields are deterministically generated from
  * each athlete's erg performance so the data is stable across reloads.
@@ -28,7 +28,7 @@ export type AppMockAthlete = {
 
 export const APP_MOCK_TEAM = {
   id: 'team-cal-w-rowing',
-  name: "Cal Women's Rowing",
+  name: "Pacific Women's Rowing",
   sport: 'rowing' as const,
   athleteCount: 46,
   activeToday: 38,
@@ -66,7 +66,7 @@ export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
     when: 'Sat',
     iconLetter: 'RC',
     category: 'race',
-    headline: 'Cal Invite Regatta — race day',
+    headline: 'Pacific Invite Regatta — race day',
     detail: 'V8 + V4+ entries · report time 5:30 AM · 3 days out',
     provenance: 'Google Calendar · 8m ago',
     severity: 'high',
@@ -273,7 +273,7 @@ export type AppAttentionItem = {
   severity: 'high' | 'med' | 'low'
 }
 
-// Reference real Cal Women athletes by their computed IDs.
+// Reference real Pacific Women athletes by their computed IDs.
 // Olivia Roth  (index 4 in reordered list): poor-recovery story
 // Lola Crampin (index 7): volume-spike story
 // Ella Wheeler (index 1): race-ready / streak

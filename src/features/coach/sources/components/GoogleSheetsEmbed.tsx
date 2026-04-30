@@ -163,7 +163,7 @@ export function GoogleSheetsEmbed({ highlightAthleteName }: GoogleSheetsEmbedPro
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid #e2e2e2', background: '#f8f9fa' }}>
         <div style={{ fontSize: 13, color: '#202124', fontWeight: 500 }}>
-          Cal Women&apos;s Erg Workbook · 46 athletes · 316 2K · Mar 16 2026
+          Pacific Women&apos;s Erg Workbook · 46 athletes · 316 2K · Mar 16 2026
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button

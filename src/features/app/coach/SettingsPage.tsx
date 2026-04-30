@@ -49,7 +49,7 @@ export function SettingsPage() {
     toast('All tutorials reset — they will fire again on next visit.', 'success')
   }
   const [copied, setCopied] = useState(false)
-  const inviteCode = 'CAL-W26'
+  const inviteCode = 'PAC-W26'
 
   const onCopy = async () => {
     try {

@@ -7,6 +7,7 @@ import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_TEAM, APP_MOCK_SCHEDULE } from '../data/mockTeam'
 import { LineupHeroPanel } from './lineupHero/LineupHeroPanel'
 import { useUiStore } from '../../../shared/store/useUiStore'
+import { useAppAuthStore } from '../store/useAppAuthStore'
 
 /**
  * Coach home — horizontal pager.
@@ -19,9 +20,11 @@ import { useUiStore } from '../../../shared/store/useUiStore'
  */
 export function HomePage() {
   const pagerRef = useRef<HTMLDivElement | null>(null)
+  const navigate = useNavigate()
   const homePanelRequest = useUiStore((s) => s.homePanelRequest)
   const setHomePanelRequest = useUiStore((s) => s.setHomePanelRequest)
   const setHeroPageActive = useUiStore((s) => s.setHeroPageActive)
+  const signOut = useAppAuthStore((s) => s.signOut)
 
   const goToPage = (index: number) => {
     const el = pagerRef.current
@@ -79,7 +82,13 @@ export function HomePage() {
       >
         {/* Page 0 — Lineup hero */}
         <div className="flex h-full w-full shrink-0 snap-center">
-          <LineupHeroPanel onPeekDashboard={() => goToPage(1)} />
+          <LineupHeroPanel
+            onPeekDashboard={() => goToPage(1)}
+            onLogout={async () => {
+              await signOut()
+              navigate('/app', { replace: true })
+            }}
+          />
         </div>
         {/* Page 1 — Dashboard */}
         <div className="flex h-full w-full shrink-0 snap-center">
@@ -274,7 +283,7 @@ function DashboardPanel() {
           <CandyCard
             color={SYNTH.cardMint}
             kicker="Race"
-            headline="Cal Invite Regatta in 3 days — Saturday, 5:30 AM."
+            headline="Pacific Invite Regatta in 3 days — Saturday, 5:30 AM."
             ctaLabel="Open schedule"
             provenance="Google Calendar · synced 8m ago"
             onClick={() => navigate('/app/coach/lineups')}

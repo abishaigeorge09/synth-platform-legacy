@@ -18,7 +18,7 @@ import { QueryError } from '../../../shared/components/QueryError'
 import { THEME } from '../../../lib/theme'
 
 const UPCOMING_EVENTS = [
-  { date: 'Apr 26', label: 'Cal Invite Regatta', detail: 'Report time 5:30 AM', accent: THEME.red },
+  { date: 'Apr 26', label: 'Pacific Invite Regatta', detail: 'Report time 5:30 AM', accent: THEME.red },
   { date: 'Apr 28', label: 'AM practice + midterms', detail: '6:00-8:00 · heavy academic load', accent: THEME.amber },
   { date: 'May 1', label: 'IRA qualifier seed deadline', detail: 'Lineups must be finalized', accent: THEME.primary },
 ]

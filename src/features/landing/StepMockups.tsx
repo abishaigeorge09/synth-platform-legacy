@@ -42,7 +42,7 @@ function MiniSidebar({ active }: { active: 'dashboard' | 'athletes' | 'sources' 
       {/* Team chip */}
       <div className="mb-3 rounded-lg border px-2 py-1.5" style={{ borderColor: BD, background: SURF2 }}>
         <div className="text-[7px] font-bold uppercase tracking-wider" style={{ fontFamily: MF, color: T3 }}>Team</div>
-        <div className="mt-0.5 text-[10px] font-semibold" style={{ color: T1 }}>Cal Women's</div>
+        <div className="mt-0.5 text-[10px] font-semibold" style={{ color: T1 }}>Pacific Women's</div>
       </div>
       {/* Nav */}
       <div className="flex flex-col gap-0.5">
@@ -288,7 +288,7 @@ export function MockDashboard() {
             <div className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ fontFamily: MF, color: GREEN }}>
               Dashboard
             </div>
-            <div className="mt-0.5 text-[15px] font-bold" style={{ color: T1 }}>Cal Women's Rowing</div>
+            <div className="mt-0.5 text-[15px] font-bold" style={{ color: T1 }}>Pacific Women's Rowing</div>
           </div>
           <div className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
@@ -403,7 +403,7 @@ export function MockAthleteView() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[12px] font-bold" style={{ color: T1 }}>Star Miller</div>
-              <div className="text-[9px]" style={{ color: T2 }}>Cal Women's · Port · Sophomore</div>
+              <div className="text-[9px]" style={{ color: T2 }}>Pacific Women's · Port · Sophomore</div>
             </div>
             <div
               className="rounded-full border px-2 py-0.5 text-[8px] font-semibold"

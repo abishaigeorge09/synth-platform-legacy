@@ -12,6 +12,7 @@ import { useRosterOverridesStore } from '../../../shared/store/useRosterOverride
 import { RosterStatsStrip } from './components/RosterStatsStrip'
 import { SourceHealthBar } from '../dashboard/components/SourceHealthBar'
 import type { Athlete } from '../../../shared/data/types'
+import { posthog } from '../../../shared/analytics/posthog'
 
 type SortMode = 'rank' | 'name' | 'watts' | 'recovery'
 type SideFilter = 'all' | 'port' | 'starboard' | 'cox'
@@ -97,12 +98,14 @@ export function AthletesPage() {
   }, [visible])
 
   const bulkSetStatus = useCallback((newStatus: Athlete['status']) => {
+    posthog.capture('athlete_bulk_status_updated', { new_status: newStatus, athlete_count: selected.size })
     selected.forEach((id) => setStatusOverride(id, newStatus))
     toast(`${selected.size} athlete${selected.size > 1 ? 's' : ''} → ${newStatus}`)
     clearSelection()
   }, [selected, setStatusOverride, clearSelection])
 
   const exportSelectedCsv = useCallback(() => {
+    posthog.capture('roster_csv_exported', { export_type: 'selection', athlete_count: selected.size })
     const rows = visible.filter((r) => selected.has(r.athlete.id))
     const header = 'Rank,Name,Side,Year,Status,2K (sec),Split (sec),SPM,Watts\n'
     const csvRows = rows.map((r) => {
@@ -121,6 +124,7 @@ export function AthletesPage() {
   }, [visible, selected])
 
   const exportCsv = useCallback(() => {
+    posthog.capture('roster_csv_exported', { export_type: 'full', athlete_count: visible.length })
     const header = 'Rank,Name,Side,Year,2K (sec),Split (sec),SPM,Watts\n'
     const csvRows = visible.map((r) => {
       const a = r.athlete
@@ -353,6 +357,7 @@ export function AthletesPage() {
                         type="button"
                         onClick={() => {
                           const ids = Array.from(selected)
+                          posthog.capture('athletes_compared', { athlete_a: ids[0], athlete_b: ids[1] })
                           navigate(`/coach/athletes/compare?a=${ids[0]}&b=${ids[1]}`)
                         }}
                         className="rounded-md border px-2.5 py-1 text-[10px] uppercase tracking-wider transition-colors hover:bg-blue-50"

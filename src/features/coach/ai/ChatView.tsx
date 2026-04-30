@@ -9,6 +9,7 @@ import { useChatStore, threadKey, type ChatMsg, type ArchivedThread } from '../.
 import { useTeamStore } from '../../../shared/store/useTeamStore'
 import type { ChatScope } from '../../../shared/data/types'
 import { generateCannedReply } from './cannedResponses'
+import { posthog } from '../../../shared/analytics/posthog'
 
 const EMPTY_THREAD: ChatMsg[] = []
 
@@ -65,6 +66,13 @@ export function ChatView({
       .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.content)
       .slice(-12)
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+    posthog.capture('ai_message_sent', {
+      scope,
+      athlete_id: scopedAthleteId,
+      message_length: trimmed.length,
+      thread_length: (threads[key] ?? EMPTY_THREAD).length,
+    })
 
     append(key, userMsg)
     setDraft('')
@@ -320,7 +328,7 @@ function EmptyState({
           <button
             key={s}
             type="button"
-            onClick={() => onPick(s)}
+            onClick={() => { posthog.capture('ai_suggestion_clicked', { suggestion: s }); onPick(s) }}
             className="rounded-full border px-4 py-2 text-[11px] transition-colors hover:bg-zinc-50"
             style={{
               borderColor: THEME.border,

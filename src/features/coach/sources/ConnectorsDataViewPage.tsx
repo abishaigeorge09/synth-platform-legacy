@@ -210,7 +210,7 @@ const AI_IMPORTS = [
   {
     id: 'aim-2',
     sourceType: 'PDF race program',
-    extracted: 'Cal Invite start list · 1V draw at lane 3',
+    extracted: 'Pacific Invite start list · 1V draw at lane 3',
     athlete: 'Team-wide',
     status: 'imported',
   },
@@ -234,7 +234,7 @@ const TAB_SUGGESTIONS: Partial<Record<DataViewTabId, string[]>> = {
   'whoop':           ['Why did Whoop disconnect?', 'Last recovery snapshot', 'Reconnect steps'],
   'bridge':          ['Summarize gym load this week', 'Who needs deload?', 'Squat PRs this month'],
   'trainingpeaks':   ['TSS compliance today?', 'Who is behind plan?', 'Weekly load summary'],
-  'google-calendar': ['What is next on the schedule?', 'Distance to Cal Invite', 'Show travel days'],
+  'google-calendar': ['What is next on the schedule?', 'Distance to Pacific Invite', 'Show travel days'],
   'coach-notes':     ['Summarize notes for Wheeler', "What's the recovery watchlist?", 'Technique themes'],
   'ai-import':       ['What was imported today?', 'Review pending items', 'Import status summary'],
 }
@@ -450,7 +450,7 @@ function GoogleCalendarTab() {
             <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider" style={statusPill('healthy')}>synced</span>
           </div>
           <div className="mt-0.5 text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
-            {health ? `Last sync ${fmtShort(health.lastSyncAt)}` : "Google Calendar · Cal Women's Rowing"}
+            {health ? `Last sync ${fmtShort(health.lastSyncAt)}` : "Google Calendar · Pacific Women's Rowing"}
           </div>
         </div>
         <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Week of Apr 21–25, 2026</div>
@@ -496,7 +496,7 @@ function GoogleCalendarTab() {
             <div className="text-[16px] font-semibold leading-tight" style={{ fontFamily: THEME.fontMono, color: THEME.primary }}>26</div>
           </div>
           <div>
-            <div className="text-[14px] font-bold" style={{ color: THEME.primary }}>CAL INVITE REGATTA</div>
+            <div className="text-[14px] font-bold" style={{ color: THEME.primary }}>PACIFIC INVITE REGATTA</div>
             <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>5:45 AM call time · Briones Reservoir, Orinda CA</div>
           </div>
           <span className="ml-auto rounded-full px-3 py-1 text-[10px] font-semibold"

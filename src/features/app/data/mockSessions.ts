@@ -96,7 +96,7 @@ export const APP_MOCK_SESSIONS: MockSession[] = [
   {
     id: 'sess-4',
     date: 'Apr 26',
-    title: 'Cal Invite Regatta · grand finals',
+    title: 'Pacific Invite Regatta · grand finals',
     duration: '06:35.4',
     type: 'Regatta',
     ratedByCoach: 'Coach Geri',

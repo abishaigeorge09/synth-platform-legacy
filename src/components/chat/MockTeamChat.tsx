@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { THEME } from '../../lib/theme'
 
 const MOCK = [
-  { id: '1', who: 'coach' as const, name: 'Coach', text: 'V8 lineup for Cal Invite is published. Check your Lineups page.' },
+  { id: '1', who: 'coach' as const, name: 'Coach', text: 'V8 lineup for Pacific Invite is published. Check your Lineups page.' },
   { id: '2', who: 'athlete' as const, name: 'Athlete', text: 'Thanks coach!' },
   { id: '3', who: 'coach' as const, name: 'Coach', text: 'Practice moved to 7 AM tomorrow for exam week.' },
 ]
@@ -39,7 +39,7 @@ export function MockTeamChat({
           Team channel (demo)
         </div>
         <div className="text-[13px] font-semibold" style={{ color: isCoach ? THEME.textPrimary : 'var(--text-primary)' }}>
-          Cal Women&apos;s Rowing
+          Pacific Women&apos;s Rowing
         </div>
       </div>
       <div className="synth-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4">

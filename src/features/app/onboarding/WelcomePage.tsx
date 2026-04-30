@@ -33,29 +33,37 @@ export function WelcomePage() {
 
   return (
     <div
-      className="flex flex-1 flex-col"
+      className="flex flex-col"
       style={{
         background: `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
         fontFamily: SYNTH.font,
+        // Lock to the dynamic viewport so iOS Safari's address-bar
+        // collapse doesn't make us shorter than expected, and no overflow
+        // so the bottom panel can't be dragged off-screen by overscroll.
+        height: '100dvh',
+        overflow: 'hidden',
+        overscrollBehavior: 'none',
       }}
     >
-      {/* Illustration zone — abstract synth scene over cobalt */}
+      {/* Illustration zone — abstract synth scene over cobalt. Uses flex-1
+          (no min-height) so it always shrinks to whatever's left after the
+          dark panel claims its natural size. */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative flex flex-1 items-center justify-center overflow-hidden"
-        style={{ minHeight: '50vh' }}
       >
         <SynthIllustration />
       </motion.div>
 
-      {/* Dark panel — wordmark + button stack */}
+      {/* Dark panel — wordmark + button stack. shrink-0 so its content
+          height is sacred — the illustration above absorbs the slack. */}
       <motion.div
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.55, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-        className="flex flex-col gap-4 px-6 pb-[max(env(safe-area-inset-bottom),24px)] pt-8"
+        className="flex shrink-0 flex-col gap-4 px-6 pb-[max(env(safe-area-inset-bottom),24px)] pt-8"
         style={{
           background: SYNTH.accentBlack,
           borderTopLeftRadius: 32,

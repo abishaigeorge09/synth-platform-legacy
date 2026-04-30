@@ -11,6 +11,7 @@ import {
   Eye,
   HelpCircle,
   RotateCcw,
+  Boxes,
 } from 'lucide-react'
 import { useTutorialStore } from '../../../shared/tutorial'
 import { toast } from '../../../shared/store/useToastStore'
@@ -117,6 +118,12 @@ export function SettingsPage() {
       </motion.section>
 
       <Section title="Profile">
+        <Row
+          icon={<Boxes size={18} />}
+          label="Tools"
+          sub="Lineup Builder · Coming soon"
+          onClick={() => navigate('/app/athlete/tools')}
+        />
         <Row
           icon={<User size={18} />}
           label="Personal info"

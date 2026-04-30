@@ -1,16 +1,42 @@
-import { useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAppAuthStore } from './store/useAppAuthStore'
 import { SYNTH } from './lib/theme'
 import { TutorialProvider } from '../../shared/tutorial'
 import { GuidedTourOrchestrator } from '../../shared/tutorial/GuidedTourOrchestrator'
 import { useSessionsStore } from './data/useSessionsStore'
+import { DesktopAppIntercept } from './desktopIntercept/DesktopAppIntercept'
+import { useMediaQuery } from './desktopIntercept/useMediaQuery'
+
+const DISMISS_KEY = 'synth-desktop-intercept-dismissed'
 
 export function AppShell() {
   const hydrate = useAppAuthStore((s) => s.hydrate)
   const isReady = useAppAuthStore((s) => s.isReady)
   const seedIfEmpty = useSessionsStore((s) => s.seedIfEmpty)
+  const { pathname } = useLocation()
+
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem(DISMISS_KEY) === '1'
+  })
+
+  // Intercept only on the unauthenticated welcome surface — that's where
+  // a desktop visitor lands when we share a demo link. After login (coach
+  // / athlete app), or mid-onboarding, the intercept would be noise.
+  const onWelcomeSurface = pathname === '/app' || pathname === '/app/' || pathname.startsWith('/app/welcome')
+  const showIntercept = isDesktop && onWelcomeSurface && !dismissed
+
+  const dismissIntercept = () => {
+    try {
+      sessionStorage.setItem(DISMISS_KEY, '1')
+    } catch {
+      // Ignore — private mode / quota
+    }
+    setDismissed(true)
+  }
 
   useEffect(() => {
     void hydrate()
@@ -26,6 +52,10 @@ export function AppShell() {
       document.body.removeAttribute('data-surface')
     }
   }, [])
+
+  if (showIntercept) {
+    return <DesktopAppIntercept onDismiss={dismissIntercept} />
+  }
 
   return (
     <div className="app-shell-root">

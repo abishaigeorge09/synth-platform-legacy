@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
-import { Home, Boxes, Plus, Sparkles, MoreHorizontal, Activity } from 'lucide-react'
+import { Home, Boxes, Plus, Sparkles, MoreHorizontal } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { useUiStore } from '../../../shared/store/useUiStore'
 
@@ -161,47 +161,45 @@ function buildCoachTabs(onMoreClick: () => void, onHomeClick: () => void): Float
   ]
 }
 
-const ATHLETE_TABS_INTERNAL: FloatingTabItem[] = [
-  {
-    key: 'home',
-    label: 'Home',
-    to: '/app/athlete/home',
-    match: (p) => p === '/app/athlete/home' || p === '/app/athlete',
-    icon: <Home size={18} strokeWidth={2.2} />,
-  },
-  {
-    key: 'erg',
-    label: 'Erg',
-    to: '/app/athlete/erg-pacer',
-    match: (p) => p.startsWith('/app/athlete/erg-pacer'),
-    icon: <ErgIcon />,
-  },
-  {
-    key: 'telemetry',
-    label: 'Data',
-    to: '/app/athlete/telemetry',
-    match: (p) => p.startsWith('/app/athlete/telemetry'),
-    icon: <Activity size={18} strokeWidth={2.2} />,
-  },
-  {
-    key: 'ai',
-    label: 'AI',
-    to: '/app/athlete/ai',
-    match: (p) => p.startsWith('/app/athlete/ai'),
-    icon: <Sparkles size={18} strokeWidth={2.2} />,
-  },
-  {
-    key: 'more',
-    label: 'More',
-    to: '/app/athlete/settings',
-    match: (p) =>
-      p.startsWith('/app/athlete/settings') ||
-      p.startsWith('/app/athlete/notes') ||
-      p.startsWith('/app/athlete/sources') ||
-      p.startsWith('/app/athlete/profile'),
-    icon: <MoreHorizontal size={18} strokeWidth={2.2} />,
-  },
-]
+function buildAthleteTabs(onMoreClick: () => void): FloatingTabItem[] {
+  return [
+    {
+      key: 'home',
+      label: 'Home',
+      to: '/app/athlete/home',
+      match: (p) => p === '/app/athlete/home' || p === '/app/athlete',
+      icon: <Home size={18} strokeWidth={2.2} />,
+    },
+    {
+      key: 'tools',
+      label: 'Tools',
+      to: '/app/athlete/tools',
+      match: (p) => p.startsWith('/app/athlete/tools'),
+      icon: <Boxes size={18} strokeWidth={2.2} />,
+    },
+    {
+      key: 'ai',
+      label: 'AI',
+      to: '/app/athlete/ai',
+      match: (p) => p.startsWith('/app/athlete/ai'),
+      icon: <Sparkles size={18} strokeWidth={2.2} />,
+    },
+    {
+      key: 'more',
+      label: 'More',
+      onClick: onMoreClick,
+      match: (p) =>
+        p.startsWith('/app/athlete/profile') ||
+        p.startsWith('/app/athlete/attention') ||
+        p.startsWith('/app/athlete/sources') ||
+        p.startsWith('/app/athlete/settings') ||
+        p.startsWith('/app/athlete/notes') ||
+        p.startsWith('/app/athlete/erg-pacer') ||
+        p.startsWith('/app/athlete/telemetry'),
+      icon: <MoreHorizontal size={18} strokeWidth={2.2} />,
+    },
+  ]
+}
 
 export function CoachFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }) {
   const navigate = useNavigate()
@@ -224,27 +222,11 @@ export function CoachFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }
   )
 }
 
-export function AthleteFloatingTabBar() {
+export function AthleteFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }) {
   return (
     <FloatingTabBar
-      tabs={ATHLETE_TABS_INTERNAL}
+      tabs={buildAthleteTabs(onMoreClick)}
       capture={{ to: '/app/athlete/capture', ariaLabel: 'Capture' }}
     />
-  )
-}
-
-function ErgIcon() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx={7} cy={12} r={3.4} stroke="currentColor" strokeWidth={2} />
-      <path
-        d="M10.4 12h7.4l-2 5"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M5 6.5l4 2.4" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-    </svg>
   )
 }

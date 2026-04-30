@@ -23,9 +23,11 @@ export function AppShell() {
     return sessionStorage.getItem(DISMISS_KEY) === '1'
   })
 
-  // Only intercept the actual app surface, not onboarding/auth.
-  const onAppSurface = pathname.startsWith('/app/coach') || pathname.startsWith('/app/athlete')
-  const showIntercept = isDesktop && onAppSurface && !dismissed
+  // Intercept only on the unauthenticated welcome surface — that's where
+  // a desktop visitor lands when we share a demo link. After login (coach
+  // / athlete app), or mid-onboarding, the intercept would be noise.
+  const onWelcomeSurface = pathname === '/app' || pathname === '/app/' || pathname.startsWith('/app/welcome')
+  const showIntercept = isDesktop && onWelcomeSurface && !dismissed
 
   const dismissIntercept = () => {
     try {

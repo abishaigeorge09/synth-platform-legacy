@@ -18,6 +18,12 @@ import {
   type ChatCustomization,
 } from '../primitives/AIChat'
 import { timeAwareGreeting, DEFAULT_CUSTOMIZATION } from '../primitives/aiChatUtil'
+import {
+  streamCompletion,
+  buildSystemPrompt,
+  getAIClientMode,
+  type AIMessage,
+} from '../lib/aiClient'
 import { APP_MOCK_ATHLETES, buildErgHistory, fmtErgTime } from '../data/mockTeam'
 
 const SEED_HISTORY: ChatHistoryEntry[] = [
@@ -47,6 +53,7 @@ export function AIPage() {
   const [style, setStyle] = useState<StyleKey>('synthesized')
   const [custom, setCustom] = useState<ChatCustomization>(DEFAULT_CUSTOMIZATION)
   const streamingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const onPickFiles = (files: FileList | null) => {
     const f = files?.[0]
@@ -62,6 +69,10 @@ export function AIPage() {
       clearTimeout(streamingTimer.current)
       streamingTimer.current = null
     }
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
     setIsStreaming(false)
     setMessages((m) => m.filter((msg) => msg.role !== 'thinking'))
   }
@@ -69,6 +80,7 @@ export function AIPage() {
   const send = () => {
     const trimmed = text.trim()
     if (!trimmed && !attachment) return
+
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: 'user',
@@ -92,22 +104,107 @@ export function AIPage() {
       setActiveChatId(newId)
     }
 
-    streamingTimer.current = setTimeout(() => {
-      setMessages((m) => {
-        const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
-        return [
-          ...withoutThinking,
-          {
-            id: `a-${Date.now()}`,
-            role: 'ai',
-            parts: mockSelfResponse(me, trimmed, style, custom),
-            ts: Date.now(),
-          },
-        ]
+    const mode = getAIClientMode()
+
+    if (mode === 'mock') {
+      streamingTimer.current = setTimeout(() => {
+        setMessages((m) => {
+          const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
+          return [
+            ...withoutThinking,
+            {
+              id: `a-${Date.now()}`,
+              role: 'ai',
+              parts: mockSelfResponse(me, trimmed, style, custom),
+              ts: Date.now(),
+            },
+          ]
+        })
+        setIsStreaming(false)
+        streamingTimer.current = null
+      }, 1300)
+      return
+    }
+
+    // Live mode — call Anthropic. Self-scoped: send athlete's own data only.
+    const scopeData = {
+      athlete: me,
+      ergHistory: buildErgHistory(me.id).slice(-14),
+    }
+
+    const systemPrompt = buildSystemPrompt({
+      scope: 'self',
+      scopeLabel,
+      scopeData,
+      customization: custom,
+    })
+
+    const history = messages
+      .filter((m) => m.role !== 'thinking')
+      .map((m): AIMessage => {
+        if (m.role === 'user') return { role: 'user', content: m.text }
+        const txt = m.parts
+          .map((p) => (p.kind === 'text' ? p.text : ''))
+          .join('')
+          .trim()
+        return { role: 'assistant', content: txt || '(prior response)' }
       })
-      setIsStreaming(false)
-      streamingTimer.current = null
-    }, 1300)
+
+    const apiMessages: AIMessage[] = [...history, { role: 'user', content: trimmed }]
+
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+    const aiId = `a-${Date.now()}`
+    let accumulated = ''
+
+    void streamCompletion({
+      systemPrompt,
+      messages: apiMessages,
+      signal: ctrl.signal,
+      onEvent: (e) => {
+        if (e.kind === 'delta') {
+          accumulated += e.text
+          setMessages((m) => {
+            const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
+            const exists = withoutThinking.some((msg) => msg.id === aiId)
+            if (exists) {
+              return withoutThinking.map((msg) =>
+                msg.id === aiId
+                  ? { ...msg, parts: [{ kind: 'text' as const, text: accumulated }] }
+                  : msg,
+              )
+            }
+            return [
+              ...withoutThinking,
+              {
+                id: aiId,
+                role: 'ai' as const,
+                parts: [{ kind: 'text' as const, text: accumulated }],
+                ts: Date.now(),
+              },
+            ]
+          })
+        } else if (e.kind === 'error') {
+          setMessages((m) => {
+            const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
+            return [
+              ...withoutThinking,
+              {
+                id: `err-${Date.now()}`,
+                role: 'ai' as const,
+                parts: [{ kind: 'text' as const, text: `⚠️ ${e.message}` }],
+                ts: Date.now(),
+              },
+            ]
+          })
+          setIsStreaming(false)
+          abortRef.current = null
+        } else if (e.kind === 'done') {
+          setIsStreaming(false)
+          abortRef.current = null
+        }
+      },
+    })
   }
 
   const onPickHistoryEntry = (id: string) => {

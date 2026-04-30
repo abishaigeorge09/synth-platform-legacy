@@ -10,35 +10,55 @@ import { WaitlistSlide } from './slides/WaitlistSlide'
 
 const TOTAL = 4
 
+// Per-slide auto-advance durations (ms). Tuned so the typing on slide 0
+// finishes, the phone demo on slide 1 completes one full loop, and slide 3
+// gives time to read + (optionally) submit before looping back.
+const SLIDE_DURATIONS = [7000, 11000, 9000, 9000]
+
 type Props = {
   onDismiss: () => void
 }
 
 /**
- * Full-screen desktop intercept for /app/* routes. Slide-deck of four
+ * Full-screen desktop intercept for /app/welcome. Slide-deck of four
  * panels that walks a desktop visitor through installing the synth PWA on
- * their phone, ending with a waitlist signup. Dismissal flips a session
- * flag so it doesn't reappear during the same browser session.
+ * their phone, ending with a waitlist signup. Auto-advances on a timer
+ * (and loops back to slide 0 from slide 3) so it plays as a continuous
+ * attract-loop. Manual nav resets the timer for the new slide.
+ *
+ * Dismissal flips a session flag so it doesn't reappear during the same
+ * browser session.
  */
 export function DesktopAppIntercept({ onDismiss }: Props) {
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(0)
 
   const goTo = (next: number) => {
-    if (next < 0 || next > TOTAL - 1) return
-    setDirection(next > index ? 1 : -1)
-    setIndex(next)
+    // Wrap modulo so slide 3 → slide 0.
+    const wrapped = ((next % TOTAL) + TOTAL) % TOTAL
+    setDirection(wrapped > index || (index === TOTAL - 1 && wrapped === 0) ? 1 : -1)
+    setIndex(wrapped)
   }
+
+  // Auto-advance every SLIDE_DURATIONS[index] ms. Resets when index
+  // changes (manual nav included), so a click moves the timer forward.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      goTo(index + 1)
+    }, SLIDE_DURATIONS[index])
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index])
 
   // Keyboard nav — arrows + space + esc (dismiss)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault()
-        goTo(Math.min(index + 1, TOTAL - 1))
+        goTo(index + 1)
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
-        goTo(Math.max(index - 1, 0))
+        goTo(index - 1)
       } else if (e.key === 'Escape') {
         e.preventDefault()
         onDismiss()
@@ -153,7 +173,6 @@ export function DesktopAppIntercept({ onDismiss }: Props) {
         <button
           type="button"
           onClick={() => goTo(index - 1)}
-          disabled={index === 0}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -165,8 +184,7 @@ export function DesktopAppIntercept({ onDismiss }: Props) {
             color: SYNTH.inkOnBrand,
             fontFamily: SYNTH.font,
             fontSize: 12,
-            cursor: index === 0 ? 'default' : 'pointer',
-            opacity: index === 0 ? 0.3 : 1,
+            cursor: 'pointer',
             backdropFilter: 'blur(20px)',
           }}
         >
@@ -197,21 +215,20 @@ export function DesktopAppIntercept({ onDismiss }: Props) {
 
         <button
           type="button"
-          onClick={() => (index === TOTAL - 1 ? onDismiss() : goTo(index + 1))}
+          onClick={() => goTo(index + 1)}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '10px 16px',
             borderRadius: 9999,
-            background: index === TOTAL - 1 ? 'transparent' : 'rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.16)',
             color: SYNTH.inkOnBrand,
             fontFamily: SYNTH.font,
             fontSize: 12,
             cursor: 'pointer',
             backdropFilter: 'blur(20px)',
-            visibility: index === TOTAL - 1 ? 'hidden' : 'visible',
           }}
         >
           Next

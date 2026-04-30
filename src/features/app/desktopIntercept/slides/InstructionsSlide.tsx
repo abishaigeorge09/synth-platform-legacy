@@ -11,11 +11,26 @@ const STEPS = [
   { n: 3, title: 'Tap Add to Home Screen' },
 ]
 
+/**
+ * Production app URL the QR / Copy link points at. Hardcoded (rather than
+ * `window.location.href`) so the link works when testing on localhost or
+ * a Vercel preview — the user always wants the recipient to land on the
+ * live app surface, not whatever environment we happened to be testing in.
+ */
+const PRODUCTION_APP_URL = 'https://synth-platform-alt.vercel.app/app/welcome'
+
 export function InstructionsSlide() {
   const [copied, setCopied] = useState(false)
   const { canInstall, trigger, isIos } = useInstallPrompt()
 
-  const url = typeof window !== 'undefined' ? window.location.href : ''
+  // Preserve ?u=<recipient> off the current URL so PostHog still tags the
+  // person on their phone.
+  const url = (() => {
+    if (typeof window === 'undefined') return PRODUCTION_APP_URL
+    const params = new URLSearchParams(window.location.search)
+    const u = params.get('u')
+    return u ? `${PRODUCTION_APP_URL}?u=${encodeURIComponent(u)}` : PRODUCTION_APP_URL
+  })()
 
   const onCopy = async () => {
     try {

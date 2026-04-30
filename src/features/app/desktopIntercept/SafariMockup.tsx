@@ -524,31 +524,24 @@ function SynthMark() {
 }
 
 function SynthIconTile({ size }: { size: number }) {
+  // Inline copy of /public/logos/synth-icon-green.svg — the real synth
+  // favicon. Inlining (rather than <img src="/logos/...">) keeps the share
+  // sheet / home screen mockup paint-once, no network race during loops.
   return (
-    <span
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
       style={{
-        width: size,
-        height: size,
-        borderRadius: Math.round(size * 0.26),
-        background: `linear-gradient(135deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset',
+        borderRadius: Math.round(size * 0.22),
+        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+        flexShrink: 0,
       }}
     >
-      <span
-        style={{
-          color: SYNTH.accentEmerald,
-          fontWeight: 800,
-          fontSize: Math.round(size * 0.42),
-          fontFamily: SYNTH.font,
-          letterSpacing: '-0.04em',
-        }}
-      >
-        s.
-      </span>
-    </span>
+      <rect width="32" height="32" rx="7" fill="#059669" />
+      <rect x="21" y="19" width="7" height="7" rx="1.75" fill="#10B981" />
+    </svg>
   )
 }
 

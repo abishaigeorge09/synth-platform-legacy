@@ -25,6 +25,7 @@ import {
   getAIClientMode,
   type AIMessage,
 } from '../lib/aiClient'
+import { parseAIResponse } from '../lib/aiResponseParser'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import {
   APP_MOCK_ATHLETES,
@@ -241,6 +242,12 @@ export function AIPage() {
           setIsStreaming(false)
           abortRef.current = null
         } else if (e.kind === 'done') {
+          const richParts = parseAIResponse(accumulated)
+          setMessages((m) =>
+            m.map((msg) =>
+              msg.id === aiId ? { ...msg, parts: richParts.length ? richParts : msg.parts } : msg,
+            ),
+          )
           setIsStreaming(false)
           abortRef.current = null
         }

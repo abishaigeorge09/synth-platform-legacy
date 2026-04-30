@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { SYNTH } from '../../lib/theme'
 import { type Boat } from '../../data/lineupBuilderStore'
 import { useSessionsStore, type Session } from '../../data/useSessionsStore'
@@ -13,11 +13,24 @@ type HeroSource =
 export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => void }) {
   const sessions = useSessionsStore((s) => s.sessions)
 
-  const today = useMemo(() => isoFromDate(new Date()), [])
+  const [selectedDate, setSelectedDate] = useState(() => isoFromDate(new Date()))
+
+  const availableDates = useMemo(
+    () => [...new Set(sessions.map((s) => s.date))].sort(),
+    [sessions],
+  )
+  const dateIndex = availableDates.indexOf(selectedDate)
+
+  const goPrev = () => {
+    if (dateIndex > 0) setSelectedDate(availableDates[dateIndex - 1])
+  }
+  const goNext = () => {
+    if (dateIndex < availableDates.length - 1) setSelectedDate(availableDates[dateIndex + 1])
+  }
 
   const source: HeroSource = useMemo(
-    () => resolveSource(today, sessions),
-    [today, sessions],
+    () => resolveSource(selectedDate, sessions),
+    [selectedDate, sessions],
   )
   const boats: Boat[] = source.kind === 'session' ? source.session.boats : []
 
@@ -27,7 +40,7 @@ export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: (
   useEffect(() => {
     setActiveBoatIndex(0)
     carouselRef.current?.scrollTo({ left: 0 })
-  }, [today])
+  }, [selectedDate])
 
   const onCarouselScroll = () => {
     const el = carouselRef.current
@@ -97,9 +110,41 @@ export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: (
           synth · athlete
         </span>
         <div className="flex items-center gap-1">
-          <GlassPill ariaLabel="Today's date">
-            {fmtPillDate(today)}
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={dateIndex <= 0}
+            aria-label="Previous date"
+            className="flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-30"
+            style={{
+              background: 'rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              color: '#FFFFFF',
+            }}
+          >
+            <ChevronLeft size={12} strokeWidth={2.6} />
+          </button>
+          <GlassPill ariaLabel="Selected date">
+            {fmtPillDate(selectedDate)}
           </GlassPill>
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={dateIndex >= availableDates.length - 1}
+            aria-label="Next date"
+            className="flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-30"
+            style={{
+              background: 'rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              color: '#FFFFFF',
+            }}
+          >
+            <ChevronRight size={12} strokeWidth={2.6} />
+          </button>
           <GlassPill onClick={onPeekDashboard} ariaLabel="Open dashboard">
             Dashboard
             <ChevronRight size={11} strokeWidth={2.6} />
@@ -116,7 +161,7 @@ export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: (
           className="text-[30px] font-bold leading-[1] tracking-[-0.02em]"
           style={{ color: '#FFFFFF' }}
         >
-          {heroHeadline(today)}
+          {heroHeadline(selectedDate)}
         </h1>
         {source.kind === 'session' && source.session.time ? (
           <p

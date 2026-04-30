@@ -26,7 +26,7 @@ export function StopwatchPage() {
   const [saveOpen, setSaveOpen] = useState(false)
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
+    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
       <CoachPageHeader title="Stopwatch" back="/app/coach/tools" />
 
       {/* Landing hero */}

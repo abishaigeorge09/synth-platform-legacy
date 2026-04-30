@@ -90,7 +90,7 @@ export function CapturePage() {
   }
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
+    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
       <CoachPageHeader title="Capture" subtitle="Drop anything, synth synthesizes" back="/app/coach/home" />
 
       <section className="mx-5 mt-2 grid grid-cols-2 gap-3">

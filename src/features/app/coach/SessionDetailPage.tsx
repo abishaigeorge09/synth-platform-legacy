@@ -76,7 +76,7 @@ export function SessionDetailPage() {
   })()
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
+    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
       <CoachPageHeader title="Session" back="/app/coach/lineups" />
 
       {/* Status hero */}

@@ -198,7 +198,7 @@ export function CustomToolsPage() {
   }
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
+    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
       <CoachPageHeader title="Tools" subtitle="Custom tools catalog" />
 
       {/* Tech-feel grid backdrop sits behind everything else in this page */}

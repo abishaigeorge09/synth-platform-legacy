@@ -1,19 +1,28 @@
 /**
- * Direct-browser Anthropic Messages client. When a `VITE_ANTHROPIC_API_KEY`
- * is set in `.env.local`, the AI page calls this; otherwise it falls back
- * to the local mock generator. Browser-side keys are visible to anyone
- * who opens devtools — fine for solo dev / demo, but for production you
- * want a server proxy (TODO once auth lands).
+ * Thin adapter on top of the existing claude-chat Supabase Edge Function
+ * (proxy lives at src/lib/ai/claude.ts). The Anthropic API key is held
+ * server-side in the function's secrets — nothing ships to the browser.
+ *
+ * This file keeps the same external API the AI pages already call
+ * (streamCompletion / buildSystemPrompt / getAIClientMode), so the
+ * coach + athlete AIPage components don't need to know whether they're
+ * talking to the proxy or to a local mock.
  */
 
-const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages'
-const DEFAULT_MODEL = 'claude-sonnet-4-5-20251001'
+import { streamClaudeMessages, selectModel } from '../../../lib/ai/claude'
+import { isClaudeConfigured } from '../../../lib/ai/env'
 
 export type AIClientMode = 'live' | 'mock'
 
-export function getAIClientMode(): AIClientMode {
-  const key = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined
-  return key && key.startsWith('sk-ant-') ? 'live' : 'mock'
+/**
+ * `live` when the proxy is reachable AND the user has a real Supabase
+ * session. Demo users get `mock` because the edge function rejects
+ * requests without a JWT.
+ */
+export function getAIClientMode(opts?: { isDemo?: boolean }): AIClientMode {
+  if (!isClaudeConfigured()) return 'mock'
+  if (opts?.isDemo) return 'mock'
+  return 'live'
 }
 
 export type AIRole = 'user' | 'assistant'
@@ -28,138 +37,70 @@ type StreamArgs = {
   systemPrompt: string
   messages: AIMessage[]
   onEvent: (e: StreamEvent) => void
+  /** Abort signal — flips a guard so onEvent stops firing. The underlying
+   *  fetch keeps running until completion (the proxy doesn't expose a
+   *  cancel hook). Acceptable trade-off for v1. */
   signal?: AbortSignal
+  /** Override model. Defaults to selectModel() heuristic. */
   model?: string
+  /** Reserved — the proxy hard-codes max_tokens=2048 for the streaming
+   *  path today. Keeping the prop in the signature for forward-compat. */
   maxTokens?: number
 }
 
 /**
- * Streams an Anthropic completion as SSE deltas. Each text delta is fed
- * back via onEvent. Caller appends to its own running buffer for display.
- * Aborting the AbortSignal cleanly cancels the in-flight request.
+ * Streams a Claude completion as text deltas. The proxy's onTextDelta
+ * passes the accumulated full text after each token; we diff against
+ * the previous accumulator to emit raw deltas via onEvent.
  */
 export async function streamCompletion({
   systemPrompt,
   messages,
   onEvent,
   signal,
-  model = DEFAULT_MODEL,
-  maxTokens = 1024,
+  model,
 }: StreamArgs): Promise<void> {
-  const key = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined
-  if (!key) {
-    onEvent({ kind: 'error', message: 'No API key — set VITE_ANTHROPIC_API_KEY in .env.local.' })
-    return
+  let cancelled = signal?.aborted ?? false
+  const onAbort = () => {
+    cancelled = true
   }
+  signal?.addEventListener('abort', onAbort)
 
-  let res: Response
+  const lastUser = messages[messages.length - 1]?.content ?? ''
+  const chosenModel = model ?? selectModel(lastUser, systemPrompt)
+
+  let prev = ''
   try {
-    res = await fetch(ANTHROPIC_ENDPOINT, {
-      method: 'POST',
-      signal,
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'content-type': 'application/json',
+    await streamClaudeMessages({
+      system: systemPrompt,
+      model: chosenModel,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      onTextDelta: (full: string) => {
+        if (cancelled) return
+        const delta = full.slice(prev.length)
+        prev = full
+        if (delta) onEvent({ kind: 'delta', text: delta })
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages,
-        stream: true,
-      }),
     })
+    if (!cancelled) onEvent({ kind: 'done' })
   } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') {
+    if (cancelled) {
       onEvent({ kind: 'done' })
       return
     }
     onEvent({
       kind: 'error',
-      message: err instanceof Error ? err.message : 'Network error contacting Anthropic.',
+      message: err instanceof Error ? err.message : 'AI request failed.',
     })
-    return
-  }
-
-  if (!res.ok) {
-    const body = await safeReadText(res)
-    onEvent({ kind: 'error', message: `Anthropic ${res.status}: ${body || res.statusText}` })
-    return
-  }
-  if (!res.body) {
-    onEvent({ kind: 'error', message: 'Anthropic response had no body.' })
-    return
-  }
-
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
-
-      // Split on SSE record boundaries (\n\n).
-      let recordEnd = buffer.indexOf('\n\n')
-      while (recordEnd !== -1) {
-        const record = buffer.slice(0, recordEnd)
-        buffer = buffer.slice(recordEnd + 2)
-        handleRecord(record, onEvent)
-        recordEnd = buffer.indexOf('\n\n')
-      }
-    }
-    if (buffer.trim().length > 0) {
-      handleRecord(buffer, onEvent)
-    }
-    onEvent({ kind: 'done' })
-  } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      onEvent({ kind: 'done' })
-      return
-    }
-    onEvent({
-      kind: 'error',
-      message: err instanceof Error ? err.message : 'Stream read error.',
-    })
+  } finally {
+    signal?.removeEventListener('abort', onAbort)
   }
 }
 
-function handleRecord(record: string, onEvent: (e: StreamEvent) => void) {
-  // SSE record is one or more lines. We only care about `data: …` lines
-  // for content_block_delta events.
-  for (const line of record.split('\n')) {
-    if (!line.startsWith('data:')) continue
-    const data = line.slice(5).trim()
-    if (!data || data === '[DONE]') continue
-    let parsed: { type?: string; delta?: { type?: string; text?: string } }
-    try {
-      parsed = JSON.parse(data)
-    } catch {
-      continue
-    }
-    if (
-      parsed.type === 'content_block_delta' &&
-      parsed.delta?.type === 'text_delta' &&
-      typeof parsed.delta.text === 'string'
-    ) {
-      onEvent({ kind: 'delta', text: parsed.delta.text })
-    }
-  }
-}
-
-async function safeReadText(res: Response): Promise<string> {
-  try {
-    return await res.text()
-  } catch {
-    return ''
-  }
-}
-
-// — System prompt builder —
+// ---------------------------------------------------------------------------
+// System prompt builder — synth-specific. Layers customization (instructions,
+// tone, references, always/never toggles) on top of scope-aware data context.
+// ---------------------------------------------------------------------------
 
 type Customization = {
   instructions: string

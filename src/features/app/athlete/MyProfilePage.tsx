@@ -129,7 +129,7 @@ export function MyProfilePage() {
   return (
     <SwipeBackPage to="/app/athlete/home">
       <div
-        className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]"
+        className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab"
         style={{
           background: `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
           fontFamily: SYNTH.font,

@@ -355,8 +355,10 @@ export function buildErgHistory(athleteId: string): AppSessionPoint[] {
 
 export function fmtErgTime(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
-  const s = totalSeconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
+  const raw = totalSeconds % 60
+  const s = Math.round(raw * 10) / 10
+  const [whole, dec = '0'] = s.toFixed(1).split('.')
+  return `${m}:${whole.padStart(2, '0')}.${dec}`
 }
 
 export function fmtAgo(minutes: number): string {

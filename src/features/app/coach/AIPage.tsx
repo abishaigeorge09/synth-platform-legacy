@@ -25,6 +25,7 @@ import {
   getAIClientMode,
   type AIMessage,
 } from '../lib/aiClient'
+import { useAppAuthStore } from '../store/useAppAuthStore'
 import {
   APP_MOCK_ATHLETES,
   APP_MOCK_TEAM,
@@ -45,6 +46,7 @@ export function AIPage() {
   const [params, setParams] = useSearchParams()
   const athleteIdFromUrl = params.get('athlete')
   const scopeId = athleteIdFromUrl ?? 'team'
+  const isDemo = useAppAuthStore((s) => s.isDemo)
 
   const scopeAthlete = useMemo(
     () => APP_MOCK_ATHLETES.find((a) => a.id === scopeId) ?? null,
@@ -132,7 +134,7 @@ export function AIPage() {
       setActiveChatId(newId)
     }
 
-    const mode = getAIClientMode()
+    const mode = getAIClientMode({ isDemo })
 
     if (mode === 'mock') {
       // No API key — fall back to the canned scenario generator.

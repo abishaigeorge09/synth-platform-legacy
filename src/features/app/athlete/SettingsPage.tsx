@@ -53,7 +53,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
+    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
       <CoachPageHeader title="Settings" subtitle="Athlete" back="/app/athlete/home" />
 
       <motion.section

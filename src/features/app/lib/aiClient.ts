@@ -10,17 +10,21 @@
  */
 
 import { streamClaudeMessages, selectModel } from '../../../lib/ai/claude'
-import { isClaudeConfigured } from '../../../lib/ai/env'
+import { isClaudeConfigured, useDirectPath } from '../../../lib/ai/env'
+import { streamDirectMessages } from '../../../lib/ai/directClient'
 
 export type AIClientMode = 'live' | 'mock'
 
 /**
- * `live` when the proxy is reachable AND the user has a real Supabase
- * session. Demo users get `mock` because the edge function rejects
- * requests without a JWT.
+ * `live` when:
+ *   - VITE_ANTHROPIC_API_KEY is set (direct browser path — demo-friendly), OR
+ *   - Supabase is configured AND the user has a real session.
+ * Falls back to `mock` (canned responses) only when neither is available.
  */
 export function getAIClientMode(opts?: { isDemo?: boolean }): AIClientMode {
   if (!isClaudeConfigured()) return 'mock'
+  // Direct key bypasses Supabase JWT — works for demo users
+  if (useDirectPath()) return 'live'
   if (opts?.isDemo) return 'mock'
   return 'live'
 }
@@ -70,18 +74,30 @@ export async function streamCompletion({
   const chosenModel = model ?? selectModel(lastUser, systemPrompt)
 
   let prev = ''
+  const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }))
+  const onDelta = (full: string) => {
+    if (cancelled) return
+    const delta = full.slice(prev.length)
+    prev = full
+    if (delta) onEvent({ kind: 'delta', text: delta })
+  }
+
   try {
-    await streamClaudeMessages({
-      system: systemPrompt,
-      model: chosenModel,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      onTextDelta: (full: string) => {
-        if (cancelled) return
-        const delta = full.slice(prev.length)
-        prev = full
-        if (delta) onEvent({ kind: 'delta', text: delta })
-      },
-    })
+    if (useDirectPath()) {
+      await streamDirectMessages({
+        system: systemPrompt,
+        model: chosenModel,
+        messages: apiMessages,
+        onTextDelta: onDelta,
+      })
+    } else {
+      await streamClaudeMessages({
+        system: systemPrompt,
+        model: chosenModel,
+        messages: apiMessages,
+        onTextDelta: onDelta,
+      })
+    }
     if (!cancelled) onEvent({ kind: 'done' })
   } catch (err) {
     if (cancelled) {
@@ -136,9 +152,11 @@ export function buildSystemPrompt({
     `Scope data:\n${JSON.stringify(scopeData, null, 2)}`,
     '',
     'FORMAT RULES:',
-    '- Keep answers tight and easy to read. Aim for 5–8 lines unless asked to expand.',
-    '- Use markdown: ## headers for sections, **bold** for key numbers, - for bullets.',
-    '- When citing a data source inline, use the format [c:source|subject|date], for example [c:Concept2|Star Miller|2026-04-26].',
+    '- Keep answers tight and easy to read. Aim for 6–10 lines unless asked to expand.',
+    '- Use markdown: **bold** for key numbers and athlete names, - for bullets.',
+    '- Cite data sources inline with [c:SourceName|Subject|YYYY-MM-DD] — e.g. [c:Concept2|Star Miller|2026-04-26].',
+    '- When discussing trends or time-series data, emit one chart marker: [chart:Title|Label1:value1,Label2:value2,...] — values are plain numbers (seconds for splits, integers for scores/HRV/etc). Include 4–6 points maximum. Example: [chart:2K splits - Apr|Apr 1:428,Apr 8:425,Apr 15:421,Apr 22:420]',
+    '- Place the chart marker on its own line, between the sentence that introduces it and the sentence that follows up on it.',
     '- End with one short follow-up question the user might ask next, when natural.',
     '',
     `Tone: ${TONE_GUIDANCE[customization.tone]}`,

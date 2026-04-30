@@ -8,6 +8,7 @@ import { APP_MOCK_ATHLETES, fmtErgTime, fmtAgo } from '../data/mockTeam'
 import { APP_MOCK_NOTES } from '../data/mockNotes'
 import { AthleteLineupHeroPanel } from '../coach/lineupHero/AthleteLineupHeroPanel'
 import { useUiStore } from '../../../shared/store/useUiStore'
+import { useAppAuthStore } from '../store/useAppAuthStore'
 
 // ─── Card data ───────────────────────────────────────────────────────────────
 
@@ -26,9 +27,11 @@ type HeroCard = {
 
 export function HomePage() {
   const pagerRef = useRef<HTMLDivElement | null>(null)
+  const navigate = useNavigate()
   const setHeroPageActive = useUiStore((s) => s.setHeroPageActive)
   const homePanelRequest = useUiStore((s) => s.homePanelRequest)
   const setHomePanelRequest = useUiStore((s) => s.setHomePanelRequest)
+  const signOut = useAppAuthStore((s) => s.signOut)
 
   const goToPage = (index: number) => {
     const el = pagerRef.current
@@ -70,7 +73,13 @@ export function HomePage() {
       >
         {/* Page 0 — view-only lineup hero */}
         <div className="flex h-full w-full shrink-0 snap-center">
-          <AthleteLineupHeroPanel onPeekDashboard={() => goToPage(1)} />
+          <AthleteLineupHeroPanel
+            onPeekDashboard={() => goToPage(1)}
+            onLogout={async () => {
+              await signOut()
+              navigate('/app', { replace: true })
+            }}
+          />
         </div>
         {/* Page 1 — GO Club dashboard */}
         <div className="flex h-full w-full shrink-0 snap-center">

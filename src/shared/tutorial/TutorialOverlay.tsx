@@ -197,14 +197,8 @@ export function TutorialOverlay() {
           />
         )}
 
-        {/* Backdrop catches clicks (dismisses to skip). */}
-        <button
-          type="button"
-          aria-label="Skip tutorial"
-          onClick={skip}
-          className="pointer-events-auto absolute inset-0 cursor-default"
-          style={{ background: 'transparent' }}
-        />
+        {/* No backdrop click-trap — users can interact with the page during
+            the tour. Skip via the X / Skip button or ESC key. */}
 
         {/* Tooltip card */}
         {positioned && (

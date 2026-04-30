@@ -1,13 +1,21 @@
-// AI configuration. Real Claude calls go through the `claude-chat` Supabase
-// Edge Function — the Anthropic API key never lives in the browser. "Configured"
-// here means: Supabase is wired up so we can mint an access token to call the
-// function. Auth-required check happens server-side in the function itself.
+// AI configuration. Two paths:
+//   1. Supabase Edge Function (production) — key is server-side, JWT required.
+//   2. Direct browser call (local demo) — VITE_ANTHROPIC_API_KEY in .env.local.
+// "Configured" = either path is available.
 
 import { isSupabaseConfigured } from '../supabaseClient'
 
-export const AI_PROVIDER = 'edge-function'
 export const AI_ENABLED = true
 
+function hasDirectKey(): boolean {
+  const k = (import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined) ?? ''
+  return k.length > 10
+}
+
 export function isClaudeConfigured(): boolean {
-  return isSupabaseConfigured()
+  return isSupabaseConfigured() || hasDirectKey()
+}
+
+export function useDirectPath(): boolean {
+  return hasDirectKey()
 }

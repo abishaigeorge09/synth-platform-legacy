@@ -1,38 +1,58 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import {
+  Camera,
+  ChevronDown,
+  ChevronRight,
+  LogOut,
+  Mic,
+  Sparkles,
+} from 'lucide-react'
+
 import { SYNTH } from '../../lib/theme'
 import { type Boat } from '../../data/lineupBuilderStore'
 import { useSessionsStore, type Session } from '../../data/useSessionsStore'
-import { isoFromDate } from '../../primitives/AppleCalendar'
+import { AppleCalendar, isoFromDate } from '../../primitives/AppleCalendar'
+import { AuroraVoiceOverlay } from '../../primitives/AuroraVoiceOverlay'
+import { PhotoCaptureSheet } from '../../primitives/CaptureSheets'
+import { toast } from '../../../../shared/store/useToastStore'
 import { BoatSilhouette } from './BoatSilhouette'
 
 type HeroSource =
   | { kind: 'session'; session: Session }
   | { kind: 'empty' }
 
-export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: () => void }) {
+export function AthleteLineupHeroPanel({
+  onPeekDashboard,
+  onLogout,
+}: {
+  onPeekDashboard: () => void
+  onLogout: () => void
+}) {
+  const navigate = useNavigate()
   const sessions = useSessionsStore((s) => s.sessions)
 
-  const [selectedDate, setSelectedDate] = useState(() => isoFromDate(new Date()))
-
-  const availableDates = useMemo(
-    () => [...new Set(sessions.map((s) => s.date))].sort(),
-    [sessions],
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    pickDefaultDate(sessions),
   )
-  const dateIndex = availableDates.indexOf(selectedDate)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
-  const goPrev = () => {
-    if (dateIndex > 0) setSelectedDate(availableDates[dateIndex - 1])
-  }
-  const goNext = () => {
-    if (dateIndex < availableDates.length - 1) setSelectedDate(availableDates[dateIndex + 1])
-  }
+  const [voiceOpen, setVoiceOpen] = useState(false)
+  const [photoOpen, setPhotoOpen] = useState(false)
+
+  useEffect(() => {
+    if (sessions.length === 0) return
+    setSelectedDate((prev) => prev || pickDefaultDate(sessions))
+  }, [sessions.length])
 
   const source: HeroSource = useMemo(
     () => resolveSource(selectedDate, sessions),
     [selectedDate, sessions],
   )
   const boats: Boat[] = source.kind === 'session' ? source.session.boats : []
+
+  const sessionDates = useMemo(() => sessions.map((s) => s.date), [sessions])
 
   const carouselRef = useRef<HTMLDivElement | null>(null)
   const [activeBoatIndex, setActiveBoatIndex] = useState(0)
@@ -94,7 +114,7 @@ export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: (
         }}
       />
 
-      {/* Header */}
+      {/* ── Header row 1: brand ← → date + dashboard + logout ──────────────── */}
       <header
         className="absolute inset-x-0 z-10 flex items-center justify-between px-5"
         style={{
@@ -110,78 +130,77 @@ export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: (
           synth · athlete
         </span>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={dateIndex <= 0}
-            aria-label="Previous date"
-            className="flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-30"
-            style={{
-              background: 'rgba(255,255,255,0.10)',
-              border: '1px solid rgba(255,255,255,0.22)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              color: '#FFFFFF',
-            }}
-          >
-            <ChevronLeft size={12} strokeWidth={2.6} />
-          </button>
-          <GlassPill ariaLabel="Selected date">
-            {fmtPillDate(selectedDate)}
+          <GlassPill onClick={() => setPickerOpen((v) => !v)} ariaLabel="Pick date">
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtPillDate(selectedDate)}</span>
+            <ChevronDown size={11} strokeWidth={2.6} />
           </GlassPill>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={dateIndex >= availableDates.length - 1}
-            aria-label="Next date"
-            className="flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-30"
-            style={{
-              background: 'rgba(255,255,255,0.10)',
-              border: '1px solid rgba(255,255,255,0.22)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              color: '#FFFFFF',
-            }}
-          >
-            <ChevronRight size={12} strokeWidth={2.6} />
-          </button>
           <GlassPill onClick={onPeekDashboard} ariaLabel="Open dashboard">
             Dashboard
             <ChevronRight size={11} strokeWidth={2.6} />
           </GlassPill>
+          <button
+            type="button"
+            onClick={onLogout}
+            aria-label="Sign out"
+            className="flex items-center justify-center rounded-full"
+            style={{
+              width: 28,
+              height: 28,
+              flexShrink: 0,
+              background: 'rgba(239,68,68,0.85)',
+              border: '1px solid rgba(239,68,68,0.5)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              color: '#FFFFFF',
+            }}
+          >
+            <LogOut size={12} strokeWidth={2.4} />
+          </button>
         </div>
       </header>
 
-      {/* Date headline */}
-      <div
-        className="absolute inset-x-0 z-10 px-5"
+      {/* ── Headline row 2: date text + subtitle ← → capture icons ─────────── */}
+      <motion.div
+        key={selectedDate}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute inset-x-0 z-10 flex items-center justify-between px-5"
         style={{ top: 'calc(max(env(safe-area-inset-top), 12px) + 38px)' }}
       >
-        <h1
-          className="text-[30px] font-bold leading-[1] tracking-[-0.02em]"
-          style={{ color: '#FFFFFF' }}
-        >
-          {heroHeadline(selectedDate)}
-        </h1>
-        {source.kind === 'session' && source.session.time ? (
-          <p
-            className="mt-1.5 text-[12px]"
-            style={{
-              color: 'rgba(255,255,255,0.55)',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '0.01em',
-            }}
+        <div>
+          <h1
+            className="text-[30px] font-bold leading-[1] tracking-[-0.02em]"
+            style={{ color: '#FFFFFF' }}
           >
-            {fmt12h(source.session.time)}
-          </p>
-        ) : null}
-      </div>
+            {heroHeadline(selectedDate)}
+          </h1>
+          {source.kind === 'session' && source.session.time ? (
+            <p
+              className="mt-1.5 text-[12px]"
+              style={{
+                color: 'rgba(255,255,255,0.55)',
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '0.01em',
+              }}
+            >
+              {fmt12h(source.session.time)}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <CircleFab size={44} icon={<Camera size={19} strokeWidth={2} />} ariaLabel="Photo" onClick={() => setPhotoOpen(true)} />
+          <CircleFab size={44} icon={<Mic size={19} strokeWidth={2} />} ariaLabel="Voice" onClick={() => setVoiceOpen(true)} />
+          <CircleFab size={44} icon={<Sparkles size={19} strokeWidth={2} />} ariaLabel="AI" onClick={() => navigate('/app/athlete/ai')} />
+        </div>
+      </motion.div>
 
       {/* Boat carousel */}
       <div
         className="absolute inset-x-0 z-[5] overflow-hidden"
         style={{
-          top: 'calc(max(env(safe-area-inset-top), 12px) + 90px)',
+          top: 'calc(max(env(safe-area-inset-top), 12px) + 126px)',
           bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 80px)',
         }}
       >
@@ -268,6 +287,44 @@ export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: (
           Swipe right for your stats →
         </p>
       </div>
+
+      {/* ── Calendar dropdown ───────────────────────────────────────────────── */}
+      <AnimatePresence initial={false}>
+        {pickerOpen ? (
+          <motion.div
+            key="cal"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+            className="absolute inset-x-0 z-20 px-5"
+            style={{ top: 'calc(max(env(safe-area-inset-top), 12px) + 96px)' }}
+          >
+            <AppleCalendar
+              value={selectedDate}
+              markedDates={sessionDates}
+              onChange={(iso) => {
+                setSelectedDate(iso)
+                setPickerOpen(false)
+              }}
+              className=""
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      {/* ── Sheets ─────────────────────────────────────────────────────────── */}
+      <AuroraVoiceOverlay
+        open={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onSave={(t) => { if (t) toast('Voice memo saved', 'success') }}
+        scopeLabel="your training"
+      />
+      <PhotoCaptureSheet
+        open={photoOpen}
+        onClose={() => setPhotoOpen(false)}
+        onSave={() => toast('Photo saved', 'success')}
+      />
     </section>
   )
 }
@@ -286,7 +343,6 @@ function GlassPill({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      disabled={!onClick}
       className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em]"
       style={{
         background: 'rgba(255,255,255,0.10)',
@@ -294,12 +350,61 @@ function GlassPill({
         color: '#FFFFFF',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        cursor: onClick ? 'pointer' : 'default',
       }}
     >
       {children}
     </button>
   )
+}
+
+function CircleFab({
+  icon,
+  ariaLabel,
+  onClick,
+  size = 27,
+}: {
+  icon: React.ReactNode
+  ariaLabel: string
+  onClick: () => void
+  size?: number
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.10)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        backdropFilter: 'blur(12px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+        color: 'rgba(255,255,255,0.9)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      {icon}
+    </button>
+  )
+}
+
+function pickDefaultDate(sessions: Session[]): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const upcoming = sessions
+    .filter((s) => s.status === 'scheduled')
+    .filter((s) => {
+      const d = new Date(s.date)
+      d.setHours(0, 0, 0, 0)
+      return d.getTime() >= today.getTime()
+    })
+    .sort((a, b) => a.date.localeCompare(b.date))[0]
+  return upcoming?.date ?? isoFromDate(today)
 }
 
 function resolveSource(selectedDate: string, sessions: Session[]): HeroSource {

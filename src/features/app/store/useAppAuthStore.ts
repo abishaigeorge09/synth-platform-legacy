@@ -64,6 +64,18 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
       window.localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(user))
     }
     set({ user, isDemo: true })
+
+    // Opportunistically upgrade to a real anonymous Supabase session so the
+    // demo profile can call the live AI edge proxy (which requires a JWT).
+    // The onAuthStateChange listener in hydrate() picks up the new session
+    // and clears isDemo automatically. Falls back silently to mock-only
+    // when Supabase isn't configured or anonymous sign-ins are disabled
+    // in the project (Auth → Providers → Anonymous Sign-Ins).
+    const supabase = getSupabase()
+    if (!supabase) return
+    void supabase.auth.signInAnonymously().catch(() => {
+      /* anonymous disabled or network error — demo stays in mock mode */
+    })
   },
   markOnboardingDone: () => {
     if (typeof window !== 'undefined') {

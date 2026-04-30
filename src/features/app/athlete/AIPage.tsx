@@ -24,6 +24,7 @@ import {
   getAIClientMode,
   type AIMessage,
 } from '../lib/aiClient'
+import { parseAIResponse } from '../lib/aiResponseParser'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import { APP_MOCK_ATHLETES, buildErgHistory, fmtErgTime } from '../data/mockTeam'
 
@@ -202,6 +203,13 @@ export function AIPage() {
           setIsStreaming(false)
           abortRef.current = null
         } else if (e.kind === 'done') {
+          // Parse the full response into rich parts (citations, charts, text)
+          const richParts = parseAIResponse(accumulated)
+          setMessages((m) =>
+            m.map((msg) =>
+              msg.id === aiId && msg.role === 'ai' ? { ...msg, parts: richParts.length ? richParts : msg.parts } : msg,
+            ),
+          )
           setIsStreaming(false)
           abortRef.current = null
         }
@@ -277,12 +285,7 @@ export function AIPage() {
         </header>
 
         <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-2">
-          <AIThread
-            messages={messages}
-            emptyHeadline={greeting}
-            emptyHint={`Scoped · ${scopeLabel}`}
-            scopeLabel={scopeLabel}
-          />
+          <AIThread messages={messages} emptyHeadline={greeting} />
         </div>
 
         <div data-tour="athlete-ai-input" className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">

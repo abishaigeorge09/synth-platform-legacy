@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppAuthStore } from '../../features/app/store/useAppAuthStore'
 import { useGuidedTourStore } from './useGuidedTourStore'
@@ -47,10 +47,28 @@ const ATHLETE_STEPS: TourStop[] = [
     body: "Your recovery signal, today's plan, and your erg pacer — the essentials at a glance every morning.",
   },
   {
+    route: '/app/athlete/capture',
+    kicker: 'Capture',
+    title: 'Log every effort',
+    body: 'Form video, erg scores, daily wellness — capture once and synth. files it next to your splits for coach to see.',
+  },
+  {
+    route: '/app/athlete/erg-pacer',
+    kicker: 'Erg pacer',
+    title: 'Hit your splits',
+    body: 'Live target pace calibrated to your last five efforts. Adjust if today calls for harder or easier.',
+  },
+  {
     route: '/app/athlete/ai',
     kicker: 'synth. AI',
     title: 'Ask synth. anything',
     body: 'Try asking: "How should I taper this week?" — synth. answers using your splits, wellness, and coach\'s notes.',
+  },
+  {
+    route: '/app/athlete/sources',
+    kicker: 'Sources',
+    title: 'Connect your data',
+    body: 'Concept2, Strava, WHOOP, Apple Health. Plug them in once and synth. keeps everything in sync for you and coach.',
   },
 ]
 
@@ -58,19 +76,39 @@ export function GuidedTourOrchestrator() {
   const role = useAppAuthStore((s) => s.role)
   const { active, step, done, advanceStep, completeTour } = useGuidedTourStore()
   const navigate = useNavigate()
-  const { pathname } = useLocation()
 
   const steps = role === 'athlete' ? ATHLETE_STEPS : COACH_STEPS
   const current = steps[step]
+  const homeRoute = role === 'athlete' ? '/app/athlete/home' : '/app/coach/home'
 
+  // Navigate on step change only — never lock the user to the current route.
+  // Once the route is reached, they can interact freely with that page;
+  // hitting "Next" advances to the next stop.
+  const lastNavStepRef = useRef<number | null>(null)
   useEffect(() => {
-    if (!active || done || !current) return
-    if (pathname !== current.route) {
-      navigate(current.route)
+    if (!active || done || !current) {
+      lastNavStepRef.current = null
+      return
     }
-  }, [active, step, done, current, pathname, navigate])
+    if (lastNavStepRef.current === step) return
+    lastNavStepRef.current = step
+    navigate(current.route)
+  }, [active, step, done, current, navigate])
 
   const isLast = step === steps.length - 1
+
+  const finish = () => {
+    completeTour()
+    navigate(homeRoute)
+  }
+
+  const onNext = () => {
+    if (isLast) {
+      finish()
+    } else {
+      advanceStep(steps.length)
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -106,7 +144,7 @@ export function GuidedTourOrchestrator() {
             </div>
             <button
               type="button"
-              onClick={completeTour}
+              onClick={finish}
               className="text-[11px] font-semibold uppercase tracking-[0.18em]"
               style={{ color: SYNTH.inkOnBrandFaint }}
             >
@@ -141,7 +179,7 @@ export function GuidedTourOrchestrator() {
             <motion.button
               type="button"
               whileTap={{ scale: 0.985 }}
-              onClick={() => advanceStep(steps.length)}
+              onClick={onNext}
               className="flex w-full items-center justify-center rounded-full py-3.5 text-[14px] font-semibold"
               style={{
                 background: SYNTH.inkOnBrand,

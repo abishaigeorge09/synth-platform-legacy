@@ -60,6 +60,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Main entry chunk crossed Workbox's default 2 MiB precache limit
+        // as the app grew. Bump to 4 MiB so the SW continues to precache
+        // the full launch surface without warning out of generation.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       devOptions: {
         enabled: false,

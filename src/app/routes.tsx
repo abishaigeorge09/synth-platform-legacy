@@ -50,6 +50,7 @@ import { SettingsPage as AppAthleteSettingsPage } from '../features/app/athlete/
 import { TelemetryPage as AppAthleteTelemetryPage } from '../features/app/athlete/TelemetryPage'
 import { MyProfilePage as AppAthleteMyProfilePage } from '../features/app/athlete/MyProfilePage'
 import { AthleteToolsPage as AppAthleteToolsPage } from '../features/app/athlete/AthleteToolsPage'
+import { AthleteAttentionPage as AppAthleteAttentionPage } from '../features/app/athlete/AthleteAttentionPage'
 
 // Phase 12 — route-level code splitting. Each feature page becomes its own
 // chunk that's only fetched when the route is visited. Keeps the landing /
@@ -319,6 +320,7 @@ export const routes: RouteObject[] = [
           { path: 'telemetry', element: withSuspense(<AppAthleteTelemetryPage />, 'Telemetry') },
           { path: 'profile', element: withSuspense(<AppAthleteMyProfilePage />, 'My profile') },
           { path: 'tools', element: withSuspense(<AppAthleteToolsPage />, 'Tools') },
+          { path: 'attention', element: withSuspense(<AppAthleteAttentionPage />, 'Attention') },
         ],
       },
     ],

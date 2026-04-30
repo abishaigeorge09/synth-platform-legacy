@@ -22,6 +22,7 @@ import {
 import { toast } from '../../../shared/store/useToastStore'
 import { useNavigate } from 'react-router-dom'
 import { SYNTH } from '../lib/theme'
+import { AchievementSheet, type AchievementKey } from './AchievementSheet'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import {
   useAthletes,
@@ -229,6 +230,7 @@ function OverviewTab({ athleteId, athleteName }: { athleteId: string; athleteNam
   )
   const [range, setRange] = useState<RangeKey>('30d')
   const [seriesOn, setSeriesOn] = useState({ erg: true, trainingLoad: true, recovery: true, sleep: false })
+  const [openAchievement, setOpenAchievement] = useState<AchievementKey | null>(null)
 
   const timeline = useMemo(() => {
     const n = range === '7d' ? 7 : range === '14d' ? 14 : range === '30d' ? 30 : 90
@@ -238,13 +240,14 @@ function OverviewTab({ athleteId, athleteName }: { athleteId: string; athleteNam
   return (
     <div className="flex flex-col gap-4 px-5">
       <div className="grid grid-cols-2 gap-2">
-        <HeadlineTile label="2K test" value={demo.headline.twoK.value} sub={demo.headline.twoK.delta} accent={SYNTH.cardSky} />
-        <HeadlineTile label="Avg split /500" value={demo.headline.avgSplit.value} sub={demo.headline.avgSplit.delta} accent={SYNTH.accentEmerald} />
-        <HeadlineTile label="Training load" value={demo.headline.trainingLoad.value} sub={demo.headline.trainingLoad.delta} accent={SYNTH.cardLemon} />
-        <HeadlineTile label="Recovery" value={demo.headline.recovery.value} sub={demo.recovery.concern} accent={SYNTH.accentEmerald} />
-        <HeadlineTile label="Injury risk" value={demo.headline.injuryRisk.level} sub={demo.headline.injuryRisk.factors[0] ?? ''} accent={demo.headline.injuryRisk.level === 'LOW' ? SYNTH.accentEmerald : SYNTH.accentAmber} pill />
-        <HeadlineTile label="Data quality" value={demo.headline.dataQuality.value} sub={`${demo.headline.dataQuality.connectedSources} sources`} accent={SYNTH.cardMint} />
+        <HeadlineTile label="2K test" value={demo.headline.twoK.value} sub={demo.headline.twoK.delta} accent={SYNTH.cardSky} onClick={() => setOpenAchievement('twoK')} />
+        <HeadlineTile label="Avg split /500" value={demo.headline.avgSplit.value} sub={demo.headline.avgSplit.delta} accent={SYNTH.accentEmerald} onClick={() => setOpenAchievement('split')} />
+        <HeadlineTile label="Training load" value={demo.headline.trainingLoad.value} sub={demo.headline.trainingLoad.delta} accent={SYNTH.cardLemon} onClick={() => setOpenAchievement('load')} />
+        <HeadlineTile label="Recovery" value={demo.headline.recovery.value} sub={demo.recovery.concern} accent={SYNTH.accentEmerald} onClick={() => setOpenAchievement('recovery')} />
+        <HeadlineTile label="Injury risk" value={demo.headline.injuryRisk.level} sub={demo.headline.injuryRisk.factors[0] ?? ''} accent={demo.headline.injuryRisk.level === 'LOW' ? SYNTH.accentEmerald : SYNTH.accentAmber} pill onClick={() => setOpenAchievement('risk')} />
+        <HeadlineTile label="Data quality" value={demo.headline.dataQuality.value} sub={`${demo.headline.dataQuality.connectedSources} sources`} accent={SYNTH.cardMint} onClick={() => setOpenAchievement('data')} />
       </div>
+      <AchievementSheet open={openAchievement !== null} achievementKey={openAchievement} onClose={() => setOpenAchievement(null)} />
 
       <Card kicker="Performance synthesis" title="90-day timeline">
         <div className="flex flex-wrap items-center gap-1.5 pb-3">
@@ -708,16 +711,21 @@ function Card({ kicker, title, subtitle, children }: { kicker: string; title: st
   )
 }
 
-function HeadlineTile({ label, value, sub, accent, pill }: { label: string; value: string; sub: string; accent: string; pill?: boolean }) {
+function HeadlineTile({ label, value, sub, accent, pill, onClick }: { label: string; value: string; sub: string; accent: string; pill?: boolean; onClick?: () => void }) {
   return (
-    <div className="rounded-3xl p-3" style={{ background: SYNTH.inlineCard, border: `1px solid ${SYNTH.inlineCardBorder}` }}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-3xl p-3 text-left transition-opacity active:opacity-75"
+      style={{ background: SYNTH.inlineCard, border: `1px solid ${SYNTH.inlineCardBorder}`, cursor: onClick ? 'pointer' : 'default' }}
+    >
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>{label}</p>
       {pill
         ? <span className="mt-1 inline-block rounded-full px-2 py-0.5 text-[12px] font-bold uppercase tracking-wider" style={{ background: accent, color: SYNTH.ink, fontFamily: SYNTH.font }}>{value}</span>
         : <p className="mt-0.5 text-[18px] font-bold" style={{ color: accent, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}>{value}</p>
       }
       <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>{sub}</p>
-    </div>
+    </button>
   )
 }
 

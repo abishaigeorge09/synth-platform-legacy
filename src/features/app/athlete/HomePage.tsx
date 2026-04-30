@@ -1,24 +1,131 @@
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Flame, ArrowUpRight, BarChart3, User } from 'lucide-react'
+import { Settings, ArrowUpRight } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
-import { QuickStatsSheet } from '../primitives/SourcesSheets'
 import { APP_MOCK_ATHLETES, fmtErgTime, fmtAgo } from '../data/mockTeam'
 import { APP_MOCK_NOTES } from '../data/mockNotes'
-
-const RING_RADIUS = 64
-const RING_CIRC = 2 * Math.PI * RING_RADIUS
+import { AthleteLineupHeroPanel } from '../coach/lineupHero/AthleteLineupHeroPanel'
+import { useUiStore } from '../../../shared/store/useUiStore'
 
 export function HomePage() {
-  const navigate = useNavigate()
-  const me = APP_MOCK_ATHLETES[0] // Star Miller as the demo athlete
-  const greeting = greetingForNow()
-  const sharedNotes = APP_MOCK_NOTES.filter((n) => n.athleteId === me.id || n.visibleToAthlete).slice(0, 3)
-  const [statsOpen, setStatsOpen] = useState(false)
+  const pagerRef = useRef<HTMLDivElement | null>(null)
+  const setHeroPageActive = useUiStore((s) => s.setHeroPageActive)
+
+  const goToPage = (index: number) => {
+    const el = pagerRef.current
+    if (!el) return
+    el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' })
+  }
+
+  const onPagerScroll = () => {
+    const el = pagerRef.current
+    if (!el) return
+    const pageIdx = Math.round(el.scrollLeft / el.clientWidth)
+    setHeroPageActive(pageIdx === 0)
+  }
+
+  useEffect(() => {
+    setHeroPageActive(true)
+    return () => setHeroPageActive(false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[120px]">
+    <div
+      className="relative flex flex-col overflow-hidden"
+      style={{
+        height: '100svh',
+        maxHeight: '100svh',
+        background: '#050B1C',
+      }}
+    >
+      <div
+        ref={pagerRef}
+        onScroll={onPagerScroll}
+        className="synth-scroll flex flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
+        style={{ scrollbarWidth: 'none', overscrollBehaviorX: 'contain' }}
+      >
+        {/* Page 0 — view-only lineup hero */}
+        <div className="flex h-full w-full shrink-0 snap-center">
+          <AthleteLineupHeroPanel onPeekDashboard={() => goToPage(1)} />
+        </div>
+        {/* Page 1 — GO Club dashboard */}
+        <div className="flex h-full w-full shrink-0 snap-center">
+          <AthleteDashboardPanel />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AthleteDashboardPanel() {
+  const navigate = useNavigate()
+  const me = APP_MOCK_ATHLETES[0]
+  const greeting = greetingForNow()
+  const sharedNotes = APP_MOCK_NOTES.filter((n) => n.athleteId === me.id || n.visibleToAthlete).slice(0, 3)
+  const [activeCard, setActiveCard] = useState(0)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+
+  const onCardScroll = () => {
+    const el = cardRef.current
+    if (!el) return
+    const idx = Math.round(el.scrollLeft / el.clientWidth)
+    setActiveCard(idx)
+  }
+
+  const HERO_CARDS = [
+    {
+      word: 'PULL',
+      metric: fmtErgTime(me.twoKBestSeconds),
+      label: 'Best 2K',
+      provenance: 'Concept2 · 4m ago',
+      bg: '#0D1030',
+      accent: SYNTH.cardSky,
+      onClick: () => navigate('/app/athlete/erg-pacer'),
+      Illustration: OarIllustration,
+    },
+    {
+      word: 'STREAK',
+      metric: `${me.streakDays}`,
+      label: 'Days consecutive',
+      provenance: 'synth · live',
+      bg: '#083320',
+      accent: SYNTH.accentEmerald,
+      onClick: () => navigate('/app/athlete/capture'),
+      Illustration: FlameIllustration,
+    },
+    {
+      word: 'RACE',
+      metric: '9',
+      label: 'Days to Pacific Cup',
+      provenance: 'Coach Geri · 2d ago',
+      bg: '#1A0A00',
+      accent: SYNTH.accentAmber,
+      onClick: () => navigate('/app/athlete/notes'),
+      Illustration: FlagIllustration,
+    },
+    {
+      word: 'RECOVER',
+      metric: `${me.recoveryScore}`,
+      label: 'Recovery score',
+      provenance: 'WHOOP · 6m ago',
+      bg: '#070D22',
+      accent: SYNTH.cardMint,
+      onClick: () => navigate('/app/athlete/telemetry'),
+      Illustration: WaveformIllustration,
+    },
+  ] as const
+
+  return (
+    <div
+      className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-[120px]"
+      style={{
+        background: `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      {/* Header */}
       <header
         className="flex items-center justify-between px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2"
         style={{ color: SYNTH.inkOnBrand }}
@@ -29,113 +136,147 @@ export function HomePage() {
         >
           synth · athlete
         </span>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            aria-label="My profile"
-            onClick={() => navigate('/app/athlete/profile')}
-            className="flex h-9 items-center gap-1.5 rounded-full px-3"
-            style={{
-              background: SYNTH.glass,
-              backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-              WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-              border: `1px solid ${SYNTH.glassBorder}`,
-              color: SYNTH.inkOnBrand,
-            }}
-          >
-            <User size={14} strokeWidth={2.2} />
-          </button>
-          <button
-            type="button"
-            aria-label="My week"
-            data-tour="athlete-home-stats-button"
-            onClick={() => setStatsOpen(true)}
-            className="flex h-9 items-center gap-1.5 rounded-full px-3"
-            style={{
-              background: SYNTH.glass,
-              backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-              WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
-              border: `1px solid ${SYNTH.glassBorder}`,
-              color: SYNTH.inkOnBrand,
-            }}
-          >
-            <BarChart3 size={14} strokeWidth={2.2} />
-          </button>
-        </div>
+        <button
+          type="button"
+          aria-label="Settings"
+          onClick={() => navigate('/app/athlete/settings')}
+          className="flex h-9 items-center gap-1.5 rounded-full px-3"
+          style={{
+            background: SYNTH.glass,
+            backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+            WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+            border: `1px solid ${SYNTH.glassBorder}`,
+            color: SYNTH.inkOnBrand,
+          }}
+        >
+          <Settings size={14} strokeWidth={2.2} />
+        </button>
       </header>
 
-      <QuickStatsSheet
-        open={statsOpen}
-        onClose={() => setStatsOpen(false)}
-        title="My week"
-        stats={[
-          { label: 'Best 2K', value: fmtErgTime(me.twoKBestSeconds), source: 'Concept2', syncedAgo: '4m' },
-          { label: 'Recovery', value: `${me.recoveryScore}`, delta: { direction: 'up', value: '+5' }, source: 'WHOOP', syncedAgo: '6m' },
-          { label: 'Streak', value: `${me.streakDays}`, unit: 'd', source: 'synth.', syncedAgo: 'live' },
-          { label: 'Volume', value: `${(me.weeklyVolumeMeters / 1000).toFixed(0)}k`, unit: 'm', delta: { direction: 'up', value: '+12%' }, source: 'Concept2', syncedAgo: '4m' },
-          { label: 'Sleep avg', value: '7.2', unit: 'h', source: 'WHOOP', syncedAgo: '8h' },
-          { label: 'HRV', value: '64', unit: 'ms', source: 'WHOOP', syncedAgo: '8h' },
-        ]}
-      />
-
-      <motion.h1
-        data-tour="athlete-home-status"
+      {/* Greeting */}
+      <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="px-5 pt-3 text-[26px] font-bold leading-[1.15] tracking-[-0.01em]"
-        style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+        className="px-5 pt-3"
       >
-        {greeting}, {me.name.split(' ')[0]}.
-        <br />
-        <span style={{ color: SYNTH.inkOnBrandMuted }}>
+        <h1
+          className="text-[26px] font-bold leading-[1.15] tracking-[-0.01em]"
+          style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+        >
+          {greeting}, {me.name.split(' ')[0]}.
+        </h1>
+        <p
+          className="text-[15px] leading-[1.3]"
+          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+        >
           You're recovered. Today is a green light.
-        </span>
-      </motion.h1>
+        </p>
+      </motion.div>
 
-      <AthleteHero athlete={me} />
+      {/* GO Club hero cards */}
+      <section className="mt-6">
+        <div
+          ref={cardRef}
+          onScroll={onCardScroll}
+          className="synth-scroll flex overflow-x-auto pl-5"
+          style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', gap: 12 }}
+        >
+          {HERO_CARDS.map((card) => (
+            <motion.article
+              key={card.word}
+              whileTap={{ scale: 0.97 }}
+              onClick={card.onClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.onClick() } }}
+              className="relative flex shrink-0 cursor-pointer flex-col justify-between overflow-hidden rounded-[28px] p-5 pr-5"
+              style={{
+                background: card.bg,
+                border: `1px solid rgba(255,255,255,0.08)`,
+                width: 'min(82vw, 300px)',
+                minHeight: 220,
+                scrollSnapAlign: 'center',
+              }}
+            >
+              {/* Decorative watermark word */}
+              <span
+                className="pointer-events-none absolute right-3 bottom-3 select-none font-bold leading-none"
+                style={{
+                  fontSize: 80,
+                  color: 'rgba(255,255,255,0.07)',
+                  fontFamily: SYNTH.font,
+                  letterSpacing: '-0.04em',
+                }}
+              >
+                {card.word}
+              </span>
 
-      <CandyCarousel>
-        <div data-tour="athlete-home-candy-plan">
-          <CandyCard
-            color={SYNTH.cardYellow}
-            kicker="Today"
-            headline="8 × 500m at 22 spm — water at 06:30."
-            ctaLabel="See plan"
-            provenance="TrainingPeaks · 12m ago"
-            onClick={() => {
-              /* would link to today's plan */
-            }}
-          />
+              {/* Top: label */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-flex h-1.5 w-1.5 rounded-full"
+                  style={{ background: card.accent }}
+                />
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                  style={{ color: card.accent, fontFamily: SYNTH.font }}
+                >
+                  {card.word}
+                </span>
+              </div>
+
+              {/* Middle: illustration + metric */}
+              <div className="flex items-end justify-between">
+                <div>
+                  <p
+                    className="text-[56px] font-bold leading-none tracking-[-0.02em]"
+                    style={{ color: '#FFFFFF', fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {card.metric}
+                  </p>
+                  <p
+                    className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
+                    style={{ color: 'rgba(255,255,255,0.55)', fontFamily: SYNTH.font }}
+                  >
+                    {card.label}
+                  </p>
+                </div>
+                <div className="shrink-0 opacity-60">
+                  <card.Illustration />
+                </div>
+              </div>
+
+              {/* Bottom: provenance */}
+              <p
+                className="text-[10px] font-medium uppercase tracking-[0.14em]"
+                style={{ color: 'rgba(255,255,255,0.35)', fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
+              >
+                {card.provenance}
+              </p>
+            </motion.article>
+          ))}
+          {/* Right spacer */}
+          <div className="w-5 shrink-0" />
         </div>
-        <div data-tour="athlete-home-candy-pacer">
-          <CandyCard
-            color={SYNTH.cardSky}
-            kicker="Erg pacer"
-            headline="Last 2K avg pace: 1:46.7. Try 1:45.3 today?"
-            ctaLabel="Open pacer"
-            provenance="Concept2 · 4m ago"
-            onClick={() => navigate('/app/athlete/erg-pacer')}
-          />
-        </div>
-        <CandyCard
-          color={SYNTH.cardMint}
-          kicker="Wellness"
-          headline={`${me.streakDays}-day streak. Don't break it.`}
-          ctaLabel="Check in"
-          provenance="synth · live"
-          onClick={() => navigate('/app/athlete/capture')}
-        />
-        <CandyCard
-          color={SYNTH.cardPink}
-          kicker="Race"
-          headline="Pacific Cup heat in 9 days."
-          ctaLabel="Race plan"
-          provenance="Coach Geri · 2d ago"
-          onClick={() => navigate('/app/athlete/notes')}
-        />
-      </CandyCarousel>
 
+        {/* Page dots */}
+        <div className="mt-3 flex justify-center gap-1.5 pr-5">
+          {HERO_CARDS.map((_, cardIndex) => (
+            <span
+              key={cardIndex}
+              className="rounded-full transition-all"
+              style={{
+                width: cardIndex === activeCard ? 16 : 4,
+                height: 4,
+                background: cardIndex === activeCard ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.25)',
+              }}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Coach notes */}
       <section className="mt-7 px-5">
         <header className="flex items-baseline justify-between pb-3">
           <h2
@@ -162,10 +303,7 @@ export function HomePage() {
         >
           {sharedNotes.length === 0 ? (
             <div className="px-4 py-6 text-center">
-              <p
-                className="text-[12px]"
-                style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
-              >
+              <p className="text-[12px]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
                 No notes yet. Quiet today.
               </p>
             </div>
@@ -178,19 +316,12 @@ export function HomePage() {
                 className="block w-full px-4 py-3.5 text-left active:opacity-80"
                 style={{ borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.inlineCardBorder}` }}
               >
-                <p
-                  className="text-[14px] leading-[1.4]"
-                  style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-                >
+                <p className="text-[14px] leading-[1.4]" style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}>
                   {note.body}
                 </p>
                 <p
                   className="mt-1.5 text-[10px] uppercase tracking-[0.14em]"
-                  style={{
-                    color: SYNTH.provenanceOnBrand,
-                    fontFamily: SYNTH.font,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
+                  style={{ color: SYNTH.provenanceOnBrand, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
                 >
                   Coach Geri · {fmtAgo(note.minutesAgo)}
                 </p>
@@ -200,6 +331,7 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Ask synth CTA */}
       <section className="mt-5 px-5">
         <button
           type="button"
@@ -217,10 +349,7 @@ export function HomePage() {
             >
               Ask synth
             </p>
-            <p
-              className="mt-0.5 text-[14px] font-semibold"
-              style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-            >
+            <p className="mt-0.5 text-[14px] font-semibold" style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}>
               "Why did my split slip last week?"
             </p>
           </div>
@@ -231,240 +360,55 @@ export function HomePage() {
   )
 }
 
-function AthleteHero({ athlete }: { athlete: typeof APP_MOCK_ATHLETES[number] }) {
-  const ringProgress = useMotionValue(0)
-  const dashOffset = useTransform(ringProgress, (v) => RING_CIRC * (1 - v / 100))
+// ─── Inline SVG illustrations ─────────────────────────────────────────────────
 
-  useEffect(() => {
-    const ctrl = animate(ringProgress, athlete.recoveryScore, {
-      duration: 1.2,
-      ease: [0.22, 1, 0.36, 1],
-    })
-    return () => ctrl.stop()
-  }, [athlete.recoveryScore, ringProgress])
-
+function OarIllustration() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-5 mt-5 rounded-3xl px-5 py-6"
-      style={{
-        background: SYNTH.inlineCard,
-        border: `1px solid ${SYNTH.inlineCardBorder}`,
-      }}
-    >
-      <div className="flex items-center gap-5">
-        <div className="relative flex h-[150px] w-[150px] shrink-0 items-center justify-center">
-          <svg width="150" height="150" viewBox="0 0 150 150" className="-rotate-90">
-            <circle
-              cx="75"
-              cy="75"
-              r={RING_RADIUS}
-              stroke="rgba(255,255,255,0.18)"
-              strokeWidth="6"
-              fill="none"
-            />
-            <motion.circle
-              cx="75"
-              cy="75"
-              r={RING_RADIUS}
-              stroke={SYNTH.accentEmerald}
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray={RING_CIRC}
-              fill="none"
-              style={{ strokeDashoffset: dashOffset }}
-            />
-          </svg>
-          <motion.div
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute flex h-[100px] w-[100px] items-center justify-center rounded-full"
-            style={{
-              background: `linear-gradient(135deg, ${SYNTH.accentEmerald}, #047857)`,
-              boxShadow: '0 12px 28px -10px rgba(5,150,105,0.55)',
-            }}
-          >
-            <span
-              className="text-[34px] font-bold"
-              style={{
-                color: '#FFFFFF',
-                fontFamily: SYNTH.font,
-                letterSpacing: '0.04em',
-              }}
-            >
-              {athlete.initials}
-            </span>
-          </motion.div>
-          <span
-            className="absolute -bottom-1 right-1 flex h-7 min-w-[44px] items-center justify-center rounded-full px-2 text-[12px] font-bold"
-            style={{
-              background: SYNTH.canvasInk,
-              border: `1.5px solid ${SYNTH.accentEmerald}`,
-              color: SYNTH.accentEmerald,
-              fontFamily: SYNTH.font,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {athlete.recoveryScore}
-          </span>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p
-            className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-            style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
-          >
-            Recovery
-          </p>
-          <p
-            className="text-[20px] font-bold leading-tight"
-            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-          >
-            {athlete.position}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <HeroPill icon={<Flame size={11} color={SYNTH.accentAmber} strokeWidth={2.4} />} value={`${athlete.streakDays}d`} label="streak" />
-            <HeroPill value={fmtErgTime(athlete.twoKBestSeconds)} label="best 2K" />
-            <HeroPill value={`${(athlete.weeklyVolumeMeters / 1000).toFixed(0)}k`} label="weekly m" />
-          </div>
-        </div>
-      </div>
-    </motion.div>
+    <svg width={56} height={56} viewBox="0 0 56 56" fill="none" aria-hidden>
+      <line x1={10} y1={46} x2={46} y2={10} stroke="rgba(255,255,255,0.7)" strokeWidth={3} strokeLinecap="round" />
+      <ellipse cx={8} cy={48} rx={7} ry={3} fill="rgba(255,255,255,0.5)" transform="rotate(-45 8 48)" />
+      <circle cx={44} cy={12} r={4} fill="rgba(99,179,237,0.8)" />
+    </svg>
   )
 }
 
-function HeroPill({
-  icon,
-  value,
-  label,
-}: {
-  icon?: React.ReactNode
-  value: string
-  label: string
-}) {
+function FlameIllustration() {
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
-      style={{
-        background: SYNTH.glass,
-        border: `1px solid ${SYNTH.glassBorder}`,
-        color: SYNTH.inkOnBrand,
-        fontFamily: SYNTH.font,
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
-      {icon}
-      <span className="text-[12px] font-bold leading-none">{value}</span>
-      <span
-        className="text-[10px] font-semibold uppercase leading-none"
-        style={{ color: SYNTH.inkOnBrandMuted, letterSpacing: '0.12em' }}
-      >
-        {label}
-      </span>
-    </span>
+    <svg width={56} height={56} viewBox="0 0 56 56" fill="none" aria-hidden>
+      <path d="M28 48 C14 40 10 28 18 20 C18 28 24 30 24 30 C22 20 28 10 28 10 C28 10 38 20 36 30 C36 30 42 28 42 20 C50 28 46 40 28 48Z"
+        fill="rgba(245,158,11,0.6)" />
+      <path d="M28 44 C20 38 18 30 22 24 C22 30 26 32 26 32 C25 26 28 18 28 18 C28 18 34 26 32 32 C32 32 36 30 36 24 C40 30 38 38 28 44Z"
+        fill="rgba(245,158,11,0.9)" />
+      <circle cx={28} cy={38} r={4} fill="rgba(255,255,255,0.4)" />
+    </svg>
   )
 }
 
-function CandyCarousel({ children }: { children: React.ReactNode }) {
+function FlagIllustration() {
   return (
-    <section className="mt-7 pl-5">
-      <header className="flex items-baseline justify-between pr-5 pb-3">
-        <h2
-          className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
-        >
-          Today
-        </h2>
-      </header>
-      <div
-        className="flex gap-3 overflow-x-auto pb-2 pr-5"
-        style={{
-          scrollSnapType: 'x mandatory',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {children}
-      </div>
-    </section>
+    <svg width={56} height={56} viewBox="0 0 56 56" fill="none" aria-hidden>
+      <line x1={14} y1={10} x2={14} y2={48} stroke="rgba(255,255,255,0.7)" strokeWidth={2.5} strokeLinecap="round" />
+      <path d="M14 12 L42 18 L38 30 L14 30 Z" fill="rgba(245,158,11,0.7)" />
+      <rect x={14} y={12} width={14} height={9} fill="rgba(245,158,11,0.4)" />
+      <rect x={28} y={21} width={14} height={9} fill="rgba(245,158,11,0.4)" />
+      <line x1={10} y1={44} x2={46} y2={44} stroke="rgba(255,255,255,0.3)" strokeWidth={1.5} strokeLinecap="round" />
+    </svg>
   )
 }
 
-function CandyCard({
-  color,
-  kicker,
-  headline,
-  ctaLabel,
-  provenance,
-  onClick,
-}: {
-  color: string
-  kicker: string
-  headline: string
-  ctaLabel: string
-  provenance: string
-  onClick: () => void
-}) {
+function WaveformIllustration() {
   return (
-    <motion.article
-      whileTap={{ scale: 0.985 }}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick()
-        }
-      }}
-      className="flex shrink-0 cursor-pointer flex-col gap-3 p-5"
-      style={{
-        background: color,
-        boxShadow: SYNTH.shadow.cardLifted,
-        borderRadius: SYNTH.radius.card,
-        width: 'min(82vw, 300px)',
-        minHeight: 200,
-        scrollSnapAlign: 'center',
-        color: SYNTH.ink,
-        fontFamily: SYNTH.font,
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ background: SYNTH.ink }} />
-        <span
-          className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-          style={{ color: SYNTH.ink, opacity: 0.7 }}
-        >
-          {kicker}
-        </span>
-      </div>
-      <p
-        className="flex-1 text-[18px] font-bold leading-[1.2] tracking-[-0.01em]"
-        style={{ color: SYNTH.ink }}
-      >
-        {headline}
-      </p>
-      <div className="flex items-center justify-between">
-        <span
-          className="rounded-full px-3.5 py-1.5 text-[11px] font-semibold"
-          style={{
-            background: SYNTH.accentBlack,
-            color: SYNTH.inkOnBrand,
-            letterSpacing: '0.02em',
-          }}
-        >
-          {ctaLabel}
-        </span>
-        <span
-          className="text-[10px] font-medium uppercase tracking-[0.14em]"
-          style={{ color: SYNTH.ink, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}
-        >
-          {provenance}
-        </span>
-      </div>
-    </motion.article>
+    <svg width={56} height={56} viewBox="0 0 56 56" fill="none" aria-hidden>
+      <polyline
+        points="4,28 10,28 14,14 20,42 26,20 32,36 38,22 42,34 46,28 52,28"
+        stroke="rgba(52,211,153,0.8)"
+        strokeWidth={2.2}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={28} cy={28} r={3} fill="rgba(52,211,153,0.6)" />
+    </svg>
   )
 }
 

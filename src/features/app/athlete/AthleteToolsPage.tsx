@@ -59,6 +59,19 @@ const INSTALLED: InstalledTool[] = [
     version: 'v1.2.0',
     loadMs: 42,
   },
+  {
+    id: 'form-video',
+    name: 'Form Video',
+    shortDesc:
+      'Record or upload your stroke, annotate the phase, and send directly to your coach for real-time feedback.',
+    publisher: 'synth · core',
+    icon: <Video size={22} strokeWidth={2.2} />,
+    accent: SYNTH.cardMint,
+    status: 'installed',
+    to: '/app/athlete/form-video',
+    version: 'v1.0.0',
+    loadMs: 38,
+  },
 ]
 
 const COMING_SOON: ComingSoonTool[] = [
@@ -197,7 +210,7 @@ export function AthleteToolsPage() {
   }
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[140px]">
+    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
       <CoachPageHeader title="Tools" subtitle="Your athlete toolkit" back="/app/athlete/home" />
 
       <DotGridBackdrop />

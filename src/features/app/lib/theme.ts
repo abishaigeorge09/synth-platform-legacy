@@ -20,6 +20,7 @@ export const SYNTH = {
   cardPink: '#F5C9D0',
   cardCream: '#FFF6B8',
   cardLemon: '#FCFB7A',
+  cardLavender: '#E0D8F8',
 
   // Glass — for floating controls only (one element per screen)
   glass: 'rgba(255,255,255,0.14)',

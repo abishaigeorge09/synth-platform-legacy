@@ -27,6 +27,8 @@ type HeroCard = {
 export function HomePage() {
   const pagerRef = useRef<HTMLDivElement | null>(null)
   const setHeroPageActive = useUiStore((s) => s.setHeroPageActive)
+  const homePanelRequest = useUiStore((s) => s.homePanelRequest)
+  const setHomePanelRequest = useUiStore((s) => s.setHomePanelRequest)
 
   const goToPage = (index: number) => {
     const el = pagerRef.current
@@ -46,6 +48,14 @@ export function HomePage() {
     return () => setHeroPageActive(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (homePanelRequest === null) return
+    goToPage(homePanelRequest)
+    setHeroPageActive(homePanelRequest === 0)
+    setHomePanelRequest(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homePanelRequest])
 
   return (
     <div
@@ -155,7 +165,7 @@ function AthleteDashboardPanel() {
 
   return (
     <div
-      className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-[120px]"
+      className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-safe-tab"
       style={{
         background: `linear-gradient(180deg, ${SYNTH.canvasTop} 0%, ${SYNTH.canvasBottom} 100%)`,
         fontFamily: SYNTH.font,

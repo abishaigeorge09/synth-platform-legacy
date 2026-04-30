@@ -85,7 +85,7 @@ export function AthleteAttentionPage() {
 
   return (
     <SwipeBackPage to="/app/athlete/home">
-      <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-[120px]">
+      <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
         {/* Header */}
         <div
           className="px-5 pb-4"

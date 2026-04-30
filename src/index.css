@@ -264,6 +264,13 @@ select {
   border: 2px solid transparent;
 }
 
+/* Safe-area-aware bottom padding for scrollable athlete/coach pages that sit
+   below the floating tab bar (64px tall, positioned at max(safe-bottom,16px)).
+   Using max() so the 16px baseline covers devices without a notch. */
+.pb-safe-tab {
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 16px) + 88px);
+}
+
 /* Phase 33 — content-visibility for off-screen sections.
    Browser skips layout/paint until the element is near the viewport. */
 .cv-auto {

@@ -161,12 +161,12 @@ function buildCoachTabs(onMoreClick: () => void, onHomeClick: () => void): Float
   ]
 }
 
-function buildAthleteTabs(onMoreClick: () => void): FloatingTabItem[] {
+function buildAthleteTabs(onMoreClick: () => void, onHomeClick: () => void): FloatingTabItem[] {
   return [
     {
       key: 'home',
       label: 'Home',
-      to: '/app/athlete/home',
+      onClick: onHomeClick,
       match: (p) => p === '/app/athlete/home' || p === '/app/athlete',
       icon: <Home size={18} strokeWidth={2.2} />,
     },
@@ -223,9 +223,20 @@ export function CoachFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }
 }
 
 export function AthleteFloatingTabBar({ onMoreClick }: { onMoreClick: () => void }) {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const setHomePanelRequest = useUiStore((s) => s.setHomePanelRequest)
+
+  const onHomeClick = () => {
+    setHomePanelRequest(1)
+    if (pathname !== '/app/athlete/home' && pathname !== '/app/athlete') {
+      navigate('/app/athlete/home')
+    }
+  }
+
   return (
     <FloatingTabBar
-      tabs={buildAthleteTabs(onMoreClick)}
+      tabs={buildAthleteTabs(onMoreClick, onHomeClick)}
       capture={{ to: '/app/athlete/capture', ariaLabel: 'Capture' }}
     />
   )

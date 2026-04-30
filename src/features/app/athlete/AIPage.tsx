@@ -24,6 +24,7 @@ import {
   getAIClientMode,
   type AIMessage,
 } from '../lib/aiClient'
+import { useAppAuthStore } from '../store/useAppAuthStore'
 import { APP_MOCK_ATHLETES, buildErgHistory, fmtErgTime } from '../data/mockTeam'
 
 const SEED_HISTORY: ChatHistoryEntry[] = [
@@ -35,6 +36,7 @@ export function AIPage() {
   const navigate = useNavigate()
   const me = APP_MOCK_ATHLETES[0]
   const scopeLabel = me.name
+  const isDemo = useAppAuthStore((s) => s.isDemo)
 
   const scopeOptions: ScopeOption[] = useMemo(
     () => [{ id: me.id, label: `Just ${me.name.split(' ')[0]}` }],
@@ -104,7 +106,7 @@ export function AIPage() {
       setActiveChatId(newId)
     }
 
-    const mode = getAIClientMode()
+    const mode = getAIClientMode({ isDemo })
 
     if (mode === 'mock') {
       streamingTimer.current = setTimeout(() => {

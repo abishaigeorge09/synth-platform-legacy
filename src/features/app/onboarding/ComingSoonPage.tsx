@@ -40,7 +40,7 @@ export function ComingSoonPage() {
 
   const onTryDemo = () => {
     setDemoUser({ id: 'demo-user', email: 'demo@synth.local' })
-    navigate('/app')
+    navigate('/app', { replace: true })
   }
 
   return (

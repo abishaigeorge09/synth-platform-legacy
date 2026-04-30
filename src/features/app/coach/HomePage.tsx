@@ -106,7 +106,7 @@ function DashboardPanel() {
   const [statsOpen, setStatsOpen] = useState(false)
   return (
     <div
-      className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-[120px]"
+      className="synth-scroll flex h-full w-full flex-col overflow-y-auto pb-safe-tab"
       style={{ background: 'linear-gradient(180deg, #2E37F2 0%, #1F26C9 100%)' }}
     >
       <header

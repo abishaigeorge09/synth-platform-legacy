@@ -39,12 +39,12 @@ export type WellnessReading = {
 // Each of these matches a signal on the Attention page so the data tells
 // the same story end-to-end.
 export const APP_HANDPICKED_READINGS: WellnessReading[] = [
-  // Isla Park — three short nights matches "Recovery 42 — 3 nights of poor sleep"
+  // Olivia Roth — three short nights matches "Recovery 44 — 3 nights of poor sleep"
   {
-    id: 'r-isla-1',
-    athleteId: 'a-isla-park',
+    id: 'r-roth-1',
+    athleteId: 'a-roth-olivia',
     date: dateNDaysAgo(1),
-    recovery: 42,
+    recovery: 44,
     sleepHours: 5.4,
     sleepQuality: 'poor',
     hrv: 38,
@@ -56,8 +56,8 @@ export const APP_HANDPICKED_READINGS: WellnessReading[] = [
     note: 'Third short night — message before practice.',
   },
   {
-    id: 'r-isla-2',
-    athleteId: 'a-isla-park',
+    id: 'r-roth-2',
+    athleteId: 'a-roth-olivia',
     date: dateNDaysAgo(2),
     recovery: 48,
     sleepHours: 5.8,
@@ -69,8 +69,8 @@ export const APP_HANDPICKED_READINGS: WellnessReading[] = [
     source: 'WHOOP',
   },
   {
-    id: 'r-isla-3',
-    athleteId: 'a-isla-park',
+    id: 'r-roth-3',
+    athleteId: 'a-roth-olivia',
     date: dateNDaysAgo(3),
     recovery: 51,
     sleepHours: 6.0,
@@ -82,10 +82,10 @@ export const APP_HANDPICKED_READINGS: WellnessReading[] = [
     source: 'WHOOP',
   },
 
-  // Coral Mendez — volume jump signal: high HR + good sleep but creeping soreness
+  // Lola Crampin — volume jump signal: good sleep but creeping soreness
   {
-    id: 'r-coral-1',
-    athleteId: 'a-coral-mendez',
+    id: 'r-crampin-1',
+    athleteId: 'a-crampin-lola',
     date: dateNDaysAgo(0),
     recovery: 58,
     sleepHours: 7.4,
@@ -99,10 +99,10 @@ export const APP_HANDPICKED_READINGS: WellnessReading[] = [
     note: 'Soreness creeping after the volume spike.',
   },
 
-  // Juno Okafor — race-ready storyline: high recovery, long streak
+  // Ella Wheeler — race-ready storyline: top erg, long streak
   {
-    id: 'r-juno-1',
-    athleteId: 'a-juno-okafor',
+    id: 'r-wheeler-1',
+    athleteId: 'a-wheeler-ella',
     date: dateNDaysAgo(0),
     recovery: 88,
     sleepHours: 8.0,
@@ -130,10 +130,10 @@ export const APP_HANDPICKED_READINGS: WellnessReading[] = [
     note: 'Race-day ready — calling V8 grand final.',
   },
 
-  // Rae Akhtar — left shoulder note follow-up, still flagged moderate soreness
+  // Julia Irmler — moderate shoulder soreness after a heavy piece block
   {
-    id: 'r-rae-1',
-    athleteId: 'a-rae-akhtar',
+    id: 'r-irmler-1',
+    athleteId: 'a-irmler-julia',
     date: dateNDaysAgo(0),
     recovery: 71,
     sleepHours: 7.6,
@@ -146,10 +146,10 @@ export const APP_HANDPICKED_READINGS: WellnessReading[] = [
     note: 'Left shoulder soreness — short-arming on stbd Tuesday.',
   },
 
-  // Star Miller — solid, unremarkable. Matches "Stroke timing solid"
+  // Star Miller — solid, unremarkable. Stroke timing positive signal.
   {
-    id: 'r-star-1',
-    athleteId: 'a-star-miller',
+    id: 'r-miller-1',
+    athleteId: 'a-miller-star',
     date: dateNDaysAgo(0),
     recovery: 78,
     sleepHours: 7.8,

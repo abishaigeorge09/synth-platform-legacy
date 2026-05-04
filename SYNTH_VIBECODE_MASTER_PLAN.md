@@ -111,7 +111,7 @@ A "vibe-code" Custom Tools experience inside synth. Coaches type natural-languag
 #### Sprint 4: Mocked Generation Loop
 
 - **What:** Wire the chat input to a keyword-matching function that returns one of the 5 example specs.
-- **Deliverables:** `src/lib/tools/mockGenerator.ts` (keyword matcher), wire into `CustomToolsPage.tsx`, 2-second fake loading delay with progress messages
+- **Deliverables:** `src/lib/tools/mockGenerator.ts` (keyword matcher), wire into `ToolsBuildPage.tsx`, 2-second fake loading delay with progress messages
 - **Stack touched:** Frontend only. No backend.
 - **Output:** Type "stroke rate" → see stroke rate logger render. Type "lap counter" → see lap counter render.
 - **Acceptance:** End-to-end demo loop works. Looks indistinguishable from real AI in a 60-second demo.

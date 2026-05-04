@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateToolSpec } from './mockGenerator'
+import { generateToolSpec, MockGenerationError } from './mockGenerator'
 import {
   STROKE_RATE_LOGGER,
   LINEUP_COMPARE,
@@ -59,5 +59,19 @@ describe('generateToolSpec — fallback', () => {
 
   it('returns STROKE_RATE_LOGGER for an empty string', () => {
     expect(generateToolSpec('')).toBe(STROKE_RATE_LOGGER)
+  })
+})
+
+describe('generateToolSpec — error path', () => {
+  it('throws MockGenerationError when description contains "fail"', () => {
+    expect(() => generateToolSpec('fail demo')).toThrow(MockGenerationError)
+  })
+
+  it('throws on uppercase "FAIL"', () => {
+    expect(() => generateToolSpec('FAIL THIS')).toThrow(MockGenerationError)
+  })
+
+  it('does not throw on benign inputs that lack "fail"', () => {
+    expect(() => generateToolSpec('stroke rate logger')).not.toThrow()
   })
 })

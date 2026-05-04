@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import { SYNTH } from '../lib/theme'
+import { CANVAS_ENTER, INSTALL_PULSE } from '../lib/motion'
 import { toast } from '../../../shared/store/useToastStore'
 import {
   useInstalledToolsStore,
@@ -78,8 +79,10 @@ const CATALOG: CatalogTool[] = [
     category: 'timing',
     iconKey: 'timer',
     accent: SYNTH.cardLemon,
-    state: 'coming-soon',
-    eta: 'May 2026',
+    state: 'installable',
+    to: '/app/coach/tools/stopwatch',
+    version: 'v1.0.0',
+    loadMs: 62,
   },
   {
     id: 'race-recorder',
@@ -192,6 +195,18 @@ export function CustomToolsPage() {
   const installedTools = useInstalledToolsStore((s) => s.tools)
   const isInstalled = useInstalledToolsStore((s) => s.isInstalled)
   const install = useInstalledToolsStore((s) => s.install)
+  const lastInstalledId = useInstalledToolsStore((s) => s.lastInstalledId)
+  const lastInstalledAt = useInstalledToolsStore((s) => s.lastInstalledAt)
+  const clearLastInstalled = useInstalledToolsStore((s) => s.clearLastInstalled)
+
+  // Retire the pulse signal once the animation has had time to play
+  // (~2.5 s, longer than INSTALL_PULSE's 1.6 s duration). Keying on
+  // `lastInstalledAt` resets the timer on each install.
+  useEffect(() => {
+    if (lastInstalledAt === null) return
+    const t = window.setTimeout(() => clearLastInstalled(), 2500)
+    return () => window.clearTimeout(t)
+  }, [lastInstalledAt, clearLastInstalled])
 
   const q = query.trim().toLowerCase()
 
@@ -234,11 +249,15 @@ export function CustomToolsPage() {
       iconKey: tool.iconKey,
     }
     install(meta)
-    toast(`${tool.name} installed`, 'success')
+    toast('Tool added to your collection', 'success')
+    setTab('installed')
   }
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
+    <motion.div
+      className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab"
+      {...CANVAS_ENTER}
+    >
       <CoachPageHeader title="Tools" subtitle="Custom tools" />
 
       {/* Tech-feel grid backdrop sits behind everything else in this page */}
@@ -281,6 +300,8 @@ export function CustomToolsPage() {
                     tool={t}
                     index={i}
                     onOpen={() => navigate(t.to)}
+                    pulse={t.id === lastInstalledId}
+                    pulseKey={lastInstalledAt ?? 0}
                   />
                 ))}
                 {installedFiltered.length === 0 && (
@@ -327,7 +348,7 @@ export function CustomToolsPage() {
           <span>v0.5 · build {new Date().toISOString().slice(0, 10)}</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -625,16 +646,24 @@ function InstalledCard({
   tool,
   index,
   onOpen,
+  pulse = false,
+  pulseKey = 0,
 }: {
   tool: InstalledToolMeta
   index: number
   onOpen: () => void
+  pulse?: boolean
+  pulseKey?: number
 }) {
+  // Re-trigger the install pulse on each new install by keying on
+  // pulseKey (the lastInstalledAt timestamp from the store).
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.32 }}
+      key={pulse ? `pulse-${pulseKey}` : `rest-${tool.id}`}
+      initial={pulse ? INSTALL_PULSE.initial : { opacity: 0, y: 8 }}
+      animate={pulse ? INSTALL_PULSE.animate : { opacity: 1, y: 0 }}
+      transition={pulse ? INSTALL_PULSE.transition : { delay: index * 0.04, duration: 0.32 }}
+      className="rounded-3xl"
     >
       <ToolShell tool={tool} onClick={onOpen}>
         <div className="flex items-start justify-between gap-3">
@@ -780,6 +809,8 @@ function CatalogCard({
   )
 }
 
+const INSTALL_PROGRESS_MS = 800
+
 function CatalogStateChip({
   tool,
   installed,
@@ -789,6 +820,18 @@ function CatalogStateChip({
   installed: boolean
   onInstall: () => void
 }) {
+  const [installing, setInstalling] = useState(false)
+
+  const startInstall = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (installing) return
+    setInstalling(true)
+    window.setTimeout(() => {
+      onInstall()
+      setInstalling(false)
+    }, INSTALL_PROGRESS_MS)
+  }
+
   if (installed) {
     return (
       <span
@@ -807,13 +850,33 @@ function CatalogStateChip({
   }
 
   if (tool.state === 'installable') {
+    if (installing) {
+      return (
+        <div
+          className="relative flex items-center justify-center overflow-hidden rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em]"
+          style={{
+            width: 96,
+            background: 'rgba(16,185,129,0.18)',
+            color: SYNTH.inkOnBrand,
+            border: `1px solid ${SYNTH.accentEmerald}66`,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: '100%' }}
+            transition={{ duration: INSTALL_PROGRESS_MS / 1000, ease: 'easeOut' }}
+            className="absolute inset-y-0 left-0"
+            style={{ background: SYNTH.accentEmerald, opacity: 0.55 }}
+          />
+          <span className="relative z-10">Installing…</span>
+        </div>
+      )
+    }
     return (
       <button
         type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          onInstall()
-        }}
+        onClick={startInstall}
         className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em]"
         style={{
           background: SYNTH.accentEmerald,

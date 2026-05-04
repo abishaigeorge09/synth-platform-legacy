@@ -11,11 +11,12 @@ import {
   MessageSquarePlus,
 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import { CANVAS_ENTER, THINKING_DOT } from '../lib/motion'
 import {
   useChatSessionsStore,
   type ChatSession,
 } from '../store/useChatSessionsStore'
-import { generateToolSpec } from '../../../lib/tools/mockGenerator'
+import { generateToolSpec, MockGenerationError } from '../../../lib/tools/mockGenerator'
 import { ToolRenderer } from '../../../lib/tools/ToolRenderer'
 
 const SUGGESTED_PROMPTS: string[] = [
@@ -45,6 +46,7 @@ export function ToolsBuildPage() {
   const [text, setText] = useState('')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   // Cleared on unmount; the Send pipeline checks it between awaits so
   // an unmount mid-flight doesn't trigger a navigate after teardown.
@@ -76,6 +78,7 @@ export function ToolsBuildPage() {
     if (!prompt || isLoading) return
 
     setText('')
+    setErrorMessage(null)
     setLoadingPhase(0)
     await delay(PHASE_DELAY_MS)
     if (cancelRef.current) return
@@ -86,10 +89,19 @@ export function ToolsBuildPage() {
     await delay(FINAL_DELAY_MS)
     if (cancelRef.current) return
 
-    const spec = generateToolSpec(prompt)
-    const id = createSession(prompt, spec)
-    setLoadingPhase(null)
-    navigate(`/app/coach/tools/build/${id}`)
+    try {
+      const spec = generateToolSpec(prompt)
+      const id = createSession(prompt, spec)
+      setLoadingPhase(null)
+      navigate(`/app/coach/tools/build/${id}`)
+    } catch (err) {
+      setLoadingPhase(null)
+      const message =
+        err instanceof MockGenerationError
+          ? err.message
+          : 'Generation failed. Try again.'
+      setErrorMessage(message)
+    }
   }
 
   return (
@@ -118,15 +130,20 @@ export function ToolsBuildPage() {
         />
 
         <section className="relative flex min-h-0 flex-1 flex-col">
-          <div className="synth-scroll flex flex-1 flex-col items-center overflow-y-auto px-5 pb-[180px]">
+          <motion.div
+            className="synth-scroll flex flex-1 flex-col items-center overflow-y-auto px-5 pb-[180px]"
+            {...CANVAS_ENTER}
+          >
             {isLoading ? (
               <LoadingState phase={loadingPhase} />
+            ) : errorMessage ? (
+              <ErrorState message={errorMessage} onDismiss={() => setErrorMessage(null)} />
             ) : session ? (
               <SessionView session={session} />
             ) : (
-              <EmptyCanvas onPickPrompt={fillPrompt} />
+              <EmptyCanvas key={chatId ?? 'empty'} onPickPrompt={fillPrompt} />
             )}
-          </div>
+          </motion.div>
 
           <ChatInput
             inputRef={inputRef}
@@ -499,15 +516,20 @@ function EmptyCanvas({ onPickPrompt }: { onPickPrompt: (prompt: string) => void 
 function LoadingState({ phase }: { phase: 0 | 1 | 2 }) {
   return (
     <div className="flex w-full max-w-[640px] flex-col items-center gap-5 py-20">
-      <motion.span
-        animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-        className="block h-3 w-3 rounded-full"
-        style={{
-          background: SYNTH.accentEmerald,
-          boxShadow: `0 0 16px ${SYNTH.accentEmerald}`,
-        }}
-      />
+      <div className="flex items-center gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            animate={THINKING_DOT.animate}
+            transition={{ ...THINKING_DOT.transition, delay: i * 0.2 }}
+            className="block h-2.5 w-2.5 rounded-full"
+            style={{
+              background: SYNTH.accentEmerald,
+              boxShadow: `0 0 14px ${SYNTH.accentEmerald}`,
+            }}
+          />
+        ))}
+      </div>
       <AnimatePresence mode="wait">
         <motion.span
           key={phase}
@@ -522,6 +544,52 @@ function LoadingState({ phase }: { phase: 0 | 1 | 2 }) {
         </motion.span>
       </AnimatePresence>
     </div>
+  )
+}
+
+// ─── Error state ───────────────────────────────────────────────────────────
+
+function ErrorState({
+  message,
+  onDismiss,
+}: {
+  message: string
+  onDismiss: () => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24 }}
+      className="flex w-full max-w-[480px] flex-col items-center gap-3 py-20"
+    >
+      <span
+        className="text-[10px] font-bold uppercase tracking-[0.18em]"
+        style={{ color: SYNTH.accentRed }}
+      >
+        Generation failed
+      </span>
+      <p
+        className="text-center text-[13px] leading-[1.5]"
+        style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+      >
+        {message}
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em]"
+        style={{
+          background: SYNTH.glass,
+          backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+          WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+          border: `1px solid ${SYNTH.glassBorder}`,
+          color: SYNTH.inkOnBrand,
+        }}
+      >
+        Try again
+      </button>
+    </motion.div>
   )
 }
 

@@ -13,6 +13,7 @@
  * error card.
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { motion } from 'framer-motion'
 import {
   ToolSpecSchema,
   type ToolElement,
@@ -22,6 +23,7 @@ import {
 import { ELEMENT_RENDERERS } from './registry'
 import { useResolvedBindings } from './resolver'
 import { SYNTH } from '../../features/app/lib/theme'
+import { TOOL_STAGGER } from '../../features/app/lib/motion'
 
 // ─── Public component ─────────────────────────────────────────────────────
 
@@ -54,6 +56,7 @@ function ValidatedToolRenderer({ spec }: { spec: ToolSpec }) {
             <ElementSlot
               key={element.id ?? `${element.type}-${i}`}
               element={element}
+              index={i}
             >
               <ElementErrorBoundary type={element.type}>
                 <Renderer element={element} data={data} />
@@ -76,13 +79,25 @@ const SPAN_BY_WIDTH: Record<NonNullable<ToolElement['width']>, string> = {
 
 function ElementSlot({
   element,
+  index,
   children,
 }: {
   element: ToolElement
+  index: number
   children: ReactNode
 }) {
   const width = element.width ?? 'full'
-  return <div className={`col-span-1 ${SPAN_BY_WIDTH[width]}`}>{children}</div>
+  return (
+    <motion.div
+      className={`col-span-1 ${SPAN_BY_WIDTH[width]}`}
+      custom={index}
+      variants={TOOL_STAGGER}
+      initial="hidden"
+      animate="visible"
+    >
+      {children}
+    </motion.div>
+  )
 }
 
 // ─── Inputs summary (read-only Sprint 3) ─────────────────────────────────

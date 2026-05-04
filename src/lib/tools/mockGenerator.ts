@@ -46,8 +46,23 @@ const RULES: Rule[] = [
   { keyword: 'rate', spec: STROKE_RATE_LOGGER },
 ]
 
+/**
+ * Demo error trigger. Sprint 5 ships a `fail` keyword that throws so the
+ * Build workspace can demonstrate its error path without waiting for
+ * Sprint 9's real v0 failure modes.
+ */
+export class MockGenerationError extends Error {
+  constructor(message = 'Generation failed. Try again.') {
+    super(message)
+    this.name = 'MockGenerationError'
+  }
+}
+
 export function generateToolSpec(description: string): ToolSpec {
   const q = description.toLowerCase()
+  if (q.includes('fail')) {
+    throw new MockGenerationError()
+  }
   for (const rule of RULES) {
     if (q.includes(rule.keyword)) return rule.spec
   }

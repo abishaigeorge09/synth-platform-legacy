@@ -8,6 +8,7 @@ import { useUiStore } from '../../../shared/store/useUiStore'
 const HIDE_TAB_BAR_PREFIXES = [
   '/app/coach/ai',
   '/app/coach/athlete/',
+  '/app/coach/tools/build',
 ]
 
 export function AppCoachShell() {

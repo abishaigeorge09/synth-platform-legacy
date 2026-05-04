@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft,
@@ -11,6 +11,12 @@ import {
   MessageSquarePlus,
 } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
+import {
+  useChatSessionsStore,
+  type ChatSession,
+} from '../store/useChatSessionsStore'
+import { generateToolSpec } from '../../../lib/tools/mockGenerator'
+import { ToolRenderer } from '../../../lib/tools/ToolRenderer'
 
 const SUGGESTED_PROMPTS: string[] = [
   'Stroke rate logger that pulls from Concept2',
@@ -18,15 +24,72 @@ const SUGGESTED_PROMPTS: string[] = [
   "Compare two athletes' last 4 erg pieces",
 ]
 
+const LOADING_MESSAGES = [
+  'Understanding your request…',
+  'Composing components…',
+  'Wiring data…',
+] as const
+
+const PHASE_DELAY_MS = 700
+const FINAL_DELAY_MS = 600
+
+type LoadingPhase = 0 | 1 | 2 | null
+
 export function ToolsBuildPage() {
   const navigate = useNavigate()
+  const { chatId } = useParams<{ chatId: string }>()
+  const sessions = useChatSessionsStore((s) => s.sessions)
+  const createSession = useChatSessionsStore((s) => s.createSession)
+  const session = chatId ? sessions.find((s) => s.id === chatId) ?? null : null
+
   const [text, setText] = useState('')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  // Cleared on unmount; the Send pipeline checks it between awaits so
+  // an unmount mid-flight doesn't trigger a navigate after teardown.
+  const cancelRef = useRef(false)
+
+  useEffect(() => {
+    cancelRef.current = false
+    return () => {
+      cancelRef.current = true
+    }
+  }, [])
+
+  const isLoading = loadingPhase !== null
 
   const fillPrompt = (prompt: string) => {
     setText(prompt)
     inputRef.current?.focus()
+  }
+
+  const newChat = () => {
+    if (isLoading) return
+    setText('')
+    setMobileSidebarOpen(false)
+    navigate('/app/coach/tools/build')
+  }
+
+  const onSend = async () => {
+    const prompt = text.trim()
+    if (!prompt || isLoading) return
+
+    setText('')
+    setLoadingPhase(0)
+    await delay(PHASE_DELAY_MS)
+    if (cancelRef.current) return
+    setLoadingPhase(1)
+    await delay(PHASE_DELAY_MS)
+    if (cancelRef.current) return
+    setLoadingPhase(2)
+    await delay(FINAL_DELAY_MS)
+    if (cancelRef.current) return
+
+    const spec = generateToolSpec(prompt)
+    const id = createSession(prompt, spec)
+    setLoadingPhase(null)
+    navigate(`/app/coach/tools/build/${id}`)
   }
 
   return (
@@ -40,33 +103,46 @@ export function ToolsBuildPage() {
       />
 
       <div className="flex min-h-0 flex-1">
-        {/* Sidebar — desktop (md+) */}
-        <DesktopSidebar />
+        <DesktopSidebar
+          sessions={sessions}
+          activeId={chatId}
+          onNewChat={newChat}
+        />
 
-        {/* Sidebar — mobile slide-in */}
         <MobileSidebar
           open={mobileSidebarOpen}
           onClose={() => setMobileSidebarOpen(false)}
+          sessions={sessions}
+          activeId={chatId}
+          onNewChat={newChat}
         />
 
-        {/* Main canvas */}
         <section className="relative flex min-h-0 flex-1 flex-col">
-          <div className="synth-scroll flex flex-1 flex-col items-center justify-center overflow-y-auto px-5 pb-[180px]">
-            <Canvas onPickPrompt={fillPrompt} />
+          <div className="synth-scroll flex flex-1 flex-col items-center overflow-y-auto px-5 pb-[180px]">
+            {isLoading ? (
+              <LoadingState phase={loadingPhase} />
+            ) : session ? (
+              <SessionView session={session} />
+            ) : (
+              <EmptyCanvas onPickPrompt={fillPrompt} />
+            )}
           </div>
 
           <ChatInput
             inputRef={inputRef}
             value={text}
             onChange={setText}
-            onSend={() => {
-              /* no-op in Sprint 1 */
-            }}
+            onSend={onSend}
+            disabled={isLoading}
           />
         </section>
       </div>
     </div>
   )
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
 // ─── Header ────────────────────────────────────────────────────────────────
@@ -135,15 +211,23 @@ function Header({
 
 // ─── Sidebar — desktop ─────────────────────────────────────────────────────
 
-function DesktopSidebar() {
+function DesktopSidebar({
+  sessions,
+  activeId,
+  onNewChat,
+}: {
+  sessions: ChatSession[]
+  activeId: string | undefined
+  onNewChat: () => void
+}) {
   return (
     <aside
       className="hidden shrink-0 flex-col gap-3 px-3 pb-6 pt-2 md:flex"
       style={{ width: 280 }}
     >
       <SidebarSurface>
-        <NewChatButton />
-        <SidebarEmptyState />
+        <NewChatButton onClick={onNewChat} />
+        <SidebarBody sessions={sessions} activeId={activeId} />
       </SidebarSurface>
     </aside>
   )
@@ -151,7 +235,19 @@ function DesktopSidebar() {
 
 // ─── Sidebar — mobile slide-in ─────────────────────────────────────────────
 
-function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+function MobileSidebar({
+  open,
+  onClose,
+  sessions,
+  activeId,
+  onNewChat,
+}: {
+  open: boolean
+  onClose: () => void
+  sessions: ChatSession[]
+  activeId: string | undefined
+  onNewChat: () => void
+}) {
   return (
     <AnimatePresence>
       {open ? (
@@ -194,8 +290,17 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
               </button>
             </div>
             <SidebarSurface>
-              <NewChatButton />
-              <SidebarEmptyState />
+              <NewChatButton
+                onClick={() => {
+                  onClose()
+                  onNewChat()
+                }}
+              />
+              <SidebarBody
+                sessions={sessions}
+                activeId={activeId}
+                onPick={onClose}
+              />
             </SidebarSurface>
           </motion.aside>
         </>
@@ -221,14 +326,12 @@ function SidebarSurface({ children }: { children: React.ReactNode }) {
   )
 }
 
-function NewChatButton() {
+function NewChatButton({ onClick }: { onClick: () => void }) {
   return (
     <motion.button
       type="button"
       whileTap={{ scale: 0.98 }}
-      onClick={() => {
-        /* no-op in Sprint 1 — Sprint 2 wires chat threads */
-      }}
+      onClick={onClick}
       className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-left"
       style={{
         background: 'rgba(255,255,255,0.10)',
@@ -249,6 +352,47 @@ function NewChatButton() {
         New chat
       </span>
     </motion.button>
+  )
+}
+
+function SidebarBody({
+  sessions,
+  activeId,
+  onPick,
+}: {
+  sessions: ChatSession[]
+  activeId: string | undefined
+  onPick?: () => void
+}) {
+  if (sessions.length === 0) {
+    return <SidebarEmptyState />
+  }
+  return (
+    <ul className="synth-scroll flex flex-1 flex-col gap-1 overflow-y-auto">
+      {sessions.slice(0, 20).map((s) => {
+        const active = s.id === activeId
+        return (
+          <li key={s.id}>
+            <Link
+              to={`/app/coach/tools/build/${s.id}`}
+              onClick={onPick}
+              className="block rounded-xl px-3 py-2"
+              style={{
+                background: active ? 'rgba(255,255,255,0.14)' : 'transparent',
+                border: `1px solid ${active ? SYNTH.glassBorder : 'transparent'}`,
+              }}
+            >
+              <span
+                className="block truncate text-[12px] font-semibold leading-tight"
+                style={{ color: SYNTH.inkOnBrand }}
+              >
+                {s.title}
+              </span>
+            </Link>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -286,11 +430,11 @@ function SidebarEmptyState() {
   )
 }
 
-// ─── Canvas ────────────────────────────────────────────────────────────────
+// ─── Empty canvas (no chat yet) ────────────────────────────────────────────
 
-function Canvas({ onPickPrompt }: { onPickPrompt: (prompt: string) => void }) {
+function EmptyCanvas({ onPickPrompt }: { onPickPrompt: (prompt: string) => void }) {
   return (
-    <div className="flex w-full max-w-[640px] flex-col items-center gap-6 py-10">
+    <div className="flex w-full max-w-[640px] flex-col items-center justify-center gap-6 py-10">
       <span
         className="text-[10px] font-bold uppercase tracking-[0.22em]"
         style={{ color: SYNTH.inkOnBrandFaint }}
@@ -350,6 +494,76 @@ function Canvas({ onPickPrompt }: { onPickPrompt: (prompt: string) => void }) {
   )
 }
 
+// ─── Loading state ─────────────────────────────────────────────────────────
+
+function LoadingState({ phase }: { phase: 0 | 1 | 2 }) {
+  return (
+    <div className="flex w-full max-w-[640px] flex-col items-center gap-5 py-20">
+      <motion.span
+        animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
+        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+        className="block h-3 w-3 rounded-full"
+        style={{
+          background: SYNTH.accentEmerald,
+          boxShadow: `0 0 16px ${SYNTH.accentEmerald}`,
+        }}
+      />
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={phase}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.25 }}
+          className="text-[14px] font-semibold"
+          style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+        >
+          {LOADING_MESSAGES[phase]}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Session view (rendered tool) ──────────────────────────────────────────
+
+function SessionView({ session }: { session: ChatSession }) {
+  return (
+    <motion.div
+      key={session.id}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+      className="flex w-full max-w-[640px] flex-col gap-4 py-6"
+    >
+      <div className="flex justify-end">
+        <div
+          className="flex max-w-[80%] flex-col gap-1.5 rounded-2xl px-4 py-3"
+          style={{
+            background: 'rgba(255,255,255,0.10)',
+            border: `1px solid ${SYNTH.glassBorder}`,
+          }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: SYNTH.inkOnBrandMuted }}
+          >
+            You
+          </span>
+          <span
+            className="text-[13px] leading-[1.5]"
+            style={{ color: SYNTH.inkOnBrand }}
+          >
+            {session.prompt}
+          </span>
+        </div>
+      </div>
+
+      <ToolRenderer spec={session.spec} />
+    </motion.div>
+  )
+}
+
 // ─── Chat input ────────────────────────────────────────────────────────────
 
 type ChatInputProps = {
@@ -357,10 +571,11 @@ type ChatInputProps = {
   value: string
   onChange: (v: string) => void
   onSend: () => void
+  disabled?: boolean
 }
 
-function ChatInput({ inputRef, value, onChange, onSend }: ChatInputProps) {
-  const canSend = value.trim().length > 0
+function ChatInput({ inputRef, value, onChange, onSend, disabled = false }: ChatInputProps) {
+  const canSend = !disabled && value.trim().length > 0
 
   return (
     <div
@@ -389,8 +604,9 @@ function ChatInput({ inputRef, value, onChange, onSend }: ChatInputProps) {
             }
           }}
           rows={1}
-          placeholder="Describe a tool you need…"
-          className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[14px] leading-[1.4] outline-none placeholder:opacity-50"
+          disabled={disabled}
+          placeholder={disabled ? 'Generating…' : 'Describe a tool you need…'}
+          className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[14px] leading-[1.4] outline-none placeholder:opacity-50 disabled:opacity-50"
           style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
         />
         <button

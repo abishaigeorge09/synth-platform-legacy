@@ -298,6 +298,7 @@ export const routes: RouteObject[] = [
           { path: 'lineups', element: withSuspense(<AppCoachLineupsPage />, 'Lineups') },
           { path: 'tools', element: withSuspense(<AppCoachToolsPage />, 'Tools') },
           { path: 'tools/build', element: withSuspense(<AppCoachToolsBuildPage />, 'Build a tool') },
+          { path: 'tools/build/:chatId', element: withSuspense(<AppCoachToolsBuildPage />, 'Build a tool') },
           { path: 'tools/stopwatch', element: withSuspense(<AppCoachStopwatchPage />, 'Stopwatch') },
           { path: 'sessions/:id', element: withSuspense(<AppCoachSessionDetailPage />, 'Session') },
           { path: 'sessions/:id/timer', element: withSuspense(<AppCoachSessionTimerPage />, 'Session timer') },

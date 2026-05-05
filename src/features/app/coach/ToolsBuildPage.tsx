@@ -16,6 +16,11 @@ import {
   useChatSessionsStore,
   type ChatSession,
 } from '../store/useChatSessionsStore'
+import {
+  useInstalledToolsStore,
+  type InstalledToolMeta,
+} from '../store/useInstalledToolsStore'
+import { toast } from '../../../shared/store/useToastStore'
 import { generateToolSpec, MockGenerationError } from '../../../lib/tools/mockGenerator'
 import { deriveQuestions } from '../../../lib/tools/clarifyingQuestions'
 import type { ToolSpec } from '../../../lib/tools/schema'
@@ -51,6 +56,8 @@ export function ToolsBuildPage() {
   const createSession = useChatSessionsStore((s) => s.createSession)
   const getSession = useChatSessionsStore((s) => s.getSession)
   const getRecent = useChatSessionsStore((s) => s.getRecent)
+  const install = useInstalledToolsStore((s) => s.install)
+  const isInstalled = useInstalledToolsStore((s) => s.isInstalled)
   // Resolve the active session via getSession so seeded examples load too.
   const session = chatId ? getSession(chatId) ?? null : null
   // Combined list (user sessions then seeded examples) for the sidebar.
@@ -60,7 +67,7 @@ export function ToolsBuildPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [mobilePane, setMobilePane] = useState<MobilePane>('chat')
+  const [mobilePane, setMobilePane] = useState<MobilePane>('preview')
   const [clarifyingState, setClarifyingState] = useState<ClarifyingState | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const cancelRef = useRef(false)
@@ -165,6 +172,28 @@ export function ToolsBuildPage() {
     if (session) navigate(`/app/coach/tools/${session.spec.id}`)
   }
 
+  const onInstall = () => {
+    if (!session) return
+    if (isInstalled(session.spec.id)) {
+      toast(`${session.spec.name} is already installed`, 'info')
+      return
+    }
+    const meta: InstalledToolMeta = {
+      id: session.spec.id,
+      name: session.spec.name,
+      shortDesc: session.spec.description,
+      publisher: 'synth · custom',
+      category: session.spec.category,
+      accent: SYNTH.cardLemon,
+      version: session.spec.version,
+      loadMs: 50,
+      to: `/app/coach/tools/${session.spec.id}`,
+      iconKey: session.spec.icon_key,
+    }
+    install(meta)
+    toast(`${session.spec.name} added to your collection`, 'success')
+  }
+
   return (
     <div
       className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -197,7 +226,17 @@ export function ToolsBuildPage() {
           onNewChat={newChat}
         />
 
-        {/* Chat pane: visible always on ≥md; on <md only when mobilePane==='chat' */}
+        {/* Preview pane (LEFT now — leads the eye, dominates the workspace).
+            Visible always on ≥md; on <md only when mobilePane==='preview'. */}
+        <section
+          className={`relative min-h-0 flex-col md:flex md:flex-1 ${
+            mobilePane === 'preview' ? 'flex flex-1' : 'hidden md:flex'
+          }`}
+        >
+          <ToolPreviewPanel spec={previewSpec} />
+        </section>
+
+        {/* Chat pane (RIGHT). Visible always on ≥md; on <md only when chat tab. */}
         <section
           className={`relative flex min-h-0 flex-col md:max-w-[440px] md:flex-1 ${
             mobilePane === 'chat' ? 'flex flex-1' : 'hidden md:flex'
@@ -226,6 +265,8 @@ export function ToolsBuildPage() {
                 session={session}
                 onRefine={onRefine}
                 onOpenFullscreen={onOpenFullscreen}
+                onInstall={onInstall}
+                installed={isInstalled(session.spec.id)}
               />
             ) : (
               <EmptyCanvas
@@ -242,15 +283,6 @@ export function ToolsBuildPage() {
             onSend={onSend}
             disabled={isLoading}
           />
-        </section>
-
-        {/* Preview pane: visible always on ≥md; on <md only when mobilePane==='preview' */}
-        <section
-          className={`relative min-h-0 flex-col md:flex md:flex-1 ${
-            mobilePane === 'preview' ? 'flex flex-1' : 'hidden md:flex'
-          }`}
-        >
-          <ToolPreviewPanel spec={previewSpec} />
         </section>
       </div>
     </div>
@@ -825,10 +857,14 @@ function SessionChatView({
   session,
   onRefine,
   onOpenFullscreen,
+  onInstall,
+  installed,
 }: {
   session: ChatSession
   onRefine: () => void
   onOpenFullscreen: () => void
+  onInstall: () => void
+  installed: boolean
 }) {
   return (
     <motion.div
@@ -892,6 +928,11 @@ function SessionChatView({
       </div>
 
       <div className="flex flex-wrap gap-2 pl-1">
+        <ActionChip
+          label={installed ? '✓ Installed' : 'Install →'}
+          onClick={onInstall}
+          variant={installed ? 'subtle' : 'primary'}
+        />
         <ActionChip label="Refine →" onClick={onRefine} />
         <ActionChip label="Open fullscreen" onClick={onOpenFullscreen} />
       </div>
@@ -899,7 +940,16 @@ function SessionChatView({
   )
 }
 
-function ActionChip({ label, onClick }: { label: string; onClick: () => void }) {
+function ActionChip({
+  label,
+  onClick,
+  variant = 'subtle',
+}: {
+  label: string
+  onClick: () => void
+  variant?: 'primary' | 'subtle'
+}) {
+  const isPrimary = variant === 'primary'
   return (
     <motion.button
       type="button"
@@ -907,8 +957,8 @@ function ActionChip({ label, onClick }: { label: string; onClick: () => void }) 
       onClick={onClick}
       className="rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]"
       style={{
-        background: 'rgba(255,255,255,0.08)',
-        border: `1px solid ${SYNTH.glassBorder}`,
+        background: isPrimary ? SYNTH.accentEmerald : 'rgba(255,255,255,0.08)',
+        border: `1px solid ${isPrimary ? SYNTH.accentEmerald : SYNTH.glassBorder}`,
         color: SYNTH.inkOnBrand,
         fontFamily: SYNTH.font,
       }}

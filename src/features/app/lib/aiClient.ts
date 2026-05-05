@@ -11,12 +11,17 @@
 
 import { streamClaudeMessages, selectModel } from '../../../lib/ai/claude'
 import { isClaudeConfigured } from '../../../lib/ai/env'
+import {
+  isDirectKeyConfigured,
+  streamDirectMessages,
+} from '../../../lib/ai/directClient'
 
 export type AIClientMode = 'live' | 'mock'
 
 /**
- * `live` when Supabase is configured. Demo users with anonymous Supabase
- * sessions still hit `live` — the Edge Function accepts anonymous JWTs.
+ * `live` when either:
+ *   - VITE_ANTHROPIC_API_KEY is set (dev only, see directClient.ts), OR
+ *   - Supabase is configured (the claude-chat Edge Function path)
  *
  * The previous version returned `mock` whenever isDemo was true. That
  * predates anonymous sign-in: useAppAuthStore.setDemoUser now calls
@@ -27,6 +32,7 @@ export type AIClientMode = 'live' | 'mock'
  */
 export function getAIClientMode(_opts?: { isDemo?: boolean }): AIClientMode {
   void _opts
+  if (isDirectKeyConfigured()) return 'live'
   if (!isClaudeConfigured()) return 'mock'
   return 'live'
 }
@@ -76,18 +82,32 @@ export async function streamCompletion({
   const chosenModel = model ?? selectModel(lastUser, systemPrompt)
 
   let prev = ''
+  const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }))
+  const onDelta = (full: string) => {
+    if (cancelled) return
+    const delta = full.slice(prev.length)
+    prev = full
+    if (delta) onEvent({ kind: 'delta', text: delta })
+  }
+
   try {
-    await streamClaudeMessages({
-      system: systemPrompt,
-      model: chosenModel,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      onTextDelta: (full: string) => {
-        if (cancelled) return
-        const delta = full.slice(prev.length)
-        prev = full
-        if (delta) onEvent({ kind: 'delta', text: delta })
-      },
-    })
+    if (isDirectKeyConfigured()) {
+      // Dev-only: VITE_ANTHROPIC_API_KEY through the Vite proxy.
+      await streamDirectMessages({
+        system: systemPrompt,
+        model: chosenModel,
+        messages: apiMessages,
+        onTextDelta: onDelta,
+      })
+    } else {
+      // Production / no direct key: Supabase Edge Function path.
+      await streamClaudeMessages({
+        system: systemPrompt,
+        model: chosenModel,
+        messages: apiMessages,
+        onTextDelta: onDelta,
+      })
+    }
     if (!cancelled) onEvent({ kind: 'done' })
   } catch (err) {
     if (cancelled) {

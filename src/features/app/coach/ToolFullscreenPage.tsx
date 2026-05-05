@@ -31,10 +31,15 @@ export function ToolFullscreenPage() {
   // doesn't match an installed tool. Lets "Open fullscreen" from the
   // Build action chips work for in-progress (not-yet-installed) sessions
   // and for seeded examples.
+  // Sprint 5.8 — also accept a `spec.id` slug (e.g. `pacific-boat-race`)
+  // by looking sessions up via getSessionBySpecId.
   const getSession = useChatSessionsStore((s) => s.getSession)
+  const getSessionBySpecId = useChatSessionsStore((s) => s.getSessionBySpecId)
 
   const tool = tools.find((t) => t.id === slug) ?? null
-  const sessionSpec = tool ? null : findSpecBySlug(getSession, slug ?? '')
+  const sessionSpec = tool
+    ? null
+    : findSpecBySlug(getSession, getSessionBySpecId, slug ?? '')
 
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -82,17 +87,18 @@ export function ToolFullscreenPage() {
 
 function findSpecBySlug(
   getSession: (id: string) => { spec: ToolSpec } | undefined,
+  getSessionBySpecId: (specId: string) => { spec: ToolSpec } | undefined,
   slug: string,
 ): ToolSpec | null {
   if (!slug) return null
-  // Direct id match (seed-* sessions or chat-uuid sessions).
+  // Direct session id match (seed-* sessions or chat-uuid sessions).
   const direct = getSession(slug)
   if (direct) return direct.spec
-  // Match by spec.id within any session (the action chip uses spec.id).
-  // We can't iterate the store cheaply here without exposing internals,
-  // so we limit the lookup to seeded examples + any session whose id
-  // happens to equal the slug. Sprint 9 will replace with a Supabase
-  // lookup keyed on tool_versions.
+  // Spec id match — Build's "Open fullscreen" passes spec.id so the
+  // fullscreen URL stays stable across sessions for the same tool.
+  // Sprint 9 will replace with a Supabase lookup keyed on tool_versions.
+  const bySpec = getSessionBySpecId(slug)
+  if (bySpec) return bySpec.spec
   return null
 }
 

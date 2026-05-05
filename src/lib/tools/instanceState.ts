@@ -30,6 +30,10 @@ export type ToolInstanceData = ResolvedBindings & {
 export type ToolAction =
   | { kind: 'append_row'; target: string; row: Record<string, unknown> }
   | { kind: 'set_input'; name: string; value: unknown }
+  // Sprint 5.8 — toggle a string value in/out of a string[] under
+  // `state[stateKey]`. Drives lineup_picker selection, which other
+  // elements (boat_race) read from to stay in sync.
+  | { kind: 'toggle_set_member'; stateKey: string; value: string }
   | { kind: 'reset' }
 
 const reducer: Reducer<ToolInstanceData, ToolAction & { __initial?: ToolInstanceData }> = (
@@ -45,6 +49,16 @@ const reducer: Reducer<ToolInstanceData, ToolAction & { __initial?: ToolInstance
     case 'set_input': {
       const inputs = (state.__inputs as Record<string, unknown> | undefined) ?? {}
       return { ...state, __inputs: { ...inputs, [action.name]: action.value } }
+    }
+    case 'toggle_set_member': {
+      const current = state[action.stateKey]
+      const set = Array.isArray(current)
+        ? current.filter((v): v is string => typeof v === 'string')
+        : []
+      const next = set.includes(action.value)
+        ? set.filter((v) => v !== action.value)
+        : [...set, action.value]
+      return { ...state, [action.stateKey]: next }
     }
     case 'reset':
       return action.__initial ?? state

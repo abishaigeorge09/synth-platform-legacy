@@ -27,10 +27,15 @@ describe('ToolSpec — example round-trips', () => {
 })
 
 describe('ToolSpec — coverage across examples', () => {
-  it('uses every one of the 13 element types at least once', () => {
+  it('uses every one of the 14 element types at least once', () => {
     const seen = new Set<ToolElement['type']>()
     for (const spec of EXAMPLES) {
+      // Sprint 5.8 — examples may be multi-page. Coverage scans every
+      // element across both top-level `elements` and any pages.
       for (const el of spec.elements) seen.add(el.type)
+      for (const page of spec.pages ?? []) {
+        for (const el of page.elements) seen.add(el.type)
+      }
     }
     const expected: ToolElement['type'][] = [
       'stat',
@@ -46,11 +51,12 @@ describe('ToolSpec — coverage across examples', () => {
       'select',
       'text',
       'boat_race',
+      'lineup_picker',
     ]
     for (const type of expected) {
       expect(seen.has(type), `missing element type: ${type}`).toBe(true)
     }
-    expect(seen.size).toBe(13)
+    expect(seen.size).toBe(14)
   })
 })
 

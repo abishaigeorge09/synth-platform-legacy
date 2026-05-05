@@ -16,16 +16,17 @@ const EXPECTED_TYPES: ToolElement['type'][] = [
   'select',
   'text',
   'boat_race',
+  'lineup_picker',
 ]
 
 describe('ELEMENT_RENDERERS', () => {
-  it('exposes a renderer for every one of the 13 ToolElement types', () => {
+  it('exposes a renderer for every one of the 14 ToolElement types', () => {
     const keys = Object.keys(ELEMENT_RENDERERS).sort()
     expect(keys).toEqual([...EXPECTED_TYPES].sort())
   })
 
-  it('has 13 entries, no extras', () => {
-    expect(Object.keys(ELEMENT_RENDERERS)).toHaveLength(13)
+  it('has 14 entries, no extras', () => {
+    expect(Object.keys(ELEMENT_RENDERERS)).toHaveLength(14)
   })
 
   it('every entry is a function (component)', () => {

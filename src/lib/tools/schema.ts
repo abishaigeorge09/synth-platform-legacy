@@ -204,10 +204,27 @@ const TextElementSchema = ElementShared.extend({
 // Sprint 5.7 — animated lane racer. `dataKey` resolves to
 // `{ boats: { name: string; finishMs: number; color?: string }[] }`.
 // Renderer animates each boat from 0 -> (finishMs / max) over `durationMs`.
+//
+// Sprint 5.8 — when `filterStateKey` is set, only boats whose `name` is in
+// `data[filterStateKey]` (a string[] in instance state) are animated.
+// Drives the Lineups → Race flow on Pacific Boat Race.
 const BoatRaceElementSchema = ElementShared.extend({
   type: z.literal('boat_race'),
   dataKey: z.string(),
   durationMs: z.number().int().positive().optional(),
+  filterStateKey: z.string().optional(),
+})
+
+// Sprint 5.8 — interactive lineup picker. Source list resolves from
+// `dataKey` (either `{ boats: [...] }` or a flat array). The renderer
+// toggles each boat's `name` in/out of `state[stateKey]` (a string[]).
+// Other elements (boat_race, table) read from the same stateKey to stay
+// in sync.
+const LineupPickerElementSchema = ElementShared.extend({
+  type: z.literal('lineup_picker'),
+  dataKey: z.string(),
+  stateKey: z.string(),
+  title: z.string().optional(),
 })
 
 export const ToolElementSchema = z.discriminatedUnion('type', [
@@ -224,9 +241,24 @@ export const ToolElementSchema = z.discriminatedUnion('type', [
   SelectElementSchema,
   TextElementSchema,
   BoatRaceElementSchema,
+  LineupPickerElementSchema,
 ])
 
 // ─── Tool spec (top-level) ────────────────────────────────────────────────
+
+// Sprint 5.8 — multi-page tools. When `pages` is non-empty, the renderer
+// shows a top-tab strip and renders only the active page's `elements`.
+// Top-level `elements` is treated as a fallback / single-page mode and
+// is ignored when `pages` is present. Pages share `inputs` and
+// `bindings` with the top-level spec.
+export const ToolPageSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .regex(/^[a-z][a-z0-9-]*$/, 'page id must be kebab-case'),
+  title: z.string().min(1),
+  elements: z.array(ToolElementSchema),
+})
 
 export const ToolSpecSchema = z.object({
   schema_version: z.union([z.literal(1), z.literal(2)]),
@@ -255,6 +287,7 @@ export const ToolSpecSchema = z.object({
   inputs: z.array(ToolInputSchema),
   bindings: z.record(ToolBindingSchema),
   elements: z.array(ToolElementSchema),
+  pages: z.array(ToolPageSchema).optional(),
 })
 
 // ─── Inferred TS types ────────────────────────────────────────────────────
@@ -263,6 +296,7 @@ export type ToolSpec = z.infer<typeof ToolSpecSchema>
 export type ToolElement = z.infer<typeof ToolElementSchema>
 export type ToolInput = z.infer<typeof ToolInputSchema>
 export type ToolBinding = z.infer<typeof ToolBindingSchema>
+export type ToolPage = z.infer<typeof ToolPageSchema>
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

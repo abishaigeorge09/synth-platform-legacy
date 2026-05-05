@@ -14,6 +14,8 @@ import { SYNTH } from '../lib/theme'
 import { CANVAS_ENTER, THINKING_DOT } from '../lib/motion'
 import {
   useChatSessionsStore,
+  type ChatMessage,
+  type ChatMessageRole,
   type ChatSession,
 } from '../store/useChatSessionsStore'
 import {
@@ -164,12 +166,21 @@ export function ToolsBuildPage() {
   }
 
   const onRefine = () => {
+    // On mobile, switch to the chat pane so the input we're focusing is
+    // actually on screen. Defer the focus call so the textarea is
+    // mounted in the chat-pane DOM tree before we ask for focus.
+    setMobilePane('chat')
     setText('Refine: ')
-    inputRef.current?.focus()
+    requestAnimationFrame(() => inputRef.current?.focus())
   }
 
   const onOpenFullscreen = () => {
-    if (session) navigate(`/app/coach/tools/${session.spec.id}`)
+    if (!session) return
+    // Sprint 5.8 — prefer spec.id when the tool is installed (the
+    // installed-tools route owns that slug); otherwise fall back to the
+    // session id so seeded examples and unsaved drafts still resolve.
+    const slug = isInstalled(session.spec.id) ? session.spec.id : session.id
+    navigate(`/app/coach/tools/${slug}`)
   }
 
   const onInstall = () => {
@@ -233,7 +244,19 @@ export function ToolsBuildPage() {
             mobilePane === 'preview' ? 'flex flex-1' : 'hidden md:flex'
           }`}
         >
-          <ToolPreviewPanel spec={previewSpec} />
+          <ToolPreviewPanel
+            spec={previewSpec}
+            actions={
+              session
+                ? {
+                    installed: isInstalled(session.spec.id),
+                    onInstall,
+                    onRefine,
+                    onOpenFullscreen,
+                  }
+                : null
+            }
+          />
         </section>
 
         {/* Chat pane (RIGHT). Visible always on ≥md; on <md only when chat tab. */}
@@ -261,13 +284,7 @@ export function ToolsBuildPage() {
                 onSkip={onSkipQuestions}
               />
             ) : session ? (
-              <SessionChatView
-                session={session}
-                onRefine={onRefine}
-                onOpenFullscreen={onOpenFullscreen}
-                onInstall={onInstall}
-                installed={isInstalled(session.spec.id)}
-              />
+              <SessionChatView session={session} />
             ) : (
               <EmptyCanvas
                 key={chatId ?? 'empty'}
@@ -851,21 +868,26 @@ function ErrorState({
   )
 }
 
-// ─── Session chat view (conversation only, NO tool render) ────────────────
+// ─── Session chat view (multi-turn transcript, no action chips) ───────────
+// Sprint 5.8 — chat panel is conversation only. Workflow chips
+// (Install / Refine / Open fullscreen) live under the preview phone
+// frame so the preview owns the "this is the working app" surface.
 
-function SessionChatView({
-  session,
-  onRefine,
-  onOpenFullscreen,
-  onInstall,
-  installed,
-}: {
-  session: ChatSession
-  onRefine: () => void
-  onOpenFullscreen: () => void
-  onInstall: () => void
-  installed: boolean
-}) {
+function SessionChatView({ session }: { session: ChatSession }) {
+  // Multi-turn when the seeded example or future user session carries
+  // a `messages` transcript. Single-turn fallback: just the original
+  // prompt + a generated "Built X" assistant turn.
+  const messages: ChatMessage[] =
+    session.messages && session.messages.length > 0
+      ? session.messages
+      : [
+          { role: 'user', content: session.prompt },
+          {
+            role: 'assistant',
+            content: `Built **${session.spec.name}** — see the preview.`,
+          },
+        ]
+
   return (
     <motion.div
       key={session.id}
@@ -874,98 +896,107 @@ function SessionChatView({
       transition={{ duration: 0.28 }}
       className="flex w-full max-w-[640px] flex-col gap-3 py-6"
     >
-      <div className="flex justify-end">
-        <div
-          className="flex max-w-[85%] flex-col gap-1.5 rounded-2xl px-4 py-3"
-          style={{
-            background: 'rgba(255,255,255,0.10)',
-            border: `1px solid ${SYNTH.glassBorder}`,
-          }}
-        >
-          <span
-            className="text-[10px] font-bold uppercase tracking-[0.14em]"
-            style={{ color: SYNTH.inkOnBrandMuted }}
-          >
-            You
-          </span>
-          <span
-            className="text-[13px] leading-[1.5]"
-            style={{ color: SYNTH.inkOnBrand }}
-          >
-            {session.prompt}
-          </span>
-        </div>
-      </div>
+      {messages.map((msg, i) => (
+        <ChatBubble key={i} role={msg.role} content={msg.content} index={i} />
+      ))}
 
-      <div className="flex justify-start">
-        <div
-          className="flex max-w-[85%] items-center gap-2 rounded-2xl px-3.5 py-2.5"
-          style={{
-            background: 'rgba(16,185,129,0.10)',
-            border: `1px solid ${SYNTH.accentEmerald}55`,
-          }}
-        >
-          <span
-            className="inline-block h-1.5 w-1.5 rounded-full"
-            style={{
-              background: SYNTH.accentEmerald,
-              boxShadow: `0 0 0 3px ${SYNTH.accentEmerald}33`,
-            }}
-          />
-          <span
-            className="text-[12px] font-semibold"
-            style={{ color: SYNTH.inkOnBrand }}
-          >
-            Built {session.spec.name}
-          </span>
-          <span
-            className="text-[11px]"
-            style={{ color: SYNTH.inkOnBrandMuted }}
-          >
-            — see preview
-          </span>
-        </div>
-      </div>
+      <BuiltBadge spec={session.spec} />
+    </motion.div>
+  )
+}
 
-      <div className="flex flex-wrap gap-2 pl-1">
-        <ActionChip
-          label={installed ? '✓ Installed' : 'Install →'}
-          onClick={onInstall}
-          variant={installed ? 'subtle' : 'primary'}
-        />
-        <ActionChip label="Refine →" onClick={onRefine} />
-        <ActionChip label="Open fullscreen" onClick={onOpenFullscreen} />
+function ChatBubble({
+  role,
+  content,
+  index,
+}: {
+  role: ChatMessageRole
+  content: string
+  index: number
+}) {
+  const isUser = role === 'user'
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.05, 0.3), duration: 0.24 }}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+    >
+      <div
+        className="flex max-w-[85%] flex-col gap-1.5 rounded-2xl px-4 py-3"
+        style={{
+          background: isUser
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${SYNTH.glassBorder}`,
+        }}
+      >
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.14em]"
+          style={{ color: SYNTH.inkOnBrandMuted }}
+        >
+          {isUser ? 'You' : 'synth'}
+        </span>
+        <div
+          className="whitespace-pre-line text-[13px] leading-[1.55]"
+          style={{ color: SYNTH.inkOnBrand }}
+        >
+          {renderInlineMarkdown(content)}
+        </div>
       </div>
     </motion.div>
   )
 }
 
-function ActionChip({
-  label,
-  onClick,
-  variant = 'subtle',
-}: {
-  label: string
-  onClick: () => void
-  variant?: 'primary' | 'subtle'
-}) {
-  const isPrimary = variant === 'primary'
+function BuiltBadge({ spec }: { spec: ChatSession['spec'] }) {
   return (
-    <motion.button
-      type="button"
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      className="rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]"
-      style={{
-        background: isPrimary ? SYNTH.accentEmerald : 'rgba(255,255,255,0.08)',
-        border: `1px solid ${isPrimary ? SYNTH.accentEmerald : SYNTH.glassBorder}`,
-        color: SYNTH.inkOnBrand,
-        fontFamily: SYNTH.font,
-      }}
-    >
-      {label}
-    </motion.button>
+    <div className="flex justify-start">
+      <div
+        className="flex max-w-[85%] items-center gap-2 rounded-2xl px-3.5 py-2"
+        style={{
+          background: 'rgba(16,185,129,0.10)',
+          border: `1px solid ${SYNTH.accentEmerald}55`,
+        }}
+      >
+        <span
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{
+            background: SYNTH.accentEmerald,
+            boxShadow: `0 0 0 3px ${SYNTH.accentEmerald}33`,
+          }}
+        />
+        <span
+          className="text-[11px] font-semibold"
+          style={{ color: SYNTH.inkOnBrand }}
+        >
+          Live preview ready
+        </span>
+        <span
+          className="text-[11px]"
+          style={{ color: SYNTH.inkOnBrandMuted }}
+        >
+          — {spec.name}
+        </span>
+      </div>
+    </div>
   )
+}
+
+// Lightweight inline **bold** renderer so the seeded conversation can
+// emphasize page names without pulling in a markdown parser. Anything
+// else (lists, headings) renders as plain text via whitespace-pre-line.
+function renderInlineMarkdown(content: string): React.ReactNode {
+  const parts = content.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} style={{ color: SYNTH.inkOnBrand }}>
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
 }
 
 // ─── Clarifying view (chips before generation) ────────────────────────────

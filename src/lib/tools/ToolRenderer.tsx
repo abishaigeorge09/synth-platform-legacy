@@ -12,12 +12,13 @@
  * crash the page. A spec that fails schema validation renders a single
  * error card.
  */
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component, useState, type ErrorInfo, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import {
   ToolSpecSchema,
   type ToolElement,
   type ToolInput,
+  type ToolPage,
   type ToolSpec,
 } from './schema'
 import { ELEMENT_RENDERERS } from './registry'
@@ -44,20 +45,35 @@ export function ToolRenderer({ spec }: { spec: ToolSpec }) {
 function ValidatedToolRenderer({ spec }: { spec: ToolSpec }) {
   const { data: resolvedData } = useResolvedBindings(spec)
   const { data, dispatch } = useToolInstanceState(resolvedData)
+  const pages = spec.pages && spec.pages.length > 0 ? spec.pages : null
+  const [activePageId, setActivePageId] = useState<string>(pages?.[0]?.id ?? '')
+
+  // When pages exist, render only the active page's elements. Top-level
+  // `elements` is treated as legacy single-page mode and ignored here.
+  const elementsToRender: ToolElement[] = pages
+    ? pages.find((p) => p.id === activePageId)?.elements ?? []
+    : spec.elements
 
   return (
     <ToolStateContext.Provider value={{ data, dispatch }}>
       <div className="flex flex-col gap-4">
+        {pages ? (
+          <PageTabs
+            pages={pages}
+            active={activePageId}
+            onChange={setActivePageId}
+          />
+        ) : null}
         {spec.inputs.length > 0 ? <InputsSummary inputs={spec.inputs} /> : null}
         <div
           className="grid grid-cols-1 gap-3 sm:grid-cols-6"
           style={{ fontFamily: SYNTH.font }}
         >
-          {spec.elements.map((element, i) => {
+          {elementsToRender.map((element, i) => {
             const Renderer = ELEMENT_RENDERERS[element.type]
             return (
               <ElementSlot
-                key={element.id ?? `${element.type}-${i}`}
+                key={element.id ?? `${activePageId}-${element.type}-${i}`}
                 element={element}
                 index={i}
               >
@@ -70,6 +86,46 @@ function ValidatedToolRenderer({ spec }: { spec: ToolSpec }) {
         </div>
       </div>
     </ToolStateContext.Provider>
+  )
+}
+
+function PageTabs({
+  pages,
+  active,
+  onChange,
+}: {
+  pages: ToolPage[]
+  active: string
+  onChange: (id: string) => void
+}) {
+  return (
+    <div
+      className="synth-scroll flex items-center gap-1.5 overflow-x-auto rounded-2xl p-1"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        border: `1px solid ${SYNTH.glassBorder}`,
+      }}
+    >
+      {pages.map((page) => {
+        const isActive = page.id === active
+        return (
+          <button
+            key={page.id}
+            type="button"
+            onClick={() => onChange(page.id)}
+            className="shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]"
+            style={{
+              background: isActive ? SYNTH.inkOnBrand : 'transparent',
+              color: isActive ? SYNTH.ink : SYNTH.inkOnBrand,
+              fontFamily: SYNTH.font,
+              transition: 'background 140ms ease, color 140ms ease',
+            }}
+          >
+            {page.title}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 

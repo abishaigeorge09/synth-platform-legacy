@@ -702,10 +702,25 @@ const BoatRaceRenderer: ElementRenderer = ({ element, data }) => {
   if (element.type !== 'boat_race') return null
 
   const raw = data[element.dataKey] as BoatRaceData | undefined
-  const boats = raw?.boats ?? []
+  const allBoats = raw?.boats ?? []
   const durationMs = element.durationMs ?? 8000
 
+  // Sprint 5.8 — when filterStateKey is set, only show boats whose name
+  // is in data[filterStateKey] (a string[] in instance state). Empty
+  // selection renders the "select boats" empty state below.
+  const filterKey = element.filterStateKey
+  const filterRaw = filterKey ? data[filterKey] : null
+  const filterNames = Array.isArray(filterRaw)
+    ? filterRaw.filter((v): v is string => typeof v === 'string')
+    : null
+  const boats = filterNames
+    ? allBoats.filter((b) => filterNames.includes(b.name))
+    : allBoats
+
   if (boats.length === 0) {
+    const message = filterNames
+      ? 'Pick at least one boat from the Lineups tab'
+      : 'No race data'
     return (
       <div
         className="rounded-2xl px-4 py-6 text-center"
@@ -716,7 +731,7 @@ const BoatRaceRenderer: ElementRenderer = ({ element, data }) => {
           fontFamily: SYNTH.font,
         }}
       >
-        <span className="text-[11px] uppercase tracking-[0.14em]">No race data</span>
+        <span className="text-[11px] uppercase tracking-[0.14em]">{message}</span>
       </div>
     )
   }
@@ -803,6 +818,135 @@ const BoatRaceRenderer: ElementRenderer = ({ element, data }) => {
   )
 }
 
+// ─── lineup_picker (schema v2, Sprint 5.8) ────────────────────────────────
+
+type LineupPickerItem = { name: string; finishMs?: number; color?: string }
+
+function readLineupItems(raw: unknown): LineupPickerItem[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((b): b is LineupPickerItem => {
+      return Boolean(b && typeof b === 'object' && typeof (b as { name?: unknown }).name === 'string')
+    })
+  }
+  if (raw && typeof raw === 'object' && Array.isArray((raw as { boats?: unknown }).boats)) {
+    return readLineupItems((raw as { boats: unknown }).boats)
+  }
+  return []
+}
+
+const LineupPickerRenderer: ElementRenderer = ({ element, data }) => {
+  const { dispatch } = useToolState()
+  if (element.type !== 'lineup_picker') return null
+
+  const items = readLineupItems(data[element.dataKey])
+  const stateRaw = data[element.stateKey]
+  const selected = Array.isArray(stateRaw)
+    ? stateRaw.filter((v): v is string => typeof v === 'string')
+    : []
+
+  if (items.length === 0) {
+    return (
+      <div
+        className="rounded-2xl px-4 py-6 text-center"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: `1px dashed ${SYNTH.glassBorder}`,
+          color: SYNTH.inkOnBrandMuted,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        <span className="text-[11px] uppercase tracking-[0.14em]">No boats available</span>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="flex flex-col gap-2 rounded-2xl px-3 py-3"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        border: `1px solid ${SYNTH.glassBorder}`,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      {element.title ? (
+        <span
+          className="px-1 pb-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+          style={{ color: SYNTH.inkOnBrandMuted }}
+        >
+          {element.title}
+        </span>
+      ) : null}
+      <div className="flex flex-col gap-1.5">
+        {items.map((item, i) => {
+          const active = selected.includes(item.name)
+          const dot = item.color ?? RACE_PALETTE[i % RACE_PALETTE.length]
+          return (
+            <motion.button
+              key={item.name}
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              onClick={() =>
+                dispatch({
+                  kind: 'toggle_set_member',
+                  stateKey: element.stateKey,
+                  value: item.name,
+                })
+              }
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left"
+              style={{
+                background: active
+                  ? 'rgba(16,185,129,0.18)'
+                  : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${active ? `${SYNTH.accentEmerald}66` : SYNTH.glassBorder}`,
+              }}
+            >
+              <span
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                style={{
+                  background: dot,
+                  boxShadow: '0 0 0 2px rgba(8,8,40,0.35)',
+                }}
+              />
+              <span
+                className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-[0.10em]"
+                style={{ color: SYNTH.inkOnBrand }}
+              >
+                {item.name}
+              </span>
+              {typeof item.finishMs === 'number' ? (
+                <span
+                  className="text-[10px] tabular-nums"
+                  style={{ color: SYNTH.inkOnBrandMuted }}
+                >
+                  {formatRaceTime(item.finishMs)}
+                </span>
+              ) : null}
+              <span
+                aria-hidden
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                style={{
+                  background: active ? SYNTH.accentEmerald : 'rgba(255,255,255,0.10)',
+                  color: active ? SYNTH.ink : SYNTH.inkOnBrandFaint,
+                  border: `1px solid ${active ? SYNTH.accentEmerald : SYNTH.glassBorder}`,
+                }}
+              >
+                {active ? '✓' : '+'}
+              </span>
+            </motion.button>
+          )
+        })}
+      </div>
+      <div
+        className="mt-1 px-1 text-[10px]"
+        style={{ color: SYNTH.inkOnBrandMuted }}
+      >
+        {selected.length} of {items.length} selected
+      </div>
+    </div>
+  )
+}
+
 // ─── Registry map ─────────────────────────────────────────────────────────
 
 /**
@@ -824,4 +968,5 @@ export const ELEMENT_RENDERERS: Record<ToolElement['type'], ElementRenderer> = {
   select: SelectRenderer,
   text: TextRenderer,
   boat_race: BoatRaceRenderer,
+  lineup_picker: LineupPickerRenderer,
 }

@@ -215,7 +215,17 @@ export function ToolsBuildPage() {
     await delay(FINAL_DELAY_MS)
     if (cancelRef.current) return
 
-    if (liveGenerationAvailable && coachContext) {
+    // Read coach context fresh at the moment we're about to dispatch.
+    // The render-time `liveGenerationAvailable` constant captures
+    // whatever was true when this function reference was created;
+    // if useCoachContext finished hydrating during the
+    // clarifying-questions back-and-forth, the closure value is
+    // stale and we'd wrongly fall into the mock path. Pulling
+    // straight off the store here uses the latest value.
+    const liveCtx = useCoachContextStore.getState().context
+    const liveAvailable = liveCtx !== null && getAIClientMode() === 'live'
+
+    if (liveAvailable && liveCtx) {
       trackToolEvent('tool_request_submitted', {
         prompt_length: augmented.length,
         is_refinement: toolRequestId !== null,
@@ -224,8 +234,8 @@ export function ToolsBuildPage() {
       try {
         const result = await generateToolViaEdge({
           description: augmented,
-          role: coachContext.role,
-          team_id: coachContext.team_id,
+          role: liveCtx.role,
+          team_id: liveCtx.team_id,
           tool_request_id: toolRequestId,
         })
         if (cancelRef.current) return

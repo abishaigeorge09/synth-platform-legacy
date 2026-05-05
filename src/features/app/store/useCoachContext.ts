@@ -64,18 +64,36 @@ export const useCoachContextStore = create<CoachContextState>((set, get) => ({
       return
     }
 
-    // Initial fetch from whatever session exists right now.
-    const { data: sessionData } = await supabase.auth.getSession()
-    const userId = sessionData.session?.user.id
+    // Race recovery — same pattern as src/lib/ai/claude.ts:authHeaders.
+    // Demo flow's signInAnonymously fires fire-and-forget so the splash
+    // can unblock immediately. If hydrate runs before that lands the
+    // first getSession() returns null, coachContext stays null, and
+    // Build silently falls into the keyword-mock path. Without this
+    // recovery, every demo user's first Build interaction was mock —
+    // confirmed by 0 rows in tool_requests despite many demo sessions.
+    let session = (await supabase.auth.getSession()).data.session
+    if (!session) {
+      await new Promise((r) => setTimeout(r, 600))
+      session = (await supabase.auth.getSession()).data.session
+      if (!session) {
+        try {
+          await supabase.auth.signInAnonymously()
+        } catch (err) {
+          console.warn('[coach-context] recovery anon sign-in threw', err)
+        }
+        session = (await supabase.auth.getSession()).data.session
+      }
+    }
+    const userId = session?.user.id
     if (userId) {
       const ctx = await fetchContextFor(userId)
       set({ context: ctx })
     }
 
     // One-shot listener: re-query the users table whenever the auth
-    // session changes. Demo users typically arrive here BEFORE
-    // signInAnonymously lands — without this listener, the context
-    // never resolves and the Build workspace stays in mock mode.
+    // session changes. Even with the proactive recovery above, a slow
+    // anon sign-in can still complete after hydrate returns; the
+    // listener catches that case so context still lands.
     if (!get().listenerInstalled) {
       set({ listenerInstalled: true })
       supabase.auth.onAuthStateChange(async (_event, session) => {

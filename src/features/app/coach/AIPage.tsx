@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronDown, Menu, Sliders } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import { SheetShell } from '../primitives/SheetShell'
+import { AuroraVoiceOverlay } from '../primitives/AuroraVoiceOverlay'
 import {
   AIThread,
   AIComposer,
@@ -79,6 +80,11 @@ export function AIPage() {
   const [scopeOpen, setScopeOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  // Phase 3 — voice transcribe via the existing AuroraVoiceOverlay
+  // (synth whisper). On Save, the transcript fills the composer
+  // textarea and the overlay closes; the user reviews + sends. No
+  // auto-send.
+  const [voiceOpen, setVoiceOpen] = useState(false)
   const [style, setStyle] = useState<StyleKey>('synthesized')
   const streamingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -380,11 +386,25 @@ export function AIPage() {
           open={addOpen}
           onClose={() => setAddOpen(false)}
           onPickFiles={onPickFiles}
+          onOpenVoice={() => setVoiceOpen(true)}
           scopeOptions={scopeOptions}
           scopeId={scopeId}
           onScopeChange={onScopeChange}
           style={style}
           onStyleChange={setStyle}
+        />
+
+        <AuroraVoiceOverlay
+          open={voiceOpen}
+          onClose={() => setVoiceOpen(false)}
+          onSave={(transcript) => {
+            // Append rather than replace: if the coach already typed
+            // a partial message and then opened voice to dictate the
+            // rest, we don't want to wipe what they typed.
+            setText((current) => (current ? `${current.trimEnd()} ${transcript}` : transcript))
+            setVoiceOpen(false)
+          }}
+          scopeLabel={scopeLabel}
         />
 
         <ScopePickerSheet

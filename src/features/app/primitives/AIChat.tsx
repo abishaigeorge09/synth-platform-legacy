@@ -811,15 +811,11 @@ export function AIComposer({
           <Plus size={18} strokeWidth={2.2} />
         </button>
         <span className="flex-1" />
-        <button
-          type="button"
-          aria-label="Voice transcribe"
-          disabled={isStreaming}
-          className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-50"
-          style={{ color: SYNTH.aiTextMuted }}
-        >
-          <Mic size={18} strokeWidth={2} />
-        </button>
+        {/* Phase 3 — the previous decorative mic button used to live
+            here. It did nothing (no onClick). Voice now opens through
+            AddToChatSheet's Voice tile, which routes through the
+            existing AuroraVoiceOverlay (synth whisper). One entry
+            point keeps the composer simple. */}
         <AnimatePresence mode="wait" initial={false}>
           {isStreaming ? (
             <motion.button
@@ -900,6 +896,7 @@ export function AddToChatSheet({
   open,
   onClose,
   onPickFiles,
+  onOpenVoice,
   scopeOptions,
   scopeId,
   onScopeChange,
@@ -909,6 +906,10 @@ export function AddToChatSheet({
   open: boolean
   onClose: () => void
   onPickFiles: (files: FileList | null) => void
+  /** Phase 3 — opens the AuroraVoiceOverlay (synth whisper) at the page
+   *  level. The sheet closes itself first so the overlay isn't stacked
+   *  over a half-shut sheet. Optional so older callers stay valid. */
+  onOpenVoice?: () => void
   scopeOptions: ScopeOption[]
   scopeId: string
   onScopeChange: (id: string) => void
@@ -924,12 +925,24 @@ export function AddToChatSheet({
     el.click()
   }
 
+  const triggerVoice = () => {
+    if (!onOpenVoice) return
+    // Close the sheet first; the overlay then mounts cleanly above the
+    // page. Without the close, the sheet's backdrop stacks under the
+    // overlay and you see two scrim layers.
+    onClose()
+    onOpenVoice()
+  }
+
   return (
     <SheetShell open={open} onClose={onClose} title="Add to chat">
-      <div className="grid grid-cols-3 gap-2 pt-2">
+      <div className="grid grid-cols-2 gap-2 pt-2">
         <Tile icon={<Camera size={20} strokeWidth={2.2} />} label="Camera" onClick={() => triggerFile('image/*')} />
         <Tile icon={<ImageIcon size={20} strokeWidth={2.2} />} label="Photos" onClick={() => triggerFile('image/*')} />
         <Tile icon={<FileText size={20} strokeWidth={2.2} />} label="Files" onClick={() => triggerFile('*/*')} />
+        {onOpenVoice ? (
+          <Tile icon={<Mic size={20} strokeWidth={2.2} />} label="Voice" onClick={triggerVoice} />
+        ) : null}
       </div>
 
       <Group label="Scope">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Menu, Sliders } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
+import { AuroraVoiceOverlay } from '../primitives/AuroraVoiceOverlay'
 import {
   AIThread,
   AIComposer,
@@ -56,6 +57,10 @@ export function AIPage() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  // Phase 3 — voice transcribe via AuroraVoiceOverlay (see coach/AIPage
+  // for the rationale). Transcript fills the composer; user reviews +
+  // sends.
+  const [voiceOpen, setVoiceOpen] = useState(false)
   const [style, setStyle] = useState<StyleKey>('synthesized')
 
   // Phase 2 — athlete view is always self-scoped to the signed-in
@@ -327,6 +332,7 @@ export function AIPage() {
           open={addOpen}
           onClose={() => setAddOpen(false)}
           onPickFiles={onPickFiles}
+          onOpenVoice={() => setVoiceOpen(true)}
           scopeOptions={scopeOptions}
           scopeId={me.id}
           onScopeChange={() => {
@@ -334,6 +340,16 @@ export function AIPage() {
           }}
           style={style}
           onStyleChange={setStyle}
+        />
+
+        <AuroraVoiceOverlay
+          open={voiceOpen}
+          onClose={() => setVoiceOpen(false)}
+          onSave={(transcript) => {
+            setText((current) => (current ? `${current.trimEnd()} ${transcript}` : transcript))
+            setVoiceOpen(false)
+          }}
+          scopeLabel={`Just ${me.name.split(' ')[0]}`}
         />
 
         <CustomizeChatSheet

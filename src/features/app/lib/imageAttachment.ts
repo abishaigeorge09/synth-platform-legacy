@@ -19,6 +19,15 @@
  * size at 5 MB which is conservative — a 5 MB raw image becomes
  * ~6.7 MB base64. If we hit that ceiling in practice we'll lower to
  * 3.75 MB raw (= 5 MB base64).
+ *
+ * NOT implemented yet — image tagging / classification:
+ *   AG asked for an auto-tag pass on upload (erg-screen vs.
+ *   stroke-video-still vs. whiteboard, athlete linkage via OCR,
+ *   stroke-phase classifier). Spec lives in docs/TODO.md section
+ *   "4a. Chat → Image tagging + classification". Until that
+ *   ships, the composer shows a "synth can't auto-tag images yet"
+ *   hint and the system prompt instructs Claude to ask
+ *   clarifying follow-up questions instead of guessing.
  */
 
 import type { ChatAttachment } from '../primitives/AIChat'

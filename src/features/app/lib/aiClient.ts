@@ -166,11 +166,19 @@ export function buildSystemPrompt({
   scopeLabel,
   scopeData,
   customization,
+  hasImage = false,
 }: {
   scope: 'team' | 'athlete' | 'self'
   scopeLabel: string
   scopeData: Record<string, unknown>
   customization: Customization
+  /** Phase 4 follow-up — when the user attached an image to the
+   *  current message, we lean the prompt into observation +
+   *  clarifying questions rather than letting Claude fall back to
+   *  generic prose. The auto-tagging line below sets expectations
+   *  honestly: synth can't classify images yet, but it's planned
+   *  (see docs/TODO-ai-image-tagging.md). */
+  hasImage?: boolean
 }): string {
   const lines: string[] = [
     'You are synth, an AI assistant for a rowing coach/athlete data platform.',
@@ -199,6 +207,25 @@ export function buildSystemPrompt({
     '',
     `Tone: ${TONE_GUIDANCE[customization.tone]}`,
   ]
+
+  if (hasImage) {
+    // The user attached an image to THIS message. Force a structured
+    // response shape: short observation, expectation-setting line
+    // about auto-tagging being a roadmap item, then 1-3 clarifying
+    // questions as suggestion chips. Skipping the chips here is the
+    // most common failure mode -- without this hard rule, Claude
+    // tends to dump a wall of generic "I see X, Y, Z" prose with no
+    // follow-up.
+    lines.push(
+      '',
+      'IMAGE ATTACHED — special handling for this message:',
+      '1. In ONE short sentence, say what you see in the image. No more than 18 words. No bullet list, no markdown headers.',
+      '2. Then add this exact disclaimer once, on its own short line: "synth can\'t auto-tag images yet, that\'s coming soon."',
+      '3. Then ask 1-3 clarifying questions ONLY via [suggest:Q1|Q2|Q3] so the coach can tap to send. Pick questions that pin down WHAT they want analysed (e.g. catch position, finish, blade depth, comparison to a prior session, technique vs. force, who they\'re comparing against). Each item max 80 characters, each one a complete sentence ending in "?".',
+      '4. Do not ask the same question in prose AND in a chip. Chips replace inline questions on this turn.',
+      '5. Do not add citations, charts, tables, or illustrations to this message. Keep it minimal until the coach picks a follow-up.',
+    )
+  }
 
   if (customization.instructions.trim()) {
     lines.push('', `Coach's custom instructions:\n${customization.instructions.trim()}`)

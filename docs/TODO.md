@@ -93,6 +93,13 @@ Each connector needs: OAuth flow (Edge Function holding client secrets), data pa
 - **Athlete guardrails** — Athlete-scoped chat should only see their own data, never other athletes'
 - **Chat persistence** — `useChatStore` is in-memory only. Wire to `chat_threads` / `chat_messages` tables
 - **Conversation history** — Previous chat threads loadable from DB, not lost on page refresh
+- **Image tagging + classification** — Phase 4 ships vision (the user can attach an image, Claude responds about what it sees). What does NOT exist yet:
+  - **Auto-tag pass on upload.** When an image lands in the composer, hit Claude with a structured prompt before the user types anything: "Classify this image. Return JSON: `{type: 'erg_screen' | 'stroke_video_still' | 'whiteboard' | 'lineup_board' | 'workout_summary' | 'other', subjects: AthleteId[], detectedMetrics: {...}, confidence: 0..1}`". Use `claude-haiku-4-5` (cheap, fast). Result lands in a new `media_tags` table keyed by `attachment_id`
+  - **`media_tags` table** — `id`, `attachment_id`, `kind`, `subjects` (athlete uuids[]), `metrics` (jsonb — e.g. `{splitSeconds: 421, distanceMeters: 2000, strokeRate: 32}` for erg screens), `confidence`, `model`, `tagged_at`. RLS: same scope as the parent message
+  - **Athlete linkage** — when an erg screen is detected, OCR the visible name/number and match against the team roster; auto-attach the parsed `splitSeconds` / `distanceMeters` to the matched athlete's `erg_scores` (with a "from screenshot" provenance flag the coach can confirm/reject)
+  - **Stroke-video classifier** — distinguish catch / drive / finish / recovery frames so the coach can ask "show me her catch" and we know which frames to extract
+  - **UI surfaces** — tag chips render under the image in the user bubble (tappable filter), the customize sheet "Reference materials" tab gains a "Auto-tagged uploads" section, and `/coach/sources` gets an "image library" view filtered by tag
+  - **Until built** — current behaviour: composer shows "synth can't auto-tag images yet" hint, system prompt makes Claude echo this disclaimer + ask clarifying follow-up questions via suggestion chips. See `src/features/app/lib/imageAttachment.ts` and the `IMAGE ATTACHED` block in `aiClient.ts:buildSystemPrompt`
 
 ### 4b. Intelligence Algorithms
 

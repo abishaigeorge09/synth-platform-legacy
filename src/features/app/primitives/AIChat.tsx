@@ -838,6 +838,23 @@ export function AIComposer({
         </div>
       ) : null}
 
+      {attachment?.dataUrl ? (
+        // Image-staged hint. Sets expectations before send: synth
+        // doesn't yet classify or tag images automatically; the coach
+        // should phrase what they want analysed (catch, finish, etc.).
+        // Keeping this UI-side AND in the system prompt is intentional
+        // — the prompt makes Claude say it once in the response, but
+        // the user still sees it before clicking send and before any
+        // network round-trip.
+        <p
+          className="mb-2 px-1 text-[11px] leading-snug"
+          style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+        >
+          synth can't auto-tag images yet. Describe what you want to know,
+          or hit send and I'll ask follow-ups.
+        </p>
+      ) : null}
+
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}

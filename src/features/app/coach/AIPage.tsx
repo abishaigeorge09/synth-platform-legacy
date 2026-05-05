@@ -223,6 +223,10 @@ export function AIPage() {
       scopeLabel,
       scopeData,
       customization: customResolved,
+      // Image-aware prompt branch — instructs Claude to respond with
+      // a 1-sentence observation + the "auto-tagging coming" line +
+      // clarifying [suggest:] chips, instead of generic prose.
+      hasImage: !!userMsg.attachment?.dataUrl,
     })
 
     const history = messages

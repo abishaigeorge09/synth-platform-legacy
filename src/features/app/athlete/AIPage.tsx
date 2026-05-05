@@ -179,6 +179,8 @@ export function AIPage() {
       scopeLabel,
       scopeData,
       customization: customResolved,
+      // See coach/AIPage.tsx for rationale.
+      hasImage: !!userMsg.attachment?.dataUrl,
     })
 
     const history = messages

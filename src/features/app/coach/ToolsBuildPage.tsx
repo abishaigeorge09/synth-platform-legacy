@@ -282,7 +282,7 @@ export function ToolsBuildPage() {
           }`}
         >
           <motion.div
-            className="synth-scroll flex flex-1 flex-col items-center overflow-y-auto px-5 pb-[160px]"
+            className="synth-scroll flex flex-1 flex-col items-center overflow-y-auto px-5"
             {...CANVAS_ENTER}
           >
             {isLoading ? (

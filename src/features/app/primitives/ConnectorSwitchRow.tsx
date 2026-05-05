@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
+// Primitive module: exports the row component plus shared constants used
+// across the connector flow. Trade-off is full HMR reload on edits.
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Loader2 } from 'lucide-react'

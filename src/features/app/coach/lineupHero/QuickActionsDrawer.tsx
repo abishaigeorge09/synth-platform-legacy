@@ -109,6 +109,10 @@ export function QuickActionsDrawer() {
                 <Fab
                   ariaLabel="Upload files"
                   icon={<Upload size={15} strokeWidth={2.4} />}
+                  // The ref is read inside the click handler, not at render
+                  // time — the linter trips on the closure being created
+                  // during render even though it's never invoked then.
+                  // eslint-disable-next-line react-hooks/refs
                   onClick={after(() => uploadInputRef.current?.click())}
                 />
                 <Fab

@@ -11,6 +11,7 @@ export function useTargetRect(anchor: string | null): { rect: Rect | null; el: H
   const [rect, setRect] = useState<Rect | null>(null)
   const [el, setEl] = useState<HTMLElement | null>(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!anchor) {
       setRect(null)
@@ -71,6 +72,7 @@ export function useTargetRect(anchor: string | null): { rect: Rect | null; el: H
       resizeObs?.disconnect()
     }
   }, [anchor])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { rect, el }
 }

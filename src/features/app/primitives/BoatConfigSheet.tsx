@@ -38,6 +38,7 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
   const [pickerSeat, setPickerSeat] = useState<number | null>(null)
 
   // Reset local state whenever the sheet opens
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return
     if (editing) {
@@ -48,6 +49,7 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
       setSize(defaultSize)
     }
   }, [open, editing, defaultSize])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const onPickAthlete = (a: AppMockAthlete) => {
     if (!editing || pickerSeat === null) return

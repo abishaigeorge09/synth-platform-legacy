@@ -60,12 +60,14 @@ export function AthletePickerSheet({
 
   // Reset transient state when re-opened. If the seat the picker is opened
   // for has a side preference, default-filter to that side.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return
     setQ('')
     setSide(forSide ?? 'all')
     setPicked([])
   }, [open, forSide])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const filtered = useMemo(() => {
     let rows = APP_MOCK_ATHLETES

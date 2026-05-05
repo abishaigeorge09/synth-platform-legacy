@@ -101,6 +101,15 @@ export function SessionTimerPage() {
     }
   }, [runs, activeRunIdx])
 
+  // Hooks must run unconditionally — keep useCallback above the early
+  // return below so hook order is stable across renders.
+  const updateActiveRun = useCallback(
+    (mut: (run: ActiveRun) => ActiveRun) => {
+      setRuns((prev) => prev.map((r, i) => (i === activeRunIdx ? mut(r) : r)))
+    },
+    [activeRunIdx],
+  )
+
   if (!session) {
     return (
       <div className="flex flex-1 items-center justify-center px-6">
@@ -110,16 +119,15 @@ export function SessionTimerPage() {
   }
 
   const active = runs[activeRunIdx]
+  // Live timers display elapsed time relative to render time. The RAF
+  // effect above forces a re-render every frame while any boat is
+  // running, so reading `performance.now()` here is the intended
+  // "snapshot at paint" — not a side effect we need to defer.
+  // eslint-disable-next-line react-hooks/purity
   const now = performance.now()
 
-  const updateActiveRun = useCallback(
-    (mut: (run: ActiveRun) => ActiveRun) => {
-      setRuns((prev) => prev.map((r, i) => (i === activeRunIdx ? mut(r) : r)))
-    },
-    [activeRunIdx],
-  )
-
   const startBoats = (boatIds: string[]) => {
+    // eslint-disable-next-line react-hooks/purity
     const start = performance.now()
     updateActiveRun((run) => ({
       ...run,
@@ -776,6 +784,8 @@ function RaceTogetherSheet({
 }) {
   const [picked, setPicked] = useState<string[]>([])
   useEffect(() => {
+    // Reset selection when the sheet opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) setPicked(idleBoats.map((b) => b.id))
   }, [open, idleBoats])
 

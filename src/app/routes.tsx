@@ -33,6 +33,7 @@ import { CapturePage as AppCoachCapturePage } from '../features/app/coach/Captur
 import { LineupsPage as AppCoachLineupsPage } from '../features/app/coach/LineupsPage'
 import { CustomToolsPage as AppCoachToolsPage } from '../features/app/coach/CustomToolsPage'
 import { ToolsBuildPage as AppCoachToolsBuildPage } from '../features/app/coach/ToolsBuildPage'
+import { ToolFullscreenPage as AppCoachToolFullscreenPage } from '../features/app/coach/ToolFullscreenPage'
 import { StopwatchPage as AppCoachStopwatchPage } from '../features/app/coach/StopwatchPage'
 import { SessionDetailPage as AppCoachSessionDetailPage } from '../features/app/coach/SessionDetailPage'
 import { SessionTimerPage as AppCoachSessionTimerPage } from '../features/app/coach/SessionTimerPage'
@@ -300,6 +301,7 @@ export const routes: RouteObject[] = [
           { path: 'tools/build', element: withSuspense(<AppCoachToolsBuildPage />, 'Build a tool') },
           { path: 'tools/build/:chatId', element: withSuspense(<AppCoachToolsBuildPage />, 'Build a tool') },
           { path: 'tools/stopwatch', element: withSuspense(<AppCoachStopwatchPage />, 'Stopwatch') },
+          { path: 'tools/:slug', element: withSuspense(<AppCoachToolFullscreenPage />, 'Tool') },
           { path: 'sessions/:id', element: withSuspense(<AppCoachSessionDetailPage />, 'Session') },
           { path: 'sessions/:id/timer', element: withSuspense(<AppCoachSessionTimerPage />, 'Session timer') },
           { path: 'notes', element: withSuspense(<AppCoachNotesPage />, 'Notes') },

@@ -6,7 +6,10 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Edge Functions live under supabase/functions/. They're Deno code with
+  // jsr: + npm: specifiers and top-level Deno globals; the browser-targeted
+  // ESLint pipeline doesn't apply to them. Deno has its own linter.
+  globalIgnores(['dist', 'supabase/functions/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

@@ -14,6 +14,7 @@ import {
   Camera,
   Image as ImageIcon,
   FileText,
+  Search,
   Star,
   Pencil,
   Trash2,
@@ -965,9 +966,126 @@ function UpArrowGlyph() {
 export type ScopeOption = {
   id: string
   label: string
+  /** True when the athlete is on today's attention list. Surfaces in
+   *  the scope picker + AddToChatSheet as a "Flagged today" filter
+   *  chip so coaches can drill straight to the people who need eyes
+   *  without scrolling 46 names. */
+  flagged?: boolean
+  /** True for the team-wide / fallback scope option. Always pinned
+   *  to the top of the picker and immune to the athlete-only filters
+   *  (search by name + flagged toggle). */
+  pinned?: boolean
 }
 
 export type StyleKey = 'synthesized' | 'raw'
+
+/**
+ * Phase 4 polish — shared filter logic used by ScopePickerSheet
+ * (sheet-style list) and AddToChatSheet (pill-style chips). Both UIs
+ * apply the SAME rules so coaches don't have to re-learn the picker
+ * depending on which sheet they opened.
+ *
+ * Rules:
+ *   - The pinned option (team scope) is ALWAYS shown at the top,
+ *     regardless of search or flagged toggle. The filters are
+ *     athlete-only.
+ *   - Search is case-insensitive substring match against the
+ *     option label.
+ *   - flaggedOnly limits the athlete portion to those with
+ *     option.flagged === true.
+ *   - Order: pinned first (always), then athletes in their input
+ *     order (the seed data order is already coach-curated).
+ */
+export function filterScopes(
+  options: ScopeOption[],
+  query: string,
+  flaggedOnly: boolean,
+): { pinned: ScopeOption[]; athletes: ScopeOption[] } {
+  const q = query.trim().toLowerCase()
+  const pinned: ScopeOption[] = []
+  const athletes: ScopeOption[] = []
+  for (const o of options) {
+    if (o.pinned) {
+      pinned.push(o)
+      continue
+    }
+    if (flaggedOnly && !o.flagged) continue
+    if (q && !o.label.toLowerCase().includes(q)) continue
+    athletes.push(o)
+  }
+  return { pinned, athletes }
+}
+
+/**
+ * Shared search input + "Flagged today" toggle. Used by both
+ * ScopePickerSheet (list-style) and AddToChatSheet (chip-style) so
+ * the filter controls feel identical regardless of which sheet the
+ * coach opened. Compact: search row first, filter pill row right
+ * underneath. flaggedCount drives the disabled state on the pill —
+ * if there's nobody flagged we don't pretend the toggle is useful.
+ */
+export function ScopeSearchControls({
+  query,
+  onQueryChange,
+  flaggedOnly,
+  onToggleFlagged,
+  flaggedCount,
+  placeholder = 'Search athletes',
+}: {
+  query: string
+  onQueryChange: (next: string) => void
+  flaggedOnly: boolean
+  onToggleFlagged: () => void
+  flaggedCount: number
+  placeholder?: string
+}) {
+  const hasFlagged = flaggedCount > 0
+  return (
+    <div className="flex flex-col gap-2">
+      <div
+        className="flex items-center gap-2 rounded-2xl border px-3"
+        style={{
+          background: SYNTH.aiCard,
+          borderColor: SYNTH.aiBorder,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        <Search size={14} strokeWidth={2.2} color={SYNTH.aiTextMuted} />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder={placeholder}
+          className="block w-full bg-transparent py-2.5 text-[14px] outline-none placeholder:opacity-60"
+          style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => onQueryChange('')}
+            aria-label="Clear search"
+            className="flex h-6 w-6 items-center justify-center rounded-full"
+            style={{ background: SYNTH.sheetMuted, color: SYNTH.aiTextMuted }}
+          >
+            <X size={11} strokeWidth={2.6} />
+          </button>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2">
+        <Pill active={!flaggedOnly} onClick={() => flaggedOnly && onToggleFlagged()}>
+          All athletes
+        </Pill>
+        <Pill
+          active={flaggedOnly}
+          disabled={!hasFlagged}
+          onClick={() => hasFlagged && (!flaggedOnly ? onToggleFlagged() : null)}
+        >
+          Flagged today{hasFlagged ? ` · ${flaggedCount}` : ''}
+        </Pill>
+      </div>
+    </div>
+  )
+}
 
 export function AddToChatSheet({
   open,
@@ -995,6 +1113,22 @@ export function AddToChatSheet({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Scope search + filter state. Reset on close (not via a useEffect
+  // watching `open`) so the next reopen shows cleared controls
+  // without tripping the set-state-in-effect lint. Mirrors
+  // ScopePickerSheet.
+  const [scopeQuery, setScopeQuery] = useState('')
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const handleClose = () => {
+    setScopeQuery('')
+    setFlaggedOnly(false)
+    onClose()
+  }
+
+  const flaggedCount = scopeOptions.filter((o) => o.flagged).length
+  const { pinned, athletes } = filterScopes(scopeOptions, scopeQuery, flaggedOnly)
+  const visibleScopes = [...pinned, ...athletes]
+
   const triggerFile = (accept: string) => {
     const el = fileInputRef.current
     if (!el) return
@@ -1007,12 +1141,17 @@ export function AddToChatSheet({
     // Close the sheet first; the overlay then mounts cleanly above the
     // page. Without the close, the sheet's backdrop stacks under the
     // overlay and you see two scrim layers.
-    onClose()
+    handleClose()
     onOpenVoice()
   }
 
+  // Athlete view passes a single self-scoped option with no flagged
+  // metadata. The search controls would just clutter the sheet, so we
+  // hide them whenever there's only one (or zero) athlete option.
+  const showSearch = scopeOptions.filter((o) => !o.pinned).length > 1
+
   return (
-    <SheetShell open={open} onClose={onClose} title="Add to chat">
+    <SheetShell open={open} onClose={handleClose} title="Add to chat">
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Tile icon={<Camera size={20} strokeWidth={2.2} />} label="Camera" onClick={() => triggerFile('image/*')} />
         <Tile icon={<ImageIcon size={20} strokeWidth={2.2} />} label="Photos" onClick={() => triggerFile('image/*')} />
@@ -1023,13 +1162,44 @@ export function AddToChatSheet({
       </div>
 
       <Group label="Scope">
-        <div className="flex flex-wrap gap-2">
-          {scopeOptions.map((s) => (
-            <Pill key={s.id} active={s.id === scopeId} onClick={() => onScopeChange(s.id)}>
-              {s.label}
-            </Pill>
-          ))}
-        </div>
+        {showSearch ? (
+          <ScopeSearchControls
+            query={scopeQuery}
+            onQueryChange={setScopeQuery}
+            flaggedOnly={flaggedOnly}
+            onToggleFlagged={() => setFlaggedOnly((v) => !v)}
+            flaggedCount={flaggedCount}
+          />
+        ) : null}
+        {visibleScopes.length === 0 ? (
+          <p
+            className="rounded-2xl px-3 py-2 text-[12px]"
+            style={{
+              background: SYNTH.aiCard,
+              border: `1px solid ${SYNTH.aiBorder}`,
+              color: SYNTH.aiTextMuted,
+              fontFamily: SYNTH.font,
+            }}
+          >
+            No athletes match.
+            {flaggedOnly ? ' Try clearing the Flagged filter.' : ''}
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {visibleScopes.map((s) => (
+              <Pill key={s.id} active={s.id === scopeId} onClick={() => onScopeChange(s.id)}>
+                {s.label}
+                {s.flagged ? (
+                  <span
+                    className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                    style={{ background: SYNTH.accentAmber }}
+                    aria-label="Flagged"
+                  />
+                ) : null}
+              </Pill>
+            ))}
+          </div>
+        )}
       </Group>
 
       <Group label="Response style">
@@ -1058,7 +1228,7 @@ export function AddToChatSheet({
         onChange={(e) => {
           onPickFiles(e.target.files)
           if (fileInputRef.current) fileInputRef.current.value = ''
-          onClose()
+          handleClose()
         }}
         className="hidden"
       />
@@ -1533,17 +1703,20 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 function Pill({
   active,
   onClick,
+  disabled,
   children,
 }: {
   active: boolean
   onClick: () => void
+  disabled?: boolean
   children: ReactNode
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full border px-3 py-1.5 text-[12px] font-semibold"
+      disabled={disabled}
+      className="rounded-full border px-3 py-1.5 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         background: active ? SYNTH.accentBlack : SYNTH.sheet,
         borderColor: active ? SYNTH.accentBlack : SYNTH.aiBorder,

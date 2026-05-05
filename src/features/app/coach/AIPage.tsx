@@ -11,7 +11,9 @@ import {
   AddToChatSheet,
   ChatHistorySheet,
   CustomizeChatSheet,
+  ScopeSearchControls,
   SuggestionRow,
+  filterScopes,
   getActiveSuggestions,
   type ChatAttachment,
   type ChatMessage,
@@ -96,13 +98,21 @@ export function AIPage() {
   const streamingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const scopeOptions: ScopeOption[] = useMemo(
-    () => [
-      { id: 'team', label: APP_MOCK_TEAM.name },
-      ...APP_MOCK_ATHLETES.map((a) => ({ id: a.id, label: a.name })),
-    ],
-    [],
-  )
+  const scopeOptions: ScopeOption[] = useMemo(() => {
+    // Phase 4 polish — surface "Flagged today" as a filter chip in the
+    // scope sheets. Computing flagged-IDs once here keeps both
+    // ScopePickerSheet and AddToChatSheet decoupled from the data
+    // layer; they only see ScopeOption shape.
+    const flaggedIds = new Set(APP_MOCK_ATTENTION.map((a) => a.athleteId))
+    return [
+      { id: 'team', label: APP_MOCK_TEAM.name, pinned: true },
+      ...APP_MOCK_ATHLETES.map((a) => ({
+        id: a.id,
+        label: a.name,
+        flagged: flaggedIds.has(a.id),
+      })),
+    ]
+  }, [])
 
   const onScopeChange = (id: string) => {
     if (id === 'team') {
@@ -544,44 +554,105 @@ function ScopePickerSheet({
   activeId: string
   onPick: (id: string) => void
 }) {
+  // Local search + filter state. Reset on close (rather than via
+  // a useEffect that watches `open`) so the sheet shows cleared
+  // controls the next time the coach opens it. Avoids the
+  // set-state-in-effect lint and keeps the reset side-effect tied
+  // to the user-driven close.
+  const [query, setQuery] = useState('')
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const handleClose = () => {
+    setQuery('')
+    setFlaggedOnly(false)
+    onClose()
+  }
+
+  const flaggedCount = useMemo(
+    () => options.filter((o) => o.flagged).length,
+    [options],
+  )
+  const { pinned, athletes } = useMemo(
+    () => filterScopes(options, query, flaggedOnly),
+    [options, query, flaggedOnly],
+  )
+  const visible = [...pinned, ...athletes]
+
   return (
-    <SheetShell open={open} onClose={onClose} title="Scope this chat">
+    <SheetShell open={open} onClose={handleClose} title="Scope this chat">
       <p className="text-[12px]" style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}>
         synth answers from this scope's data only.
       </p>
-      <div
-        className="overflow-hidden rounded-2xl"
-        style={{ background: SYNTH.aiCard, border: `1px solid ${SYNTH.aiBorder}` }}
-      >
-        {options.map((o, i) => {
-          const active = o.id === activeId
-          return (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => onPick(o.id)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left active:opacity-70"
-              style={{
-                borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.aiBorder}`,
-                background: active ? SYNTH.aiBubble : 'transparent',
-                fontFamily: SYNTH.font,
-              }}
-            >
-              <span className="text-[14px] font-semibold" style={{ color: SYNTH.ink }}>
-                {o.label}
-              </span>
-              {active ? (
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                  style={{ background: SYNTH.accentEmerald, color: SYNTH.inkOnBrand }}
-                >
-                  Active
+
+      <ScopeSearchControls
+        query={query}
+        onQueryChange={setQuery}
+        flaggedOnly={flaggedOnly}
+        onToggleFlagged={() => setFlaggedOnly((v) => !v)}
+        flaggedCount={flaggedCount}
+      />
+
+      {athletes.length === 0 && pinned.length === 0 ? (
+        <p
+          className="rounded-2xl px-4 py-3 text-[12px]"
+          style={{
+            background: SYNTH.aiCard,
+            border: `1px solid ${SYNTH.aiBorder}`,
+            color: SYNTH.aiTextMuted,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          No athletes match.
+          {flaggedOnly ? ' Try clearing the Flagged filter.' : ''}
+        </p>
+      ) : (
+        <div
+          className="overflow-hidden rounded-2xl"
+          style={{ background: SYNTH.aiCard, border: `1px solid ${SYNTH.aiBorder}` }}
+        >
+          {visible.map((o, i) => {
+            const active = o.id === activeId
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => onPick(o.id)}
+                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left active:opacity-70"
+                style={{
+                  borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.aiBorder}`,
+                  background: active ? SYNTH.aiBubble : 'transparent',
+                  fontFamily: SYNTH.font,
+                }}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="truncate text-[14px] font-semibold"
+                    style={{ color: SYNTH.ink }}
+                  >
+                    {o.label}
+                  </span>
+                  {o.flagged ? (
+                    <span
+                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]"
+                      style={{ background: SYNTH.accentAmber, color: SYNTH.ink }}
+                      title="On today's attention list"
+                    >
+                      Flagged
+                    </span>
+                  ) : null}
                 </span>
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
+                {active ? (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                    style={{ background: SYNTH.accentEmerald, color: SYNTH.inkOnBrand }}
+                  >
+                    Active
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </SheetShell>
   )
 }

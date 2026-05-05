@@ -23,6 +23,12 @@ import {
 } from '../store/useInstalledToolsStore'
 import { toast } from '../../../shared/store/useToastStore'
 import { generateToolSpec, MockGenerationError } from '../../../lib/tools/mockGenerator'
+import {
+  generateToolViaEdge,
+  ToolGenerateError,
+} from '../../../lib/ai/toolGenerateClient'
+import { useCoachContextStore } from '../store/useCoachContext'
+import { getAIClientMode } from '../lib/aiClient'
 import { deriveQuestions } from '../../../lib/tools/clarifyingQuestions'
 import type { ToolSpec } from '../../../lib/tools/schema'
 import { ToolPreviewPanel } from './ToolPreviewPanel'
@@ -32,6 +38,12 @@ type ClarifyingState = {
   originalPrompt: string
   questions: string[]
   answered: { q: string; a: string }[]
+}
+
+type DeclineState = {
+  prompt: string
+  reason: string
+  suggestedAlternative: string
 }
 
 const SUGGESTED_PROMPTS: string[] = [
@@ -72,8 +84,26 @@ export function ToolsBuildPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [mobilePane, setMobilePane] = useState<MobilePane>('preview')
   const [clarifyingState, setClarifyingState] = useState<ClarifyingState | null>(null)
+  const [declineState, setDeclineState] = useState<DeclineState | null>(null)
+  // Sprint 9.2 — multi-turn refinement: subsequent turns reuse this id
+  // so server-side history (tool_versions rows) stitches together.
+  const [toolRequestId, setToolRequestId] = useState<string | null>(null)
+  const [unmetConnectors, setUnmetConnectors] = useState<string[]>([])
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const cancelRef = useRef(false)
+
+  // Sprint 9.2 — hydrate the coach's team_id + role once. Live tool-
+  // generate path activates only when both are present (i.e. the user
+  // has a row in `users`). Demo / anonymous users fall through to the
+  // mock keyword matcher, preserving the existing demo experience.
+  const coachContext = useCoachContextStore((s) => s.context)
+  const hydrateCoachContext = useCoachContextStore((s) => s.hydrate)
+  useEffect(() => {
+    void hydrateCoachContext()
+  }, [hydrateCoachContext])
+
+  const liveGenerationAvailable =
+    coachContext !== null && getAIClientMode() === 'live'
 
   useEffect(() => {
     cancelRef.current = false
@@ -111,6 +141,9 @@ export function ToolsBuildPage() {
     setMobileSidebarOpen(false)
     setMobilePane('chat')
     setClarifyingState(null)
+    setDeclineState(null)
+    setToolRequestId(null)
+    setUnmetConnectors([])
     navigate('/app/coach/tools/build')
   }
 
@@ -121,6 +154,7 @@ export function ToolsBuildPage() {
         : basePrompt
 
     setClarifyingState(null)
+    setDeclineState(null)
     setText('')
     setErrorMessage(null)
     setLoadingPhase(0)
@@ -133,9 +167,65 @@ export function ToolsBuildPage() {
     await delay(FINAL_DELAY_MS)
     if (cancelRef.current) return
 
+    if (liveGenerationAvailable && coachContext) {
+      try {
+        const result = await generateToolViaEdge({
+          description: augmented,
+          role: coachContext.role,
+          team_id: coachContext.team_id,
+          tool_request_id: toolRequestId,
+        })
+        if (cancelRef.current) return
+        setToolRequestId(result.tool_request_id)
+        setLoadingPhase(null)
+
+        if (result.kind === 'spec') {
+          setUnmetConnectors(result.unmet_connectors)
+          if (result.unmet_connectors.length > 0) {
+            toast(
+              `Built using demo data — connect ${result.unmet_connectors.join(', ')} for live numbers.`,
+              'info',
+            )
+          }
+          const id = createSession(augmented, result.spec)
+          navigate(`/app/coach/tools/build/${id}`)
+          return
+        }
+
+        if (result.kind === 'clarification') {
+          setClarifyingState({
+            originalPrompt: augmented,
+            questions: result.questions,
+            answered: [],
+          })
+          return
+        }
+
+        // result.kind === 'declined'
+        setDeclineState({
+          prompt: augmented,
+          reason: result.reason,
+          suggestedAlternative: result.suggested_alternative,
+        })
+        return
+      } catch (err) {
+        setLoadingPhase(null)
+        const message =
+          err instanceof ToolGenerateError
+            ? `Generation failed (${err.status}): ${err.message}`
+            : 'Generation failed. Try again.'
+        setErrorMessage(message)
+        return
+      }
+    }
+
+    // Mock fallback — demo profiles and any session without a live coach
+    // context route here. Preserves the keyword-matcher experience that
+    // shipped in Phase A.
     try {
       const spec = generateToolSpec(augmented)
       const id = createSession(augmented, spec)
+      setUnmetConnectors([])
       setLoadingPhase(null)
       navigate(`/app/coach/tools/build/${id}`)
     } catch (err) {
@@ -152,16 +242,20 @@ export function ToolsBuildPage() {
     const prompt = text.trim()
     if (!prompt || isLoading) return
 
-    // First Send on a fresh chat → ask clarifying questions before generating.
-    if (!clarifyingState && !chatId) {
+    // Live mode: defer clarifying to Claude — it picks between
+    // emit_spec / request_clarification / decline_request itself, so
+    // the keyword-derived questions only get in the way.
+    // Mock mode: keep the keyword-derived clarifying flow on first send
+    // so the demo path preserves its multi-step feel.
+    if (!liveGenerationAvailable && !clarifyingState && !chatId) {
       const questions = deriveQuestions(prompt)
       setClarifyingState({ originalPrompt: prompt, questions, answered: [] })
       setText('')
       return
     }
 
-    // Refinement on an existing session, or follow-up text in any state →
-    // fire generation directly.
+    // Refinement on an existing session, or follow-up text in any state,
+    // or any send in live mode → fire generation directly.
     await proceedToGenerate(prompt)
   }
 
@@ -262,6 +356,7 @@ export function ToolsBuildPage() {
         >
           <ToolPreviewPanel
             spec={previewSpec}
+            unmetConnectors={unmetConnectors}
             actions={
               session
                 ? {
@@ -298,6 +393,16 @@ export function ToolsBuildPage() {
                 onAnswer={onAnswerQuestion}
                 onLooksGood={onLooksGood}
                 onSkip={onSkipQuestions}
+              />
+            ) : declineState ? (
+              <DeclineView
+                state={declineState}
+                onTryAlternative={() => {
+                  setText(declineState.suggestedAlternative)
+                  setDeclineState(null)
+                  inputRef.current?.focus()
+                }}
+                onDismiss={() => setDeclineState(null)}
               />
             ) : session ? (
               <SessionChatView session={session} />
@@ -880,6 +985,114 @@ function ErrorState({
       >
         Try again
       </button>
+    </motion.div>
+  )
+}
+
+// ─── Decline view (Sprint 9.2 — Claude declined the request) ──────────────
+
+function DeclineView({
+  state,
+  onTryAlternative,
+  onDismiss,
+}: {
+  state: DeclineState
+  onTryAlternative: () => void
+  onDismiss: () => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+      className="flex w-full max-w-[640px] flex-col gap-3 py-6"
+    >
+      {/* User bubble — what they asked for */}
+      <div className="flex justify-end">
+        <div
+          className="flex max-w-[85%] flex-col gap-1.5 rounded-2xl px-4 py-3"
+          style={{
+            background: 'rgba(255,255,255,0.10)',
+            border: `1px solid ${SYNTH.glassBorder}`,
+          }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: SYNTH.inkOnBrandMuted }}
+          >
+            You
+          </span>
+          <span
+            className="text-[13px] leading-[1.5]"
+            style={{ color: SYNTH.inkOnBrand }}
+          >
+            {state.prompt}
+          </span>
+        </div>
+      </div>
+
+      {/* synth bubble — decline + reason + alternative chip */}
+      <div className="flex justify-start">
+        <div
+          className="flex max-w-[88%] flex-col gap-3 rounded-2xl px-4 py-3"
+          style={{
+            background: 'rgba(16,185,129,0.10)',
+            border: `1px solid ${SYNTH.accentEmerald}55`,
+          }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: SYNTH.accentEmerald }}
+          >
+            synth · MVP scope
+          </span>
+          <span
+            className="text-[13px] leading-[1.5]"
+            style={{ color: SYNTH.inkOnBrand }}
+          >
+            {state.reason}
+          </span>
+          {state.suggestedAlternative ? (
+            <div className="flex flex-col gap-2">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: SYNTH.inkOnBrandMuted }}
+              >
+                Try instead
+              </span>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.98 }}
+                onClick={onTryAlternative}
+                className="flex items-center gap-2 self-start rounded-2xl px-3 py-2 text-left"
+                style={{
+                  background: 'rgba(255,255,255,0.10)',
+                  border: `1px solid ${SYNTH.glassBorder}`,
+                }}
+              >
+                <Sparkles size={12} strokeWidth={2.4} color={SYNTH.accentEmerald} />
+                <span
+                  className="text-[12px] font-semibold leading-[1.4]"
+                  style={{ color: SYNTH.inkOnBrand }}
+                >
+                  {state.suggestedAlternative}
+                </span>
+              </motion.button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex justify-start pl-1">
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+        >
+          Dismiss · ask something else
+        </button>
+      </div>
     </motion.div>
   )
 }

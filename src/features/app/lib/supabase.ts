@@ -31,7 +31,32 @@ export async function signInWithGoogle(): Promise<void> {
   })
 }
 
+/**
+ * Sign out of Supabase.
+ *
+ * Defaults to `scope: 'local'` — a client-side-only clear with no
+ * network call. The default 'global' scope hits api/auth/v1/logout,
+ * which has been observed to hang on stale tokens or under flaky
+ * network conditions and would leave the user stuck on the settings
+ * page indefinitely. 'local' is enough for the user-facing intent
+ * ("sign me out of THIS device"); 'global' would invalidate the
+ * session everywhere, which we don't currently need.
+ *
+ * Wrapped in a 1.5s timeout race as a belt-and-suspenders against
+ * the SDK's internal lock occasionally blocking even on local
+ * scope. If the call doesn't resolve in 1.5s we fall through; the
+ * caller has already cleared localStorage + store state and the
+ * user has navigated away.
+ */
 export async function signOutFromSupabase(): Promise<void> {
   if (!supabase) return
-  await supabase.auth.signOut()
+  const signOutCall = supabase.auth.signOut({ scope: 'local' }).catch((err) => {
+    if (typeof console !== 'undefined') {
+      console.warn('[auth] supabase signOut failed', err)
+    }
+  })
+  await Promise.race([
+    signOutCall,
+    new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+  ])
 }

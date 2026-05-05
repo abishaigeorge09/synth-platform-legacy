@@ -161,7 +161,34 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
     }
   },
   signOut: async () => {
-    await signOutFromSupabase()
+    // Order matters. Three race conditions to avoid:
+    //
+    //  1) supabase.auth.signOut hangs. We've seen the v2 SDK's
+    //     internal lock occasionally block this call indefinitely.
+    //     If we await it FIRST, the user stays stuck on the
+    //     settings page with no feedback and the navigate() in the
+    //     button handler never fires. Solved by clearing local
+    //     state synchronously up front, then firing supabase signOut
+    //     with a timeout race in the helper.
+    //
+    //  2) Auth listener race. The onAuthStateChange listener
+    //     installed in hydrate() resets `user` to readDemoUser() on
+    //     every event. When supabase.auth.signOut fires its
+    //     SIGNED_OUT event, the listener runs synchronously and
+    //     reads localStorage. If localStorage still has the demo
+    //     flag at that point, the listener undoes our sign-out by
+    //     reinstating the demo user. By clearing localStorage
+    //     BEFORE the supabase call begins, the listener sees an
+    //     empty localStorage and behaves correctly.
+    //
+    //  3) signInAnonymously side effects. setDemoUser fires
+    //     anonymous sign-in in the background. If we sign out while
+    //     that promise is still in flight, it could land AFTER our
+    //     sign-out, putting a fresh anonymous session back on the
+    //     client. Clearing the demo flag first means setDemoUser is
+    //     no longer the active intent, so we don't trigger another
+    //     anon sign-in. Any in-flight one lands as a stale event
+    //     the cleared listener will route to user=null.
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(ROLE_STORAGE_KEY)
       window.localStorage.removeItem(DEMO_USER_STORAGE_KEY)
@@ -169,5 +196,9 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
     }
     clearGuidedTour()
     set({ user: null, role: null, isDemo: false, hasCompletedOnboarding: false })
+
+    // Fire the supabase signOut last. Helper uses scope: 'local' +
+    // a 1.5s timeout so this never blocks the UI.
+    await signOutFromSupabase()
   },
 }))

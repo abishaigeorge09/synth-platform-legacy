@@ -9,7 +9,7 @@
  * talking to the proxy or to a local mock.
  */
 
-import { streamClaudeMessages, selectModel } from '../../../lib/ai/claude'
+import { streamClaudeMessages, selectModel, type ContentBlock } from '../../../lib/ai/claude'
 import { isClaudeConfigured } from '../../../lib/ai/env'
 import {
   isDirectKeyConfigured,
@@ -38,7 +38,13 @@ export function getAIClientMode(_opts?: { isDemo?: boolean }): AIClientMode {
 }
 
 export type AIRole = 'user' | 'assistant'
-export type AIMessage = { role: AIRole; content: string }
+/**
+ * Phase 4 — content is either a plain string (the common text-only
+ * case) or an Anthropic content-block array (used when the user has
+ * attached an image). Both ride the same wire format; aiClient just
+ * forwards whatever shape callers pass.
+ */
+export type AIMessage = { role: AIRole; content: string | ContentBlock[] }
 
 export type StreamEvent =
   | { kind: 'delta'; text: string }
@@ -78,7 +84,18 @@ export async function streamCompletion({
   }
   signal?.addEventListener('abort', onAbort)
 
-  const lastUser = messages[messages.length - 1]?.content ?? ''
+  // selectModel reads the last user prompt to decide the tier; pull a
+  // string out of either content shape (plain string OR content blocks)
+  // so the heuristic still has something to look at when an image is
+  // attached. The text block sits last in buildUserContent's output.
+  const lastContent = messages[messages.length - 1]?.content ?? ''
+  const lastUser =
+    typeof lastContent === 'string'
+      ? lastContent
+      : lastContent
+          .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+          .map((b) => b.text)
+          .join(' ')
   const chosenModel = model ?? selectModel(lastUser, systemPrompt)
 
   let prev = ''

@@ -13,6 +13,7 @@ import {
   CustomizeChatSheet,
   SuggestionRow,
   getActiveSuggestions,
+  type ChatAttachment,
   type ChatMessage,
   type ChatPart,
   type ChartPoint,
@@ -28,7 +29,12 @@ import {
   getAIClientMode,
   type AIMessage,
 } from '../lib/aiClient'
+import { buildUserContent, parseImageDataUrl } from '../../../lib/ai/claude'
 import { parseAIText } from '../lib/aiResponseParser'
+import {
+  ImageAttachmentTooLargeError,
+  readChatAttachment,
+} from '../lib/imageAttachment'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import { useAIChatCustomization } from '../store/useAIChatCustomization'
 import {
@@ -71,7 +77,8 @@ export function AIPage() {
   const customResolved = custom ?? getForScope(customScopeId)
 
   const [text, setText] = useState('')
-  const [attachment, setAttachment] = useState<{ name: string; ext: string } | null>(null)
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(null)
+  const [attachError, setAttachError] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [history, setHistory] = useState<ChatHistoryEntry[]>(SEED_HISTORY)
@@ -108,10 +115,24 @@ export function AIPage() {
   const onPickFiles = (files: FileList | null) => {
     const f = files?.[0]
     if (!f) return
-    const dot = f.name.lastIndexOf('.')
-    const ext = dot >= 0 ? f.name.slice(dot + 1).toUpperCase() : 'FILE'
-    const name = dot >= 0 ? f.name.slice(0, dot) : f.name
-    setAttachment({ name: name.length > 24 ? `${name.slice(0, 24)}…` : name, ext })
+    setAttachError(null)
+    void (async () => {
+      try {
+        const next = await readChatAttachment(f)
+        setAttachment(next)
+      } catch (err) {
+        if (err instanceof ImageAttachmentTooLargeError) {
+          setAttachError(err.message)
+          // Auto-clear after 4s so the inline notice doesn't stick.
+          setTimeout(() => setAttachError(null), 4000)
+          return
+        }
+        // Anything else — surface a generic notice. Logged for debug.
+        console.error('[ai-attach] failed to read file:', err)
+        setAttachError('Could not read that file.')
+        setTimeout(() => setAttachError(null), 4000)
+      }
+    })()
   }
 
   const stopStreaming = () => {
@@ -215,7 +236,23 @@ export function AIPage() {
         return { role: 'assistant', content: txt || '(prior response)' }
       })
 
-    const apiMessages: AIMessage[] = [...history, { role: 'user', content: trimmed }]
+    // Phase 4 — when an image is attached, build the user message as
+    // an Anthropic content-block array (image first, then text). The
+    // tier override below forces the request onto a vision-capable
+    // model regardless of selectModel's heuristic, since haiku 3 is
+    // text-only and would 400 on the image block.
+    const imagePart =
+      userMsg.attachment?.dataUrl != null
+        ? parseImageDataUrl(userMsg.attachment.dataUrl)
+        : null
+    const userContent = imagePart
+      ? buildUserContent(trimmed || 'What is shown in this image?', [
+          { dataBase64: imagePart.data, mediaType: imagePart.mediaType },
+        ])
+      : trimmed
+
+    const apiMessages: AIMessage[] = [...history, { role: 'user', content: userContent }]
+    const modelOverride = imagePart ? 'sonnet' : undefined
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -225,6 +262,7 @@ export function AIPage() {
     void streamCompletion({
       systemPrompt,
       messages: apiMessages,
+      model: modelOverride,
       signal: ctrl.signal,
       onEvent: (e) => {
         if (e.kind === 'delta') {
@@ -367,6 +405,22 @@ export function AIPage() {
           onSelect={(q) => send(q)}
           disabled={isStreaming}
         />
+
+        {attachError ? (
+          <div className="shrink-0 px-3 pt-1">
+            <p
+              className="rounded-2xl px-3 py-2 text-[12px]"
+              style={{
+                background: SYNTH.aiCard,
+                border: `1px solid ${SYNTH.aiBorder}`,
+                color: SYNTH.ink,
+                fontFamily: SYNTH.font,
+              }}
+            >
+              {attachError}
+            </p>
+          </div>
+        ) : null}
 
         <div data-tour="coach-ai-input" className="shrink-0 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
           <AIComposer

@@ -72,8 +72,29 @@ export type ChatPart =
       items: string[]
     }
 
+export type ChatAttachment = {
+  name: string
+  ext: string
+  /** Image MIME type when the file is an image Anthropic can see. */
+  mediaType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+  /** Full `data:<mime>;base64,<payload>` URL. Only set for images. */
+  dataUrl?: string
+}
+
 export type ChatMessage =
-  | { id: string; role: 'user'; text: string; ts: number; attachment?: { name: string; ext: string } }
+  | {
+      id: string
+      role: 'user'
+      text: string
+      ts: number
+      // Phase 4 — attachments grow optional `mediaType` + `dataUrl`
+      // fields when the picked file is an image. Plain files (PDFs,
+      // CSVs) keep the original {name, ext} chip and don't trigger
+      // vision. dataUrl is a `data:image/<mime>;base64,...` string
+      // from FileReader; AIPage parses + repackages it into Anthropic
+      // content blocks at send time.
+      attachment?: ChatAttachment
+    }
   | { id: string; role: 'ai'; parts: ChatPart[]; ts: number }
   | { id: string; role: 'thinking' }
 
@@ -535,24 +556,41 @@ function MessageRow({ message }: { message: ChatMessage }) {
       >
         <div className="flex max-w-[80%] flex-col items-end gap-2">
           {message.attachment ? (
-            <div
-              className="flex items-center gap-2 rounded-2xl px-3 py-2"
-              style={{
-                background: SYNTH.aiCard,
-                border: `1px solid ${SYNTH.aiBorder}`,
-                fontFamily: SYNTH.font,
-              }}
-            >
-              <span
-                className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
-                style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
+            message.attachment.dataUrl ? (
+              // Phase 4 — image attachments render inline so the
+              // conversation transcript shows what was actually sent
+              // to Anthropic. Cap at 240px to keep bubble width sane;
+              // object-cover would crop, so use object-contain + a
+              // height auto for full-image fidelity.
+              <img
+                src={message.attachment.dataUrl}
+                alt={message.attachment.name}
+                className="max-w-[240px] rounded-2xl"
+                style={{
+                  border: `1px solid ${SYNTH.aiBorder}`,
+                  background: SYNTH.aiCard,
+                }}
+              />
+            ) : (
+              <div
+                className="flex items-center gap-2 rounded-2xl px-3 py-2"
+                style={{
+                  background: SYNTH.aiCard,
+                  border: `1px solid ${SYNTH.aiBorder}`,
+                  fontFamily: SYNTH.font,
+                }}
               >
-                {message.attachment.ext}
-              </span>
-              <span className="text-[12px] font-medium" style={{ color: SYNTH.ink }}>
-                {message.attachment.name}
-              </span>
-            </div>
+                <span
+                  className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                  style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
+                >
+                  {message.attachment.ext}
+                </span>
+                <span className="text-[12px] font-medium" style={{ color: SYNTH.ink }}>
+                  {message.attachment.name}
+                </span>
+              </div>
+            )
           ) : null}
           {message.text ? (
             <div
@@ -725,7 +763,7 @@ type ComposerProps = {
   onSubmit: () => void
   onStop: () => void
   onAttach: () => void
-  attachment?: { name: string; ext: string } | null
+  attachment?: ChatAttachment | null
   onClearAttachment?: () => void
   isStreaming: boolean
   placeholder: string
@@ -762,12 +800,24 @@ export function AIComposer({
             border: `1px solid ${SYNTH.aiBorder}`,
           }}
         >
-          <span
-            className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
-            style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
-          >
-            {attachment.ext}
-          </span>
+          {attachment.dataUrl ? (
+            // Phase 4 — small inline thumbnail so the coach can see
+            // the image they're about to send. Object-cover keeps the
+            // aspect ratio sane regardless of source image dimensions.
+            <img
+              src={attachment.dataUrl}
+              alt={attachment.name}
+              className="h-8 w-8 rounded-md object-cover"
+              style={{ border: `1px solid ${SYNTH.aiBorder}` }}
+            />
+          ) : (
+            <span
+              className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+              style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
+            >
+              {attachment.ext}
+            </span>
+          )}
           <span className="text-[12px] font-medium" style={{ color: SYNTH.ink }}>
             {attachment.name}
           </span>

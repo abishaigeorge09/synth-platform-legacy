@@ -67,9 +67,69 @@ export function modelChainForTier(tier: ModelTier): string[] {
   return [...MODEL_TIER_CHAINS.opus]
 }
 
+// Anthropic content blocks. Phase 4 — vision support. The wire format
+// for `messages[].content` is either a plain string OR an array of
+// these block objects. We forward whichever form callers pass through
+// to the API verbatim.
+export type ImageContentBlock = {
+  type: 'image'
+  source: {
+    type: 'base64'
+    /** Anthropic accepts: image/jpeg, image/png, image/gif, image/webp. */
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+    /** Base64-encoded image bytes (no data:URL prefix). */
+    data: string
+  }
+}
+export type TextContentBlock = { type: 'text'; text: string }
+export type ContentBlock = TextContentBlock | ImageContentBlock
+
 export type ClaudeChatMessage = {
   role: 'user' | 'assistant' | 'system'
-  content: string
+  content: string | ContentBlock[]
+}
+
+/**
+ * Build a user-message content array from a text prompt + optional image
+ * attachments. Anthropic's docs recommend image blocks BEFORE the text
+ * block when they relate to the same prompt — the model attends to
+ * earlier context first, so leading with the image gives the text a
+ * chance to reference it naturally.
+ *
+ * Pass an empty `images` array (or call with just text) and the helper
+ * falls back to a single text block; callers can also keep using the
+ * plain-string content shape and skip this helper entirely.
+ */
+export function buildUserContent(
+  text: string,
+  images: { dataBase64: string; mediaType: ImageContentBlock['source']['media_type'] }[],
+): ContentBlock[] {
+  const blocks: ContentBlock[] = []
+  for (const img of images) {
+    blocks.push({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.dataBase64 },
+    })
+  }
+  blocks.push({ type: 'text', text })
+  return blocks
+}
+
+/**
+ * Strip the `data:<mime>;base64,` prefix from a FileReader DataURL so
+ * the result can drop straight into an Anthropic image block's `data`
+ * field. Returns `{ data, mediaType }` or `null` if the URL isn't a
+ * recognized image DataURL.
+ */
+export function parseImageDataUrl(
+  dataUrl: string,
+): { data: string; mediaType: ImageContentBlock['source']['media_type'] } | null {
+  const m = /^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/i.exec(dataUrl)
+  if (!m) return null
+  return {
+    mediaType: m[1].toLowerCase() as ImageContentBlock['source']['media_type'],
+    data: m[2],
+  }
 }
 
 /**
@@ -176,7 +236,11 @@ export async function claudeChat(args: {
 // Streaming (SSE pass-through from the Edge Function)
 // ---------------------------------------------------------------------------
 
-type Msg = { role: 'user' | 'assistant'; content: string }
+// Phase 4 — content can be a plain string (text-only path, the
+// majority of calls) or a Content-Block array (when the user has
+// attached an image). The Edge Function and the direct path both
+// forward this verbatim to api.anthropic.com.
+type Msg = { role: 'user' | 'assistant'; content: string | ContentBlock[] }
 
 function handleSseDataLine(raw: string, onText: (t: string) => void): void {
   if (!raw || raw === '[DONE]') return

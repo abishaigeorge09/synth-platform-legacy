@@ -18,7 +18,7 @@
  *     path. It holds the Anthropic key as a Supabase secret.
  */
 
-import { modelChainForTier } from './claude'
+import { modelChainForTier, type ContentBlock } from './claude'
 
 const ANTHROPIC_API = '/api/anthropic/v1/messages'
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -32,7 +32,10 @@ export function isDirectKeyConfigured(): boolean {
   return getDirectKey().length > 10
 }
 
-type Msg = { role: 'user' | 'assistant'; content: string }
+// Phase 4 — content can be a plain string OR an Anthropic content
+// block array (used for image attachments). Both ride the same wire
+// format; we just forward whatever the caller passed.
+type Msg = { role: 'user' | 'assistant'; content: string | ContentBlock[] }
 
 function handleSseLine(raw: string, onDelta: (t: string) => void): void {
   if (!raw || raw === '[DONE]') return

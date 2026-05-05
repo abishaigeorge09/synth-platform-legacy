@@ -7,6 +7,7 @@ import {
   WELLNESS_SUMMARY,
   LAP_COUNTER,
   RACE_PLAN,
+  PACIFIC_BOAT_RACE,
 } from '../../../lib/tools/examples'
 
 /**
@@ -84,6 +85,14 @@ const SEEDED_EXAMPLES: ChatSession[] = [
     title: RACE_PLAN.name,
     prompt: 'Per-piece race plan with predicted splits.',
     spec: RACE_PLAN,
+    createdAt: 0,
+    seeded: true,
+  },
+  {
+    id: 'seed-pacific-boat-race',
+    title: PACIFIC_BOAT_RACE.name,
+    prompt: 'Animated 2K race replay across six varsity boats.',
+    spec: PACIFIC_BOAT_RACE,
     createdAt: 0,
     seeded: true,
   },

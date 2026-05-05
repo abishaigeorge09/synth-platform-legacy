@@ -18,7 +18,8 @@
  * full-reload this file when edited; that's acceptable for a registry.
  */
 import type { ReactNode, FC } from 'react'
-import { Fragment, useRef } from 'react'
+import { Fragment, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   Bar,
   BarChart,
@@ -671,6 +672,137 @@ const TextRenderer: ElementRenderer = ({ element }) => {
   )
 }
 
+// ─── boat_race (schema v2, Sprint 5.7) ────────────────────────────────────
+
+type BoatRaceData = {
+  boats: Array<{ name: string; finishMs: number; color?: string }>
+}
+
+const RACE_PALETTE = [
+  SYNTH.accentEmerald,
+  SYNTH.cardSky,
+  SYNTH.cardLemon,
+  SYNTH.cardPink,
+  SYNTH.cardMint,
+  SYNTH.cardLavender,
+]
+
+const BOAT_DIAMETER = 20
+
+function formatRaceTime(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+const BoatRaceRenderer: ElementRenderer = ({ element, data }) => {
+  // Hooks must be called unconditionally — keep above the type guard.
+  const [replayKey, setReplayKey] = useState(0)
+  if (element.type !== 'boat_race') return null
+
+  const raw = data[element.dataKey] as BoatRaceData | undefined
+  const boats = raw?.boats ?? []
+  const durationMs = element.durationMs ?? 8000
+
+  if (boats.length === 0) {
+    return (
+      <div
+        className="rounded-2xl px-4 py-6 text-center"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: `1px dashed ${SYNTH.glassBorder}`,
+          color: SYNTH.inkOnBrandMuted,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        <span className="text-[11px] uppercase tracking-[0.14em]">No race data</span>
+      </div>
+    )
+  }
+
+  // Race semantics: at the end of the animation, the fastest boat (lowest
+  // finishMs) is at 100% (the finish line). Slower boats are proportionally
+  // behind, holding the rank order visually. Linear easing — boats hold
+  // constant speed across a 2K, no theatrical ease-in/out.
+  const minFinishMs = Math.min(...boats.map((b) => b.finishMs))
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-2xl px-4 py-4"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        border: `1px solid ${SYNTH.glassBorder}`,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      <div key={replayKey} className="flex flex-col gap-2.5">
+        {boats.map((boat, i) => {
+          const target = (minFinishMs / boat.finishMs) * 100
+          const color = boat.color ?? RACE_PALETTE[i % RACE_PALETTE.length]
+          return (
+            <div key={i} className="flex h-7 items-center gap-2">
+              <span
+                className="w-12 shrink-0 text-[10px] font-bold uppercase tracking-[0.12em]"
+                style={{ color: SYNTH.inkOnBrand }}
+              >
+                {boat.name}
+              </span>
+              <div className="relative h-full flex-1" style={{ minWidth: 0 }}>
+                <div
+                  className="absolute left-0 right-0 top-1/2 h-px"
+                  style={{ background: 'rgba(255,255,255,0.18)' }}
+                />
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-px"
+                  style={{ background: 'rgba(255,255,255,0.45)' }}
+                />
+                <motion.div
+                  initial={{ left: '0%' }}
+                  animate={{ left: `${target}%` }}
+                  transition={{ duration: durationMs / 1000, ease: 'linear' }}
+                  className="absolute top-1/2 flex items-center justify-center rounded-full"
+                  style={{
+                    width: BOAT_DIAMETER,
+                    height: BOAT_DIAMETER,
+                    marginTop: -BOAT_DIAMETER / 2,
+                    marginLeft: -BOAT_DIAMETER / 2,
+                    background: color,
+                    boxShadow: '0 0 0 2px rgba(8,8,40,0.35), 0 4px 10px rgba(8,8,40,0.35)',
+                  }}
+                >
+                  <span className="text-[8px] font-bold" style={{ color: SYNTH.ink }}>
+                    {i + 1}
+                  </span>
+                </motion.div>
+              </div>
+              <span
+                className="w-10 shrink-0 text-right text-[10px] font-bold tabular-nums"
+                style={{ color: SYNTH.inkOnBrand }}
+              >
+                {formatRaceTime(boat.finishMs)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setReplayKey((k) => k + 1)}
+        className="self-end rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+        style={{
+          background: SYNTH.glass,
+          border: `1px solid ${SYNTH.glassBorder}`,
+          color: SYNTH.inkOnBrand,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        Replay
+      </button>
+    </div>
+  )
+}
+
 // ─── Registry map ─────────────────────────────────────────────────────────
 
 /**
@@ -691,4 +823,5 @@ export const ELEMENT_RENDERERS: Record<ToolElement['type'], ElementRenderer> = {
   input: InputRenderer,
   select: SelectRenderer,
   text: TextRenderer,
+  boat_race: BoatRaceRenderer,
 }

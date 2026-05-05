@@ -16,7 +16,19 @@
  */
 import { z } from 'zod'
 
+/**
+ * Default schema_version emitted by new specs (v0 generator, mockGenerator).
+ * Specs that opt in to v2-only primitives (boat_race, ...) declare
+ * `schema_version: 2` literally — see `pacificBoatRace.ts`.
+ */
 export const SCHEMA_VERSION = 1 as const
+
+/**
+ * Sprint 5.7 — schema bump to v2 with backwards compat (AG-approved
+ * 2026-05-04). v1 specs continue to parse and render unchanged; v2 adds the
+ * `boat_race` element type. Any future bumps land here as a new literal.
+ */
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2] as const
 
 // ─── Inputs (top-level user-supplied parameters) ──────────────────────────
 
@@ -189,6 +201,15 @@ const TextElementSchema = ElementShared.extend({
   tone: z.enum(['body', 'kicker', 'caption']).optional(),
 })
 
+// Sprint 5.7 — animated lane racer. `dataKey` resolves to
+// `{ boats: { name: string; finishMs: number; color?: string }[] }`.
+// Renderer animates each boat from 0 -> (finishMs / max) over `durationMs`.
+const BoatRaceElementSchema = ElementShared.extend({
+  type: z.literal('boat_race'),
+  dataKey: z.string(),
+  durationMs: z.number().int().positive().optional(),
+})
+
 export const ToolElementSchema = z.discriminatedUnion('type', [
   StatElementSchema,
   LineChartElementSchema,
@@ -202,12 +223,13 @@ export const ToolElementSchema = z.discriminatedUnion('type', [
   InputElementSchema,
   SelectElementSchema,
   TextElementSchema,
+  BoatRaceElementSchema,
 ])
 
 // ─── Tool spec (top-level) ────────────────────────────────────────────────
 
 export const ToolSpecSchema = z.object({
-  schema_version: z.literal(SCHEMA_VERSION),
+  schema_version: z.union([z.literal(1), z.literal(2)]),
   // Slug — kebab-case, lowercase. Used as React key and as the URL segment
   // when a generated tool mounts at /app/coach/tools/<id>.
   id: z

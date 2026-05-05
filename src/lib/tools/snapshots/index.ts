@@ -4,6 +4,7 @@ import { LINEUP_COMPARE_DATA } from './lineupCompare'
 import { WELLNESS_SUMMARY_DATA } from './wellnessSummary'
 import { LAP_COUNTER_DATA } from './lapCounter'
 import { RACE_PLAN_DATA } from './racePlan'
+import { PACIFIC_BOAT_RACE_DATA } from './pacificBoatRace'
 
 export {
   STROKE_RATE_LOGGER_DATA,
@@ -11,6 +12,7 @@ export {
   WELLNESS_SUMMARY_DATA,
   LAP_COUNTER_DATA,
   RACE_PLAN_DATA,
+  PACIFIC_BOAT_RACE_DATA,
 }
 
 /**
@@ -24,4 +26,5 @@ export const MOCK_SNAPSHOTS: Record<string, ResolvedBindings> = {
   'wellness-summary': WELLNESS_SUMMARY_DATA,
   'lap-counter': LAP_COUNTER_DATA,
   'race-plan': RACE_PLAN_DATA,
+  'pacific-boat-race': PACIFIC_BOAT_RACE_DATA,
 }

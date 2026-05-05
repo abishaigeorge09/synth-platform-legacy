@@ -154,6 +154,47 @@ describe('parseAIText — illustration tokens', () => {
   })
 })
 
+describe('parseAIText — callout tokens', () => {
+  it('parses an info callout with title + text', () => {
+    const out = parseAIText('[callout:info|On track|Sleep average steady at 7.4h]')
+    expect(out).toEqual([
+      {
+        kind: 'callout',
+        tone: 'info',
+        title: 'On track',
+        text: 'Sleep average steady at 7.4h',
+      },
+    ])
+  })
+
+  it('accepts warn + success tones', () => {
+    expect(
+      parseAIText('[callout:warn|Heads up|Two short-sleep nights]')[0],
+    ).toMatchObject({ tone: 'warn' })
+    expect(
+      parseAIText('[callout:success|Strong block|HRV trending up]')[0],
+    ).toMatchObject({ tone: 'success' })
+  })
+
+  it('rejects unknown tones (renders as literal text)', () => {
+    const out = parseAIText('[callout:danger|Bad|Something]')
+    expect(out[0]).toEqual({ kind: 'text', text: '[callout:danger|Bad|Something]' })
+  })
+
+  it('keeps pipes inside the text segment intact', () => {
+    const out = parseAIText('[callout:info|Pattern|Fast days follow 7+ hour sleep | tracked daily]')
+    const cb = out[0]
+    if (cb.kind === 'callout') {
+      expect(cb.text).toBe('Fast days follow 7+ hour sleep | tracked daily')
+    }
+  })
+
+  it('hides a partial [callout: token at the tail', () => {
+    const out = parseAIText('Heads up: [callout:warn|Watch')
+    expect(out).toEqual([{ kind: 'text', text: 'Heads up: ' }])
+  })
+})
+
 describe('parseAIText — streaming safety', () => {
   it('hides a partial known-token at the tail (chart prefix)', () => {
     // After the partial-token-hiding fix: `[chart:Recovery|WHOOP` is

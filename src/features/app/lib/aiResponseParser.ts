@@ -9,6 +9,8 @@
  *   [chart:title|source|metric|window]            → time-series chart
  *   [table:title|col1,col2|cell,cell|cell,cell]   → data table
  *   [illustration:glyph|caption]                  → SVG glyph card
+ *   [callout:tone|title|text]                     → boxed callout
+ *   [suggest:Q1|Q2|Q3]                            → tap-to-send chips
  *
  * This parser walks the accumulated text on every delta and rebuilds
  * the `ChatPart[]` from scratch. It's pure and deterministic, so
@@ -69,6 +71,7 @@ export function parseAIText(rawText: string): ChatPart[] {
         partialContent.startsWith('chart:') ||
         partialContent.startsWith('table:') ||
         partialContent.startsWith('illustration:') ||
+        partialContent.startsWith('callout:') ||
         partialContent.startsWith('suggest:')
       ) {
         cursor = text.length
@@ -125,6 +128,7 @@ function tryParseToken(content: string): ChatPart | null {
   if (content.startsWith('chart:')) return parseChart(content.slice(6))
   if (content.startsWith('table:')) return parseTable(content.slice(6))
   if (content.startsWith('illustration:')) return parseIllustration(content.slice(13))
+  if (content.startsWith('callout:')) return parseCallout(content.slice(8))
   if (content.startsWith('suggest:')) return parseSuggestions(content.slice(8))
   return null
 }
@@ -182,6 +186,32 @@ function parseSuggestions(payload: string): ChatPart | null {
     .slice(0, 5)
   if (items.length === 0) return null
   return { kind: 'suggestions', items }
+}
+
+function parseCallout(payload: string): ChatPart | null {
+  // Format: tone|title|text. Tone must be info|warn|success.
+  // Pipes inside the text segment are kept verbatim — we only split
+  // on the first two delimiters so an explanatory sentence like
+  // "Fast days follow 7+ hour sleep | tracked daily" survives intact.
+  const firstPipe = payload.indexOf('|')
+  if (firstPipe === -1) return null
+  const tone = payload.slice(0, firstPipe).trim()
+  if (tone !== 'info' && tone !== 'warn' && tone !== 'success') return null
+
+  const rest = payload.slice(firstPipe + 1)
+  const secondPipe = rest.indexOf('|')
+  let title: string | undefined
+  let text: string
+  if (secondPipe === -1) {
+    title = undefined
+    text = rest.trim()
+  } else {
+    title = rest.slice(0, secondPipe).trim() || undefined
+    text = rest.slice(secondPipe + 1).trim()
+  }
+
+  if (!text && !title) return null
+  return { kind: 'callout', tone, title, text: text || (title ?? '') }
 }
 
 function parseIllustration(payload: string): ChatPart | null {

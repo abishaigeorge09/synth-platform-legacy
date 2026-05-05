@@ -15,13 +15,19 @@ import { isClaudeConfigured } from '../../../lib/ai/env'
 export type AIClientMode = 'live' | 'mock'
 
 /**
- * `live` when the proxy is reachable AND the user has a real Supabase
- * session. Demo users get `mock` because the edge function rejects
- * requests without a JWT.
+ * `live` when Supabase is configured. Demo users with anonymous Supabase
+ * sessions still hit `live` — the Edge Function accepts anonymous JWTs.
+ *
+ * The previous version returned `mock` whenever isDemo was true. That
+ * predates anonymous sign-in: useAppAuthStore.setDemoUser now calls
+ * supabase.auth.signInAnonymously() which gives demo users a real JWT.
+ * Forcing them to mock mode left coaches stuck on canned responses even
+ * with a valid session. The opts param stays for backwards compat but
+ * is intentionally ignored.
  */
-export function getAIClientMode(opts?: { isDemo?: boolean }): AIClientMode {
+export function getAIClientMode(_opts?: { isDemo?: boolean }): AIClientMode {
+  void _opts
   if (!isClaudeConfigured()) return 'mock'
-  if (opts?.isDemo) return 'mock'
   return 'live'
 }
 

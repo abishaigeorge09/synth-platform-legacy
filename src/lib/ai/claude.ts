@@ -320,6 +320,23 @@ export async function streamClaudeMessages(args: {
 
       if (!res.ok) {
         const t = await res.text()
+        // 429 is the demo daily cap from claude-chat; 401/403 are
+        // auth issues. None are model-availability problems, so we
+        // tag them as hard errors and let the catch below escape
+        // the model loop instead of hammering the next model on the
+        // chain (which would just hit the same cap or auth wall).
+        if (res.status === 429 || res.status === 401 || res.status === 403) {
+          let message = t
+          try {
+            const parsed = JSON.parse(t) as { error?: string }
+            if (parsed.error) message = parsed.error
+          } catch {
+            /* keep raw */
+          }
+          const hard: Error & { isHardError?: boolean } = new Error(message)
+          hard.isHardError = true
+          throw hard
+        }
         throw new Error(`${res.status} ${t}`)
       }
       if (!res.body) throw new Error('No response body')
@@ -348,6 +365,11 @@ export async function streamClaudeMessages(args: {
       flushLines(true)
       return full
     } catch (e) {
+      // Hard errors (429 / 401 / 403) escape the chain immediately.
+      // Everything else gets stashed and we try the next model.
+      if ((e as { isHardError?: boolean })?.isHardError) {
+        throw e
+      }
       lastErr = e
     }
   }

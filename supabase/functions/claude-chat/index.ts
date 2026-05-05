@@ -18,9 +18,16 @@
 // are tighter than Sonnet's). Also forwards `tools` and `tool_choice` for
 // Anthropic's function-calling feature, used by tool-generate.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from "jsr:@supabase/supabase-js@2"
 
 const ANTHROPIC_BASE = "https://api.anthropic.com/v1/messages"
 const ANTHROPIC_VERSION = "2023-06-01"
+
+// Demo daily cap — anonymous Supabase users get capped at this many AI
+// turns per UTC day. Real (signed-up) users are uncapped. Matches the
+// client-side DEMO_DAILY_AI_LIMIT in src/features/app/store/useDemoUsage.ts.
+// Update both when changing.
+const DEMO_DAILY_LIMIT = 30
 
 const ALLOWED_MODELS = new Set([
   // Current Anthropic model IDs (May 2026).
@@ -56,6 +63,60 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY")
   if (!apiKey) {
     return jsonError(500, "Server is missing ANTHROPIC_API_KEY secret")
+  }
+
+  // ── Demo daily cap (anonymous users only) ──
+  // Construct a user-scoped supabase client from the caller's JWT.
+  // verify_jwt is on at the function level, so by the time we get here
+  // the JWT is valid; we just need it to read auth.users.is_anonymous
+  // and to upsert the per-user demo_usage row under RLS.
+  //
+  // If this whole block fails (Supabase env missing, demo_usage table
+  // not yet migrated, etc.), we log + continue rather than blocking.
+  // The cap is a budget guard, not a security boundary — never break
+  // the chat over a counter glitch.
+  const authHeader = req.headers.get("authorization") ?? ""
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")
+  if (supabaseUrl && supabaseAnonKey && authHeader) {
+    try {
+      const sb = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { authorization: authHeader } },
+      })
+      const { data: { user } } = await sb.auth.getUser()
+      if (user && user.is_anonymous === true) {
+        const today = new Date().toISOString().slice(0, 10)
+        const { data: existing } = await sb
+          .from("demo_usage")
+          .select("message_count")
+          .eq("user_id", user.id)
+          .eq("date", today)
+          .maybeSingle()
+        const current = existing?.message_count ?? 0
+        if (current >= DEMO_DAILY_LIMIT) {
+          return jsonError(
+            429,
+            `Demo daily limit reached (${DEMO_DAILY_LIMIT} messages). Sign up to keep going.`,
+          )
+        }
+        // Pre-increment so a long upstream Anthropic call still counts.
+        // upsert with onConflict so first-of-day inserts and same-day
+        // updates both work in one round-trip.
+        await sb
+          .from("demo_usage")
+          .upsert(
+            {
+              user_id: user.id,
+              date: today,
+              message_count: current + 1,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,date" },
+          )
+      }
+    } catch (err) {
+      console.warn("[claude-chat] demo cap check failed, fail-open:", err)
+    }
   }
 
   let body: Record<string, unknown>

@@ -55,7 +55,7 @@ export const SEED_COACH: User = {
   id: 'user-coach-cal-womens',
   email: 'coach@berkeley.edu',
   name: 'Demo Coach',
-  role: 'coach',
+  role: 'head_coach',
   teamId: SEED_TEAM_CAL_WOMENS.id,
 }
 

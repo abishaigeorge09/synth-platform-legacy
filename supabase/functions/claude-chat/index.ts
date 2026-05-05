@@ -23,11 +23,16 @@ const ANTHROPIC_BASE = "https://api.anthropic.com/v1/messages"
 const ANTHROPIC_VERSION = "2023-06-01"
 
 const ALLOWED_MODELS = new Set([
-  "claude-sonnet-4-20250514",
+  // Current Anthropic model IDs (May 2026).
   "claude-haiku-4-5-20251001",
+  "claude-sonnet-4-6",
+  "claude-opus-4-7",
+  // Legacy IDs kept on the allowlist temporarily so older deploys hit
+  // the same proxy without immediately breaking; they 404 upstream
+  // anyway. Safe to drop in a follow-up cleanup.
+  "claude-sonnet-4-20250514",
   "claude-opus-4-20250514",
   "claude-opus-4-6",
-  "claude-opus-4-7",
 ])
 
 // Hard ceilings — clients can ask for less but not more.

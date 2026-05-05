@@ -1,29 +1,22 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
-
-let client: SupabaseClient | null = null
+/**
+ * Re-exports of the single shared Supabase client, plus the auth helpers
+ * the onboarding flow uses. The actual client instance lives in
+ * `src/lib/supabaseClient.ts` — keeping it singular avoids the session
+ * desync that plagued earlier builds (two `createClient` calls meant
+ * `signInAnonymously()` on one instance was invisible to the other).
+ */
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { supabase } from '../../../lib/supabaseClient'
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(url && anonKey)
+  return supabase !== null
 }
 
 export function getSupabase(): SupabaseClient | null {
-  if (client) return client
-  if (!isSupabaseConfigured()) return null
-  client = createClient(url as string, anonKey as string, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  })
-  return client
+  return supabase
 }
 
 export async function signInWithGoogle(): Promise<void> {
-  const supabase = getSupabase()
   if (!supabase) {
     throw new Error(
       'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local.',
@@ -39,7 +32,6 @@ export async function signInWithGoogle(): Promise<void> {
 }
 
 export async function signOutFromSupabase(): Promise<void> {
-  const supabase = getSupabase()
   if (!supabase) return
   await supabase.auth.signOut()
 }

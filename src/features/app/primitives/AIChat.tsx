@@ -990,11 +990,18 @@ export function CustomizeChatSheet({
   onClose,
   value,
   onChange,
+  scopeLabel,
 }: {
   open: boolean
   onClose: () => void
   value: ChatCustomization
   onChange: (next: ChatCustomization) => void
+  /** Active scope shown as a subtitle in the sheet header. Phase 2 of
+   *  the AI deep upgrade keys customizations per scope, so coaches need
+   *  a clear hint about which scope they're editing (team-wide vs. a
+   *  specific athlete drill-in). Passing it as a prop keeps the sheet
+   *  agnostic about scope id format. */
+  scopeLabel?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -1019,6 +1026,16 @@ export function CustomizeChatSheet({
 
   return (
     <SheetShell open={open} onClose={onClose} title="Customize chat">
+      {scopeLabel ? (
+        <p
+          className="-mt-1 mb-1 text-[12px]"
+          style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+        >
+          Editing for{' '}
+          <span style={{ color: SYNTH.ink, fontWeight: 600 }}>{scopeLabel}</span>
+          {'. '}Other scopes keep their own settings.
+        </p>
+      ) : null}
       <Group label="Custom instructions">
         <textarea
           value={value.instructions}

@@ -20,7 +20,7 @@ import {
   type ChatHistoryEntry,
   type ChatCustomization,
 } from '../primitives/AIChat'
-import { timeAwareGreeting, DEFAULT_CUSTOMIZATION } from '../primitives/aiChatUtil'
+import { timeAwareGreeting } from '../primitives/aiChatUtil'
 import {
   streamCompletion,
   buildSystemPrompt,
@@ -29,6 +29,7 @@ import {
 } from '../lib/aiClient'
 import { parseAIText } from '../lib/aiResponseParser'
 import { useAppAuthStore } from '../store/useAppAuthStore'
+import { useAIChatCustomization } from '../store/useAIChatCustomization'
 import {
   APP_MOCK_ATHLETES,
   APP_MOCK_TEAM,
@@ -57,6 +58,17 @@ export function AIPage() {
   )
   const scopeLabel = scopeAthlete ? scopeAthlete.name : APP_MOCK_TEAM.name
 
+  // Phase 2 — customization is keyed by a typed scope id, separate from
+  // the URL `scopeId` (which uses raw athlete uuids for routing). The
+  // store namespaces athletes under `athlete:<uuid>` so a future "self:"
+  // scope from the athlete view can never collide with a coach-side
+  // athlete-drilldown of the same athlete.
+  const customScopeId: string = scopeAthlete ? `athlete:${scopeAthlete.id}` : 'team'
+  const custom = useAIChatCustomization((s) => s.byScope[customScopeId]) ?? null
+  const getForScope = useAIChatCustomization((s) => s.getForScope)
+  const setForScope = useAIChatCustomization((s) => s.setForScope)
+  const customResolved = custom ?? getForScope(customScopeId)
+
   const [text, setText] = useState('')
   const [attachment, setAttachment] = useState<{ name: string; ext: string } | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -68,7 +80,6 @@ export function AIPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [style, setStyle] = useState<StyleKey>('synthesized')
-  const [custom, setCustom] = useState<ChatCustomization>(DEFAULT_CUSTOMIZATION)
   const streamingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -146,7 +157,7 @@ export function AIPage() {
     if (mode === 'mock') {
       // No API key — fall back to the canned scenario generator.
       streamingTimer.current = setTimeout(() => {
-        const aiParts = mockResponse({ scopeAthlete, scopeLabel, prompt: trimmed, style, custom })
+        const aiParts = mockResponse({ scopeAthlete, scopeLabel, prompt: trimmed, style, custom: customResolved })
         setMessages((m) => {
           const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
           return [
@@ -184,7 +195,7 @@ export function AIPage() {
       scope: scopeAthlete ? 'athlete' : 'team',
       scopeLabel,
       scopeData,
-      customization: custom,
+      customization: customResolved,
     })
 
     const history = messages
@@ -289,9 +300,9 @@ export function AIPage() {
   const greeting = useMemo(() => timeAwareGreeting(), [])
   const placeholder = messages.length > 0 ? 'Reply to synth.' : `Ask synth. about ${scopeLabel}`
   const customizationActive =
-    custom.tone !== 'normal' ||
-    custom.instructions.trim().length > 0 ||
-    custom.references.length > 0
+    customResolved.tone !== 'normal' ||
+    customResolved.instructions.trim().length > 0 ||
+    customResolved.references.length > 0
 
   return (
     <SwipeBackPage to="/app/coach/home">
@@ -390,8 +401,9 @@ export function AIPage() {
         <CustomizeChatSheet
           open={customizeOpen}
           onClose={() => setCustomizeOpen(false)}
-          value={custom}
-          onChange={setCustom}
+          value={customResolved}
+          onChange={(next) => setForScope(customScopeId, next)}
+          scopeLabel={scopeLabel}
         />
 
         <ChatHistorySheet

@@ -27,6 +27,7 @@ import {
   generateToolViaEdge,
   ToolGenerateError,
 } from '../../../lib/ai/toolGenerateClient'
+import { publishToolVersion } from '../../../lib/ai/publishedTools'
 import { useCoachContextStore } from '../store/useCoachContext'
 import { getAIClientMode } from '../lib/aiClient'
 import { deriveQuestions } from '../../../lib/tools/clarifyingQuestions'
@@ -89,6 +90,13 @@ export function ToolsBuildPage() {
   // so server-side history (tool_versions rows) stitches together.
   const [toolRequestId, setToolRequestId] = useState<string | null>(null)
   const [unmetConnectors, setUnmetConnectors] = useState<string[]>([])
+  // Sprint 10 — head coach can publish the most recently emitted spec.
+  // Tracks the latest tool_versions.id with kind='spec' for this session.
+  const [lastVersionId, setLastVersionId] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
+  const [publishedVersionIds, setPublishedVersionIds] = useState<Set<string>>(
+    () => new Set(),
+  )
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const cancelRef = useRef(false)
 
@@ -144,8 +152,39 @@ export function ToolsBuildPage() {
     setDeclineState(null)
     setToolRequestId(null)
     setUnmetConnectors([])
+    setLastVersionId(null)
     navigate('/app/coach/tools/build')
   }
+
+  const onPublish = async () => {
+    if (!lastVersionId || publishing) return
+    if (!coachContext || coachContext.role !== 'head_coach') return
+    if (publishedVersionIds.has(lastVersionId)) {
+      toast('Already published', 'info')
+      return
+    }
+    setPublishing(true)
+    try {
+      await publishToolVersion(lastVersionId)
+      setPublishedVersionIds((prev) => {
+        const next = new Set(prev)
+        next.add(lastVersionId)
+        return next
+      })
+      toast(`${session?.spec.name ?? 'Tool'} published to your team`, 'success')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Publish failed'
+      toast(message, 'error')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  const canPublish =
+    Boolean(lastVersionId) &&
+    coachContext?.role === 'head_coach' &&
+    Boolean(session)
+  const isPublished = lastVersionId !== null && publishedVersionIds.has(lastVersionId)
 
   const proceedToGenerate = async (basePrompt: string, answered: { q: string; a: string }[] = []) => {
     const augmented =
@@ -181,6 +220,7 @@ export function ToolsBuildPage() {
 
         if (result.kind === 'spec') {
           setUnmetConnectors(result.unmet_connectors)
+          setLastVersionId(result.version_id)
           if (result.unmet_connectors.length > 0) {
             toast(
               `Built using demo data — connect ${result.unmet_connectors.join(', ')} for live numbers.`,
@@ -364,6 +404,13 @@ export function ToolsBuildPage() {
                     onInstall,
                     onRefine,
                     onOpenFullscreen,
+                    publish: canPublish
+                      ? {
+                          published: isPublished,
+                          publishing,
+                          onPublish,
+                        }
+                      : null,
                   }
                 : null
             }

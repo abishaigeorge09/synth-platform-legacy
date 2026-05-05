@@ -27,6 +27,11 @@ import {
   useInstalledToolsStore,
   type InstalledToolMeta,
 } from '../store/useInstalledToolsStore'
+import { useCoachContextStore } from '../store/useCoachContext'
+import {
+  fetchPublishedTeamTools,
+  type PublishedTool,
+} from '../../../lib/ai/publishedTools'
 
 // ─── Catalog ─────────────────────────────────────────────────────────────────
 
@@ -211,6 +216,26 @@ export function CustomToolsPage() {
   const lastInstalledAt = useInstalledToolsStore((s) => s.lastInstalledAt)
   const clearLastInstalled = useInstalledToolsStore((s) => s.clearLastInstalled)
 
+  // Sprint 10 — published team tools surface in the Catalog tab.
+  // Hydrate once when the coach has a real users-row team_id; demo /
+  // anonymous users see the static CATALOG only.
+  const coachContext = useCoachContextStore((s) => s.context)
+  const hydrateCoachContext = useCoachContextStore((s) => s.hydrate)
+  const [publishedTools, setPublishedTools] = useState<PublishedTool[]>([])
+  useEffect(() => {
+    void hydrateCoachContext()
+  }, [hydrateCoachContext])
+  useEffect(() => {
+    if (!coachContext) return
+    let cancelled = false
+    void fetchPublishedTeamTools(coachContext.team_id).then((tools) => {
+      if (!cancelled) setPublishedTools(tools)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [coachContext])
+
   // Retire the pulse signal once the animation has had time to play
   // (~2.5 s, longer than INSTALL_PULSE's 1.6 s duration). Keying on
   // `lastInstalledAt` resets the timer on each install.
@@ -335,6 +360,32 @@ export function CustomToolsPage() {
 
             {tab === 'catalog' && (
               <>
+                {publishedTools.length > 0 ? (
+                  <PublishedSection
+                    publishedTools={publishedTools}
+                    isInstalled={isInstalled}
+                    onInstall={(pt) => {
+                      const meta: InstalledToolMeta = {
+                        id: pt.spec.id,
+                        name: pt.spec.name,
+                        shortDesc: pt.spec.description,
+                        publisher: 'synth · team',
+                        category: pt.spec.category,
+                        accent: SYNTH.cardLemon,
+                        version: pt.spec.version,
+                        loadMs: 50,
+                        to: `/app/coach/tools/${pt.spec.id}`,
+                        iconKey: pt.spec.icon_key,
+                      }
+                      install(meta)
+                      toast(`${pt.spec.name} added to your collection`, 'success')
+                      setTab('installed')
+                    }}
+                    onOpen={(pt) =>
+                      navigate(`/app/coach/tools/${pt.spec.id}`)
+                    }
+                  />
+                ) : null}
                 {catalogFiltered.map((t, i) => (
                   <CatalogCard
                     key={t.id}
@@ -976,6 +1027,130 @@ function EmptyState({
       >
         {body}
       </p>
+    </div>
+  )
+}
+
+// ─── Published-team-tools section (Sprint 10) ────────────────────────────
+
+function PublishedSection({
+  publishedTools,
+  isInstalled,
+  onInstall,
+  onOpen,
+}: {
+  publishedTools: PublishedTool[]
+  isInstalled: (id: string) => boolean
+  onInstall: (tool: PublishedTool) => void
+  onOpen: (tool: PublishedTool) => void
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 px-1">
+        <span
+          className="flex h-5 w-5 items-center justify-center rounded-full"
+          style={{ background: 'rgba(16,185,129,0.20)', color: SYNTH.accentEmerald }}
+        >
+          <Sparkles size={11} strokeWidth={2.4} />
+        </span>
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.16em]"
+          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+        >
+          Published by your team · {publishedTools.length}
+        </span>
+      </div>
+      {publishedTools.map((pt) => {
+        const installed = isInstalled(pt.spec.id)
+        return (
+          <motion.div
+            key={pt.versionId}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.24 }}
+            className="flex flex-col gap-3 rounded-2xl p-4"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: `1px solid ${SYNTH.glassBorder}`,
+              boxShadow: '0 6px 18px rgba(8,8,40,0.20)',
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                style={{ background: SYNTH.cardLemon, color: SYNTH.ink }}
+              >
+                <Sparkles size={18} strokeWidth={2.2} />
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span
+                  className="truncate text-[14px] font-bold leading-tight"
+                  style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+                >
+                  {pt.spec.name}
+                </span>
+                <span
+                  className="mt-0.5 text-[11px]"
+                  style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+                >
+                  v{pt.spec.version} · {pt.spec.category}
+                </span>
+                <span
+                  className="mt-2 text-[12px] leading-[1.4]"
+                  style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+                >
+                  {pt.spec.description}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => onOpen(pt)}
+                className="rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]"
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: `1px solid ${SYNTH.glassBorder}`,
+                  color: SYNTH.inkOnBrand,
+                  fontFamily: SYNTH.font,
+                }}
+              >
+                Open
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => onInstall(pt)}
+                disabled={installed}
+                className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] disabled:opacity-60"
+                style={{
+                  background: installed ? 'rgba(255,255,255,0.10)' : SYNTH.accentEmerald,
+                  border: `1px solid ${installed ? SYNTH.glassBorder : SYNTH.accentEmerald}`,
+                  color: SYNTH.inkOnBrand,
+                  fontFamily: SYNTH.font,
+                  boxShadow: installed ? 'none' : '0 6px 18px rgba(16,185,129,0.30)',
+                }}
+              >
+                {installed ? (
+                  <>
+                    <Check size={12} strokeWidth={2.6} />
+                    Installed
+                  </>
+                ) : (
+                  'Install'
+                )}
+              </motion.button>
+            </div>
+          </motion.div>
+        )
+      })}
+      <div
+        aria-hidden
+        className="my-3 h-px"
+        style={{ background: SYNTH.glassBorder }}
+      />
     </div>
   )
 }

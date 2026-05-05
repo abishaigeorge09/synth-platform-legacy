@@ -19,6 +19,7 @@ import {
   Check,
 } from 'lucide-react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
+import { BuildChatInput } from '../primitives/BuildChatInput'
 import { SYNTH } from '../lib/theme'
 import { CANVAS_ENTER, INSTALL_PULSE } from '../lib/motion'
 import { toast } from '../../../shared/store/useToastStore'
@@ -191,6 +192,17 @@ export function CustomToolsPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('installed')
   const [query, setQuery] = useState('')
+  // Sprint 5.9 — pinned build prompt at the bottom of the page. Sending
+  // hands the text off to the Build workspace via location state, which
+  // drops the user straight into the clarifying-question flow.
+  const [buildPrompt, setBuildPrompt] = useState('')
+
+  const onSendBuildPrompt = () => {
+    const prompt = buildPrompt.trim()
+    if (!prompt) return
+    setBuildPrompt('')
+    navigate('/app/coach/tools/build', { state: { initialPrompt: prompt } })
+  }
 
   const installedTools = useInstalledToolsStore((s) => s.tools)
   const isInstalled = useInstalledToolsStore((s) => s.isInstalled)
@@ -255,7 +267,14 @@ export function CustomToolsPage() {
 
   return (
     <motion.div
-      className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab"
+      className="synth-scroll flex flex-1 flex-col overflow-y-auto"
+      style={{
+        // 88px tab-bar clearance + 64px chat-input clearance + safe area.
+        // Replaces pb-safe-tab on this page only — every other Custom
+        // Tools surface still uses the standard tab-bar offset.
+        paddingBottom:
+          'calc(max(env(safe-area-inset-bottom), 16px) + 88px + 64px)',
+      }}
       {...CANVAS_ENTER}
     >
       <CoachPageHeader title="Tools" subtitle="Custom tools" />
@@ -348,6 +367,18 @@ export function CustomToolsPage() {
           <span>v0.5 · build {new Date().toISOString().slice(0, 10)}</span>
         </div>
       </div>
+
+      {/* Sprint 5.9 — pinned build-prompt input. Sits 88 px above the
+          viewport bottom so it floats just above the floating tab bar.
+          Sending hands the prompt to /app/coach/tools/build via state. */}
+      <BuildChatInput
+        position="fixed"
+        bottomOffsetPx={88}
+        value={buildPrompt}
+        onChange={setBuildPrompt}
+        onSend={onSendBuildPrompt}
+        placeholder="Describe a tool you want to build…"
+      />
     </motion.div>
   )
 }

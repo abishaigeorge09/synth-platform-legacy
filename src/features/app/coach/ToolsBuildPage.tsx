@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft,
   Menu,
   Plus,
-  Send,
   Sparkles,
   X,
   MessageSquarePlus,
@@ -27,6 +26,7 @@ import { generateToolSpec, MockGenerationError } from '../../../lib/tools/mockGe
 import { deriveQuestions } from '../../../lib/tools/clarifyingQuestions'
 import type { ToolSpec } from '../../../lib/tools/schema'
 import { ToolPreviewPanel } from './ToolPreviewPanel'
+import { BuildChatInput } from '../primitives/BuildChatInput'
 
 type ClarifyingState = {
   originalPrompt: string
@@ -54,6 +54,7 @@ type MobilePane = 'chat' | 'preview'
 
 export function ToolsBuildPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { chatId } = useParams<{ chatId: string }>()
   const createSession = useChatSessionsStore((s) => s.createSession)
   const getSession = useChatSessionsStore((s) => s.getSession)
@@ -80,6 +81,21 @@ export function ToolsBuildPage() {
       cancelRef.current = true
     }
   }, [])
+
+  // Sprint 5.9 — Custom Tools catalog page can hand off an initial
+  // prompt via location.state. Drop straight into the clarifying flow
+  // so the coach lands mid-conversation, not at a blank textarea.
+  const initialPrompt =
+    (location.state as { initialPrompt?: string } | null)?.initialPrompt ?? null
+  useEffect(() => {
+    if (!initialPrompt || chatId) return
+    const questions = deriveQuestions(initialPrompt)
+    setMobilePane('chat')
+    setClarifyingState({ originalPrompt: initialPrompt, questions, answered: [] })
+    // Clear the state so a refresh doesn't re-trigger the same flow.
+    navigate(location.pathname, { replace: true, state: null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt, chatId])
 
   const isLoading = loadingPhase !== null
   const previewSpec: ToolSpec | null = session?.spec ?? null
@@ -293,7 +309,7 @@ export function ToolsBuildPage() {
             )}
           </motion.div>
 
-          <ChatInput
+          <BuildChatInput
             inputRef={inputRef}
             value={text}
             onChange={setText}
@@ -1147,66 +1163,3 @@ function ClarifyingView({
   )
 }
 
-// ─── Chat input ────────────────────────────────────────────────────────────
-
-type ChatInputProps = {
-  inputRef: React.RefObject<HTMLTextAreaElement | null>
-  value: string
-  onChange: (v: string) => void
-  onSend: () => void
-  disabled?: boolean
-}
-
-function ChatInput({ inputRef, value, onChange, onSend, disabled = false }: ChatInputProps) {
-  const canSend = !disabled && value.trim().length > 0
-
-  return (
-    <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
-    >
-      <div
-        className="pointer-events-auto flex w-full max-w-[640px] items-end gap-2 rounded-3xl px-3 py-2.5"
-        style={{
-          background: 'rgba(15, 18, 42, 0.62)',
-          backdropFilter: 'blur(28px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
-          border: '1px solid rgba(255, 255, 255, 0.18)',
-          boxShadow:
-            '0 14px 36px rgba(8,8,40,0.35), 0 2px 6px rgba(8,8,40,0.18), inset 0 1px 0 rgba(255,255,255,0.16)',
-        }}
-      >
-        <textarea
-          ref={inputRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              if (canSend) onSend()
-            }
-          }}
-          rows={1}
-          disabled={disabled}
-          placeholder={disabled ? 'Generating…' : 'Describe a tool you need…'}
-          className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[14px] leading-[1.4] outline-none placeholder:opacity-50 disabled:opacity-50"
-          style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-        />
-        <button
-          type="button"
-          onClick={onSend}
-          disabled={!canSend}
-          aria-label="Send"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-          style={{
-            background: canSend ? SYNTH.accentEmerald : 'rgba(255,255,255,0.10)',
-            color: SYNTH.inkOnBrand,
-            transition: 'background 120ms ease',
-          }}
-        >
-          <Send size={15} strokeWidth={2.4} />
-        </button>
-      </div>
-    </div>
-  )
-}

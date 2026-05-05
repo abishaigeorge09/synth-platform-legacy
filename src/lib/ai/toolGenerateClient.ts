@@ -80,10 +80,29 @@ export async function generateToolViaEdge(
     throw new ToolGenerateError('Supabase is not configured', 500)
   }
 
-  const { data: sessionData } = await supabase.auth.getSession()
-  const token = sessionData.session?.access_token
+  // Race recovery — same pattern as claude.ts:authHeaders. The demo
+  // flow's signInAnonymously fires in the background; if the user
+  // hits send before it lands, getSession returns null. Wait briefly,
+  // then attempt a recovery sign-in if still empty.
+  let session = (await supabase.auth.getSession()).data.session
+  if (!session) {
+    await new Promise((r) => setTimeout(r, 600))
+    session = (await supabase.auth.getSession()).data.session
+    if (!session) {
+      try {
+        await supabase.auth.signInAnonymously()
+      } catch (err) {
+        console.warn('[auth] tool-generate recovery anon sign-in threw', err)
+      }
+      session = (await supabase.auth.getSession()).data.session
+    }
+  }
+  const token = session?.access_token
   if (!token) {
-    throw new ToolGenerateError('Not signed in', 401)
+    throw new ToolGenerateError(
+      'Not signed in. Enable anonymous sign-ins in Supabase → Authentication → Providers if this persists.',
+      401,
+    )
   }
 
   const baseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || ''

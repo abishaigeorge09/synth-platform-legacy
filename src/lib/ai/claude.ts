@@ -174,9 +174,34 @@ function functionURL(): string {
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (!supabase) throw new Error('Supabase is not configured')
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
-  if (!token) throw new Error('Not signed in')
+
+  // Race recovery — Continue with Demo fires signInAnonymously in the
+  // background and lets the splash unblock immediately so the page
+  // feels snappy. If the user types a chat message before that
+  // network call lands, the first getSession() returns null and we
+  // throw "Not signed in". Auto-heal: wait briefly, then attempt one
+  // recovery sign-in if still empty. After this, persistent "Not
+  // signed in" means anonymous sign-ins are disabled on the project,
+  // which is a real config issue worth surfacing.
+  let session = (await supabase.auth.getSession()).data.session
+  if (!session) {
+    await new Promise((r) => setTimeout(r, 600))
+    session = (await supabase.auth.getSession()).data.session
+    if (!session) {
+      try {
+        await supabase.auth.signInAnonymously()
+      } catch (err) {
+        console.warn('[auth] recovery anon sign-in threw', err)
+      }
+      session = (await supabase.auth.getSession()).data.session
+    }
+  }
+  const token = session?.access_token
+  if (!token) {
+    throw new Error(
+      'Not signed in. If anonymous sign-ins are disabled on this Supabase project, enable them in Authentication → Providers → Anonymous sign-ins.',
+    )
+  }
   const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || ''
   return {
     'content-type': 'application/json',

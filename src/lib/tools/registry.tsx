@@ -18,7 +18,7 @@
  * full-reload this file when edited; that's acceptable for a registry.
  */
 import type { ReactNode, FC } from 'react'
-import { Fragment } from 'react'
+import { Fragment, useRef } from 'react'
 import {
   Bar,
   BarChart,
@@ -31,6 +31,7 @@ import {
 } from 'recharts'
 import type { ToolElement } from './schema'
 import type { ResolvedBindings } from './resolver'
+import { useToolState } from './instanceState'
 import { SYNTH } from '../../features/app/lib/theme'
 
 // ─── Renderer type ────────────────────────────────────────────────────────
@@ -502,13 +503,51 @@ const BadgeRenderer: ElementRenderer = ({ element }) => {
 }
 
 const ButtonRenderer: ElementRenderer = ({ element }) => {
+  // Hooks must run on every render in the same order, so hoist them above
+  // the type guard. They're cheap and the closure captures `element`.
+  const { data, dispatch } = useToolState()
+  // Held across renders so each button instance has its own clock.
+  // useToolInstanceState sits above this component, so this ref lives
+  // for the lifetime of one rendered tool — switching sessions remounts
+  // the renderer and reinitializes the clock.
+  const firstStampRef = useRef<number | null>(null)
+  const lastStampRef = useRef<number | null>(null)
+
   if (element.type !== 'button') return null
+
+  const onClick = () => {
+    if (element.action.kind !== 'submit') return
+    const payload = element.action.payload as Record<string, unknown> | undefined
+    const target = typeof payload?.append_to === 'string' ? payload.append_to : null
+    if (!target) return
+
+    const now = Date.now()
+    if (firstStampRef.current === null) firstStampRef.current = now
+    const elapsedMs = now - firstStampRef.current
+    const splitMs = lastStampRef.current === null ? 0 : now - lastStampRef.current
+    lastStampRef.current = now
+
+    const existing = Array.isArray(data[target]) ? (data[target] as unknown[]) : []
+    const index = existing.length + 1
+
+    let row: Record<string, unknown>
+    if (payload?.kind === 'lap') {
+      row = {
+        lap: index,
+        elapsed: formatMs(elapsedMs),
+        split: formatMs(splitMs),
+      }
+    } else {
+      row = { index, ts: now, ...((payload?.row as Record<string, unknown>) ?? {}) }
+    }
+
+    dispatch({ kind: 'append_row', target, row })
+  }
+
   return (
     <button
       type="button"
-      onClick={() => {
-        /* Sprint 4+ wires the action handler. */
-      }}
+      onClick={onClick}
       className="rounded-full px-4 py-2 text-[12px] font-bold uppercase tracking-[0.12em]"
       style={{
         background: SYNTH.accentEmerald,
@@ -520,8 +559,23 @@ const ButtonRenderer: ElementRenderer = ({ element }) => {
   )
 }
 
+function formatMs(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000)
+  const m = Math.floor(totalSeconds / 60)
+  const s = totalSeconds % 60
+  const cs = Math.floor((ms % 1000) / 10)
+  const pad = (n: number, w = 2) => String(n).padStart(w, '0')
+  return `${pad(m)}:${pad(s)}.${pad(cs)}`
+}
+
 const InputRenderer: ElementRenderer = ({ element }) => {
+  // Hoist hooks above the type guard (rules-of-hooks).
+  const { data, dispatch } = useToolState()
+
   if (element.type !== 'input') return null
+  const inputs = (data.__inputs as Record<string, unknown> | undefined) ?? {}
+  const value = (inputs[element.name] as string | number | undefined) ?? ''
+
   return (
     <label className="flex flex-col gap-1.5">
       <span
@@ -534,7 +588,14 @@ const InputRenderer: ElementRenderer = ({ element }) => {
         type={element.kind === 'number' ? 'number' : element.kind === 'date' ? 'date' : 'text'}
         name={element.name}
         placeholder={element.placeholder}
-        readOnly
+        value={value as string}
+        onChange={(e) =>
+          dispatch({
+            kind: 'set_input',
+            name: element.name,
+            value: element.kind === 'number' ? Number(e.target.value) : e.target.value,
+          })
+        }
         className="rounded-2xl px-3 py-2.5 text-[13px] outline-none"
         style={{
           background: 'rgba(255,255,255,0.06)',

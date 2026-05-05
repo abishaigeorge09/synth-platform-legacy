@@ -38,7 +38,7 @@ export const LAP_COUNTER: ToolSpec = {
     {
       type: 'button',
       label: 'Lap',
-      action: { kind: 'submit', payload: { event: 'lap' } },
+      action: { kind: 'submit', payload: { append_to: 'laps', kind: 'lap' } },
     },
     {
       type: 'table',

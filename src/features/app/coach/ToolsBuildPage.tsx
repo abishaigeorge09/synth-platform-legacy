@@ -17,8 +17,15 @@ import {
   type ChatSession,
 } from '../store/useChatSessionsStore'
 import { generateToolSpec, MockGenerationError } from '../../../lib/tools/mockGenerator'
+import { deriveQuestions } from '../../../lib/tools/clarifyingQuestions'
 import type { ToolSpec } from '../../../lib/tools/schema'
 import { ToolPreviewPanel } from './ToolPreviewPanel'
+
+type ClarifyingState = {
+  originalPrompt: string
+  questions: string[]
+  answered: { q: string; a: string }[]
+}
 
 const SUGGESTED_PROMPTS: string[] = [
   'Stroke rate logger that pulls from Concept2',
@@ -54,6 +61,7 @@ export function ToolsBuildPage() {
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [mobilePane, setMobilePane] = useState<MobilePane>('chat')
+  const [clarifyingState, setClarifyingState] = useState<ClarifyingState | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const cancelRef = useRef(false)
 
@@ -77,13 +85,17 @@ export function ToolsBuildPage() {
     setText('')
     setMobileSidebarOpen(false)
     setMobilePane('chat')
+    setClarifyingState(null)
     navigate('/app/coach/tools/build')
   }
 
-  const onSend = async () => {
-    const prompt = text.trim()
-    if (!prompt || isLoading) return
+  const proceedToGenerate = async (basePrompt: string, answered: { q: string; a: string }[] = []) => {
+    const augmented =
+      answered.length > 0
+        ? `${basePrompt} (${answered.map((qa) => qa.a).join(', ')})`
+        : basePrompt
 
+    setClarifyingState(null)
     setText('')
     setErrorMessage(null)
     setLoadingPhase(0)
@@ -97,8 +109,8 @@ export function ToolsBuildPage() {
     if (cancelRef.current) return
 
     try {
-      const spec = generateToolSpec(prompt)
-      const id = createSession(prompt, spec)
+      const spec = generateToolSpec(augmented)
+      const id = createSession(augmented, spec)
       setLoadingPhase(null)
       navigate(`/app/coach/tools/build/${id}`)
     } catch (err) {
@@ -109,6 +121,48 @@ export function ToolsBuildPage() {
           : 'Generation failed. Try again.'
       setErrorMessage(message)
     }
+  }
+
+  const onSend = async () => {
+    const prompt = text.trim()
+    if (!prompt || isLoading) return
+
+    // First Send on a fresh chat → ask clarifying questions before generating.
+    if (!clarifyingState && !chatId) {
+      const questions = deriveQuestions(prompt)
+      setClarifyingState({ originalPrompt: prompt, questions, answered: [] })
+      setText('')
+      return
+    }
+
+    // Refinement on an existing session, or follow-up text in any state →
+    // fire generation directly.
+    await proceedToGenerate(prompt)
+  }
+
+  const onAnswerQuestion = (q: string, a: string) => {
+    setClarifyingState((cs) =>
+      cs ? { ...cs, answered: [...cs.answered, { q, a }] } : null,
+    )
+  }
+
+  const onLooksGood = () => {
+    if (!clarifyingState) return
+    void proceedToGenerate(clarifyingState.originalPrompt, clarifyingState.answered)
+  }
+
+  const onSkipQuestions = () => {
+    if (!clarifyingState) return
+    void proceedToGenerate(clarifyingState.originalPrompt)
+  }
+
+  const onRefine = () => {
+    setText('Refine: ')
+    inputRef.current?.focus()
+  }
+
+  const onOpenFullscreen = () => {
+    if (session) navigate(`/app/coach/tools/${session.spec.id}`)
   }
 
   return (
@@ -160,8 +214,19 @@ export function ToolsBuildPage() {
                 message={errorMessage}
                 onDismiss={() => setErrorMessage(null)}
               />
+            ) : clarifyingState ? (
+              <ClarifyingView
+                state={clarifyingState}
+                onAnswer={onAnswerQuestion}
+                onLooksGood={onLooksGood}
+                onSkip={onSkipQuestions}
+              />
             ) : session ? (
-              <SessionChatView session={session} />
+              <SessionChatView
+                session={session}
+                onRefine={onRefine}
+                onOpenFullscreen={onOpenFullscreen}
+              />
             ) : (
               <EmptyCanvas
                 key={chatId ?? 'empty'}
@@ -756,10 +821,15 @@ function ErrorState({
 
 // ─── Session chat view (conversation only, NO tool render) ────────────────
 
-function SessionChatView({ session }: { session: ChatSession }) {
-  // The actual rendered tool moved to the preview pane in Sprint 5.5.
-  // The chat pane only shows the conversation now: prompt pill + a small
-  // "Tool ready" confirmation that points at the preview.
+function SessionChatView({
+  session,
+  onRefine,
+  onOpenFullscreen,
+}: {
+  session: ChatSession
+  onRefine: () => void
+  onOpenFullscreen: () => void
+}) {
   return (
     <motion.div
       key={session.id}
@@ -819,6 +889,178 @@ function SessionChatView({ session }: { session: ChatSession }) {
             — see preview
           </span>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 pl-1">
+        <ActionChip label="Refine →" onClick={onRefine} />
+        <ActionChip label="Open fullscreen" onClick={onOpenFullscreen} />
+      </div>
+    </motion.div>
+  )
+}
+
+function ActionChip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.97 }}
+      onClick={onClick}
+      className="rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]"
+      style={{
+        background: 'rgba(255,255,255,0.08)',
+        border: `1px solid ${SYNTH.glassBorder}`,
+        color: SYNTH.inkOnBrand,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      {label}
+    </motion.button>
+  )
+}
+
+// ─── Clarifying view (chips before generation) ────────────────────────────
+
+function ClarifyingView({
+  state,
+  onAnswer,
+  onLooksGood,
+  onSkip,
+}: {
+  state: ClarifyingState
+  onAnswer: (q: string, a: string) => void
+  onLooksGood: () => void
+  onSkip: () => void
+}) {
+  const remaining = state.questions.filter(
+    (q) => !state.answered.some((a) => a.q === q),
+  )
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+      className="flex w-full max-w-[640px] flex-col gap-3 py-6"
+    >
+      <div className="flex justify-end">
+        <div
+          className="flex max-w-[85%] flex-col gap-1.5 rounded-2xl px-4 py-3"
+          style={{
+            background: 'rgba(255,255,255,0.10)',
+            border: `1px solid ${SYNTH.glassBorder}`,
+          }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: SYNTH.inkOnBrandMuted }}
+          >
+            You
+          </span>
+          <span
+            className="text-[13px] leading-[1.5]"
+            style={{ color: SYNTH.inkOnBrand }}
+          >
+            {state.originalPrompt}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex justify-start">
+        <div
+          className="flex max-w-[85%] flex-col gap-2 rounded-2xl px-4 py-3"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: `1px solid ${SYNTH.glassBorder}`,
+          }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: SYNTH.inkOnBrandMuted }}
+          >
+            synth
+          </span>
+          <span
+            className="text-[13px] leading-[1.5]"
+            style={{ color: SYNTH.inkOnBrand }}
+          >
+            Before I build, a few quick questions:
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 pl-2">
+        {remaining.map((q) => (
+          <motion.button
+            key={q}
+            type="button"
+            whileTap={{ scale: 0.99 }}
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            onClick={() => onAnswer(q, q)}
+            className="flex items-center gap-2 rounded-2xl px-3 py-2 text-left"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: `1px solid ${SYNTH.glassBorder}`,
+            }}
+          >
+            <Sparkles size={12} strokeWidth={2.4} color={SYNTH.accentEmerald} />
+            <span
+              className="text-[12px] font-semibold"
+              style={{ color: SYNTH.inkOnBrand }}
+            >
+              {q}
+            </span>
+          </motion.button>
+        ))}
+      </div>
+
+      {state.answered.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5 pl-2">
+          {state.answered.map((qa) => (
+            <span
+              key={qa.q}
+              className="rounded-full px-2.5 py-1 text-[10px] font-semibold"
+              style={{
+                background: 'rgba(16,185,129,0.14)',
+                color: SYNTH.accentEmerald,
+                border: `1px solid ${SYNTH.accentEmerald}55`,
+              }}
+            >
+              {qa.a}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2 pt-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={onLooksGood}
+          className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em]"
+          style={{
+            background: SYNTH.accentEmerald,
+            color: SYNTH.inkOnBrand,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          Looks good →
+        </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={onSkip}
+          className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em]"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: `1px solid ${SYNTH.glassBorder}`,
+            color: SYNTH.inkOnBrand,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          Skip questions
+        </motion.button>
       </div>
     </motion.div>
   )

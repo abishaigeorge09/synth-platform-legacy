@@ -22,6 +22,7 @@ import {
 } from './schema'
 import { ELEMENT_RENDERERS } from './registry'
 import { useResolvedBindings } from './resolver'
+import { ToolStateContext, useToolInstanceState } from './instanceState'
 import { SYNTH } from '../../features/app/lib/theme'
 import { TOOL_STAGGER } from '../../features/app/lib/motion'
 
@@ -41,31 +42,34 @@ export function ToolRenderer({ spec }: { spec: ToolSpec }) {
 }
 
 function ValidatedToolRenderer({ spec }: { spec: ToolSpec }) {
-  const { data } = useResolvedBindings(spec)
+  const { data: resolvedData } = useResolvedBindings(spec)
+  const { data, dispatch } = useToolInstanceState(resolvedData)
 
   return (
-    <div className="flex flex-col gap-4">
-      {spec.inputs.length > 0 ? <InputsSummary inputs={spec.inputs} /> : null}
-      <div
-        className="grid grid-cols-1 gap-3 sm:grid-cols-6"
-        style={{ fontFamily: SYNTH.font }}
-      >
-        {spec.elements.map((element, i) => {
-          const Renderer = ELEMENT_RENDERERS[element.type]
-          return (
-            <ElementSlot
-              key={element.id ?? `${element.type}-${i}`}
-              element={element}
-              index={i}
-            >
-              <ElementErrorBoundary type={element.type}>
-                <Renderer element={element} data={data} />
-              </ElementErrorBoundary>
-            </ElementSlot>
-          )
-        })}
+    <ToolStateContext.Provider value={{ data, dispatch }}>
+      <div className="flex flex-col gap-4">
+        {spec.inputs.length > 0 ? <InputsSummary inputs={spec.inputs} /> : null}
+        <div
+          className="grid grid-cols-1 gap-3 sm:grid-cols-6"
+          style={{ fontFamily: SYNTH.font }}
+        >
+          {spec.elements.map((element, i) => {
+            const Renderer = ELEMENT_RENDERERS[element.type]
+            return (
+              <ElementSlot
+                key={element.id ?? `${element.type}-${i}`}
+                element={element}
+                index={i}
+              >
+                <ElementErrorBoundary type={element.type}>
+                  <Renderer element={element} data={data} />
+                </ElementErrorBoundary>
+              </ElementSlot>
+            )
+          })}
+        </div>
       </div>
-    </div>
+    </ToolStateContext.Provider>
   )
 }
 

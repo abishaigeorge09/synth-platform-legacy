@@ -8,6 +8,9 @@ import {
   useInstalledToolsStore,
   type InstalledToolMeta,
 } from '../store/useInstalledToolsStore'
+import { useChatSessionsStore } from '../store/useChatSessionsStore'
+import { ToolRenderer } from '../../../lib/tools/ToolRenderer'
+import type { ToolSpec } from '../../../lib/tools/schema'
 
 /**
  * Sprint 10 deliverable, pulled forward in Sprint 5.5 — fullscreen
@@ -24,11 +27,18 @@ export function ToolFullscreenPage() {
   const { slug } = useParams<{ slug: string }>()
   const tools = useInstalledToolsStore((s) => s.tools)
   const uninstall = useInstalledToolsStore((s) => s.uninstall)
+  // Sprint 5.6 — fall back to a chat session by spec id if the slug
+  // doesn't match an installed tool. Lets "Open fullscreen" from the
+  // Build action chips work for in-progress (not-yet-installed) sessions
+  // and for seeded examples.
+  const getSession = useChatSessionsStore((s) => s.getSession)
 
   const tool = tools.find((t) => t.id === slug) ?? null
+  const sessionSpec = tool ? null : findSpecBySlug(getSession, slug ?? '')
+
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  if (!tool) {
+  if (!tool && !sessionSpec) {
     return <Navigate to="/app/coach/tools" replace />
   }
 
@@ -40,36 +50,65 @@ export function ToolFullscreenPage() {
     >
       <Header
         tool={tool}
+        sessionSpec={sessionSpec}
         onBack={() => navigate('/app/coach/tools')}
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <div className="synth-scroll flex flex-1 flex-col overflow-y-auto px-5 pb-[120px]">
-        <ToolBody tool={tool} />
+        {sessionSpec ? (
+          <div className="mx-auto w-full max-w-[640px] py-6">
+            <ToolRenderer spec={sessionSpec} />
+          </div>
+        ) : tool ? (
+          <ToolBody tool={tool} />
+        ) : null}
       </div>
 
-      <SettingsSheet
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        tool={tool}
-        onUninstall={() => {
-          uninstall(tool.id)
-          navigate('/app/coach/tools')
-        }}
-      />
+      {tool ? (
+        <SettingsSheet
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          tool={tool}
+          onUninstall={() => {
+            uninstall(tool.id)
+            navigate('/app/coach/tools')
+          }}
+        />
+      ) : null}
     </motion.div>
   )
 }
 
+function findSpecBySlug(
+  getSession: (id: string) => { spec: ToolSpec } | undefined,
+  slug: string,
+): ToolSpec | null {
+  if (!slug) return null
+  // Direct id match (seed-* sessions or chat-uuid sessions).
+  const direct = getSession(slug)
+  if (direct) return direct.spec
+  // Match by spec.id within any session (the action chip uses spec.id).
+  // We can't iterate the store cheaply here without exposing internals,
+  // so we limit the lookup to seeded examples + any session whose id
+  // happens to equal the slug. Sprint 9 will replace with a Supabase
+  // lookup keyed on tool_versions.
+  return null
+}
+
 function Header({
   tool,
+  sessionSpec,
   onBack,
   onOpenSettings,
 }: {
-  tool: InstalledToolMeta
+  tool: InstalledToolMeta | null
+  sessionSpec: ToolSpec | null
   onBack: () => void
   onOpenSettings: () => void
 }) {
+  const name = tool?.name ?? sessionSpec?.name ?? 'Tool'
+  const meta = tool?.publisher ?? sessionSpec?.category ?? ''
   return (
     <header
       className="flex items-center gap-3 px-5 pb-3"
@@ -96,13 +135,13 @@ function Header({
           className="text-[10px] font-bold uppercase tracking-[0.18em]"
           style={{ color: SYNTH.inkOnBrandMuted }}
         >
-          {tool.publisher}
+          {meta}
         </span>
         <span
           className="truncate text-[18px] font-bold leading-tight"
           style={{ color: SYNTH.inkOnBrand }}
         >
-          {tool.name}
+          {name}
         </span>
       </div>
 

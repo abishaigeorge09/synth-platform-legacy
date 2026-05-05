@@ -106,40 +106,45 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
     const { data } = await supabase.auth.getSession()
     const hasDemoFlag = readDemoUser() !== null
 
-    // Demo recovery: localStorage carries the "came in via Continue with
-    // Demo" flag from a prior visit, but the user has no Supabase session
-    // (e.g. their first visit predated the signInAnonymously fix in
-    // setDemoUser, or their session expired). Mint one now so Edge
-    // Functions are reachable. Failure stays silent — the app degrades
-    // to mock mode rather than crashing.
-    if (!data.session && hasDemoFlag) {
-      try {
-        await supabase.auth.signInAnonymously()
-      } catch (err) {
-        if (typeof console !== 'undefined') {
-          console.warn('[demo] anon recovery failed', err)
-        }
-      }
-    }
-
-    // Re-fetch in case the recovery sign-in just landed.
-    const { data: fresh } = await supabase.auth.getSession()
+    // Wire the auth listener BEFORE flipping isReady so it picks up
+    // any session change that lands during the recovery sign-in below.
     // isDemo stays true whenever the demo flow stamped localStorage,
     // even after signInAnonymously gives them a real session. The flag
     // means "came in via Continue with Demo", not "has no session".
-    // Without this, the auth listener flips isDemo → false the moment
-    // anon sign-in lands, breaking demo-only UI affordances.
-    set({
-      user: fresh.session?.user ?? readDemoUser(),
-      isReady: true,
-      isDemo: readDemoUser() !== null,
-    })
     supabase.auth.onAuthStateChange((_event, session) => {
       set({
         user: session?.user ?? readDemoUser(),
         isDemo: readDemoUser() !== null,
       })
     })
+
+    // Splash clears immediately. Whatever session getSession returned
+    // right now is what the app sees on first render; the listener
+    // above updates it later if the recovery sign-in lands.
+    set({
+      user: data.session?.user ?? readDemoUser(),
+      isReady: true,
+      isDemo: hasDemoFlag,
+    })
+
+    // Demo recovery: localStorage carries the "came in via Continue
+    // with Demo" flag from a prior visit, but the user has no Supabase
+    // session yet (their first visit predated the signInAnonymously
+    // wiring in setDemoUser, or their session expired). Mint one now
+    // so Edge Functions are reachable. Fire and forget — never await
+    // a network call inside hydrate or the splash will hang when the
+    // network is slow or anon sign-in is rate-limited.
+    if (!data.session && hasDemoFlag) {
+      void (async () => {
+        try {
+          await supabase.auth.signInAnonymously()
+        } catch (err) {
+          if (typeof console !== 'undefined') {
+            console.warn('[demo] anon recovery failed', err)
+          }
+        }
+      })()
+    }
   },
   signOut: async () => {
     await signOutFromSupabase()

@@ -12,6 +12,7 @@ import {
   Maximize2,
   RefreshCw,
   PlugZap,
+  Send,
 } from 'lucide-react'
 import type { ToolSpec } from '../../../lib/tools/schema'
 import { ToolRenderer } from '../../../lib/tools/ToolRenderer'
@@ -37,6 +38,16 @@ type PreviewActions = {
   onInstall: () => void
   onRefine: () => void
   onOpenFullscreen: () => void
+  /**
+   * Sprint 10 — head-coach-only publish flow. Null when the user isn't
+   * a head coach, or when there's no live tool_versions row to publish
+   * (mock-mode sessions don't have a version_id).
+   */
+  publish: {
+    published: boolean
+    publishing: boolean
+    onPublish: () => void
+  } | null
 }
 
 export function ToolPreviewPanel({
@@ -317,6 +328,31 @@ function ActionChipRow({
         icon={<Maximize2 size={12} strokeWidth={2.4} />}
         onClick={actions.onOpenFullscreen}
       />
+      {actions.publish ? (
+        <PreviewChip
+          label={
+            actions.publish.published
+              ? 'Published'
+              : actions.publish.publishing
+                ? 'Publishing…'
+                : 'Publish to team'
+          }
+          icon={
+            actions.publish.published ? (
+              <Check size={13} strokeWidth={2.6} />
+            ) : (
+              <Send size={12} strokeWidth={2.4} />
+            )
+          }
+          onClick={actions.publish.onPublish}
+          variant={actions.publish.published ? 'subtle' : 'primary'}
+          title={
+            actions.publish.published
+              ? `${spec.name} is live in your team's catalog`
+              : `Make ${spec.name} available to everyone on your team`
+          }
+        />
+      ) : null}
     </div>
   )
 }

@@ -11,11 +11,18 @@
 import { supabase } from '../supabaseClient'
 import { isClaudeConfigured } from './env'
 
+// Anthropic model IDs current as of May 2026.
+// `claude-sonnet-4-20250514` + `claude-opus-4-6` were the IDs in this file
+// previously and they 404 against the Messages API now — Anthropic
+// retired the date-suffixed variants in favor of the rolling aliases.
+// The fallback chain in streamClaudeMessages tries opus → sonnet → haiku
+// in order, so any one of these going stale gracefully degrades rather
+// than failing the whole stream.
 export const ANTHROPIC_MODELS = {
   haiku: 'claude-haiku-4-5-20251001',
-  sonnet: 'claude-sonnet-4-20250514',
-  opus: 'claude-opus-4-6',
-  opusStable: 'claude-opus-4-20250514',
+  sonnet: 'claude-sonnet-4-6',
+  opus: 'claude-opus-4-7',
+  opusStable: 'claude-opus-4-7',
 } as const
 
 export type ClaudeChatMessage = {

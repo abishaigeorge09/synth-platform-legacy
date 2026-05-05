@@ -7,10 +7,13 @@
  * fields are populated, the workspace dispatches to the Anthropic-
  * powered Edge Function.
  *
- * Hydration is one-shot per session: we read the row when the user
- * signs in and cache it. The table doesn't change while the user is
- * active — Sprint 11 will replace this with a TanStack Query hook
- * that handles cache invalidation properly.
+ * Sprint 13 follow-up — reactive to auth state. The original one-shot
+ * hydrate gave up if Supabase had no session at the moment Build
+ * mounted. Demo users sign in anonymously in the background, so the
+ * session frequently arrives AFTER hydrate has already returned. A
+ * single auth listener now re-queries the users table every time the
+ * session changes, so the live path activates as soon as the JWT
+ * lands without the user having to refresh.
  */
 import { create } from 'zustand'
 import { supabase } from '../../../lib/supabaseClient'
@@ -24,48 +27,68 @@ type CoachContextState = {
   context: CoachContext | null
   hydrated: boolean
   hydrating: boolean
+  /** True once we've installed the auth state listener. One-shot. */
+  listenerInstalled: boolean
   hydrate: () => Promise<void>
   reset: () => void
+}
+
+async function fetchContextFor(userId: string): Promise<CoachContext | null> {
+  if (!supabase) return null
+  const { data: row, error } = await supabase
+    .from('users')
+    .select('team_id, role')
+    .eq('id', userId)
+    .single()
+  if (error || !row) return null
+  if (
+    typeof row.team_id !== 'string' ||
+    row.team_id.length === 0 ||
+    !(row.role === 'head_coach' || row.role === 'assistant_coach' || row.role === 'athlete')
+  ) {
+    return null
+  }
+  return { team_id: row.team_id, role: row.role }
 }
 
 export const useCoachContextStore = create<CoachContextState>((set, get) => ({
   context: null,
   hydrated: false,
   hydrating: false,
+  listenerInstalled: false,
   hydrate: async () => {
-    if (get().hydrating || get().hydrated) return
+    if (get().hydrating) return
     set({ hydrating: true })
     if (!supabase) {
       set({ hydrating: false, hydrated: true })
       return
     }
+
+    // Initial fetch from whatever session exists right now.
     const { data: sessionData } = await supabase.auth.getSession()
     const userId = sessionData.session?.user.id
-    if (!userId) {
-      set({ hydrating: false, hydrated: true })
-      return
+    if (userId) {
+      const ctx = await fetchContextFor(userId)
+      set({ context: ctx })
     }
-    const { data: row, error } = await supabase
-      .from('users')
-      .select('team_id, role')
-      .eq('id', userId)
-      .single()
-    if (error || !row) {
-      set({ hydrating: false, hydrated: true })
-      return
-    }
-    if (
-      typeof row.team_id === 'string' &&
-      row.team_id.length > 0 &&
-      (row.role === 'head_coach' || row.role === 'assistant_coach' || row.role === 'athlete')
-    ) {
-      set({
-        context: { team_id: row.team_id, role: row.role },
-        hydrating: false,
-        hydrated: true,
+
+    // One-shot listener: re-query the users table whenever the auth
+    // session changes. Demo users typically arrive here BEFORE
+    // signInAnonymously lands — without this listener, the context
+    // never resolves and the Build workspace stays in mock mode.
+    if (!get().listenerInstalled) {
+      set({ listenerInstalled: true })
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        const id = session?.user.id
+        if (!id) {
+          set({ context: null })
+          return
+        }
+        const ctx = await fetchContextFor(id)
+        set({ context: ctx })
       })
-      return
     }
+
     set({ hydrating: false, hydrated: true })
   },
   reset: () => set({ context: null, hydrated: false, hydrating: false }),

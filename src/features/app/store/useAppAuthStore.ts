@@ -104,13 +104,33 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
       return
     }
     const { data } = await supabase.auth.getSession()
+    const hasDemoFlag = readDemoUser() !== null
+
+    // Demo recovery: localStorage carries the "came in via Continue with
+    // Demo" flag from a prior visit, but the user has no Supabase session
+    // (e.g. their first visit predated the signInAnonymously fix in
+    // setDemoUser, or their session expired). Mint one now so Edge
+    // Functions are reachable. Failure stays silent — the app degrades
+    // to mock mode rather than crashing.
+    if (!data.session && hasDemoFlag) {
+      try {
+        await supabase.auth.signInAnonymously()
+      } catch (err) {
+        if (typeof console !== 'undefined') {
+          console.warn('[demo] anon recovery failed', err)
+        }
+      }
+    }
+
+    // Re-fetch in case the recovery sign-in just landed.
+    const { data: fresh } = await supabase.auth.getSession()
     // isDemo stays true whenever the demo flow stamped localStorage,
     // even after signInAnonymously gives them a real session. The flag
     // means "came in via Continue with Demo", not "has no session".
     // Without this, the auth listener flips isDemo → false the moment
     // anon sign-in lands, breaking demo-only UI affordances.
     set({
-      user: data.session?.user ?? readDemoUser(),
+      user: fresh.session?.user ?? readDemoUser(),
       isReady: true,
       isDemo: readDemoUser() !== null,
     })

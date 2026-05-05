@@ -64,6 +64,15 @@ export default defineConfig({
         // as the app grew. Bump to 4 MiB so the SW continues to precache
         // the full launch surface without warning out of generation.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // Take control of any open tab the moment a new SW lands. Without
+        // these two, registerType: 'autoUpdate' downloads the new bundle
+        // but waits for every tab to close before activating, so a coach
+        // who keeps the app open during a deploy keeps running yesterday's
+        // JS even after the server has the fix. AG hit this with the Build
+        // race fix (PR #32) — server had the new code, the open tab kept
+        // the stale chunk.
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: {
         enabled: false,

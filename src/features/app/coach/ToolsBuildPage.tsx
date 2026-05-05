@@ -216,14 +216,38 @@ export function ToolsBuildPage() {
     if (cancelRef.current) return
 
     // Read coach context fresh at the moment we're about to dispatch.
-    // The render-time `liveGenerationAvailable` constant captures
-    // whatever was true when this function reference was created;
-    // if useCoachContext finished hydrating during the
-    // clarifying-questions back-and-forth, the closure value is
-    // stale and we'd wrongly fall into the mock path. Pulling
-    // straight off the store here uses the latest value.
-    const liveCtx = useCoachContextStore.getState().context
-    const liveAvailable = liveCtx !== null && getAIClientMode() === 'live'
+    // Closure-captured `liveGenerationAvailable` may be stale if the
+    // hydrate landed during the clarifying back-and-forth.
+    let liveCtx = useCoachContextStore.getState().context
+    let mode = getAIClientMode()
+
+    // Belt-and-suspenders: if context is still null, force one more
+    // hydrate before falling to mock. This catches the case where the
+    // initial hydrate's recovery path didn't quite finish in time. We
+    // only block here if the AI client could actually be live — no
+    // point waiting if Supabase isn't configured at all.
+    if (!liveCtx && mode === 'live') {
+      try {
+        await useCoachContextStore.getState().hydrate()
+      } catch (err) {
+        console.warn('[build] re-hydrate before dispatch threw', err)
+      }
+      liveCtx = useCoachContextStore.getState().context
+      mode = getAIClientMode()
+    }
+
+    const liveAvailable = liveCtx !== null && mode === 'live'
+
+    // Diagnostic so a coach hitting "stuck in mock" gives us the truth
+    // without another deploy round-trip. Visible in browser console.
+    if (typeof console !== 'undefined') {
+      console.log(
+        '[build] dispatch decision:',
+        liveAvailable ? 'LIVE' : 'MOCK',
+        '— liveCtx:', liveCtx ? 'present' : 'null',
+        '— ai mode:', mode,
+      )
+    }
 
     if (liveAvailable && liveCtx) {
       trackToolEvent('tool_request_submitted', {

@@ -575,7 +575,12 @@ function ScopePickerSheet({
     () => filterScopes(options, query, flaggedOnly),
     [options, query, flaggedOnly],
   )
-  const visible = [...pinned, ...athletes]
+  // Idle = no search, no Flagged toggle. AG asked to hide the athlete
+  // list in this state — 46 names is too much to scroll past every
+  // time. Pinned team option still shows so the coach can scope to
+  // team-wide without typing.
+  const isIdle = query.trim() === '' && !flaggedOnly
+  const visible = isIdle ? pinned : [...pinned, ...athletes]
 
   return (
     <SheetShell open={open} onClose={handleClose} title="Scope this chat">
@@ -591,7 +596,7 @@ function ScopePickerSheet({
         flaggedCount={flaggedCount}
       />
 
-      {athletes.length === 0 && pinned.length === 0 ? (
+      {!isIdle && athletes.length === 0 ? (
         <p
           className="rounded-2xl px-4 py-3 text-[12px]"
           style={{
@@ -653,6 +658,15 @@ function ScopePickerSheet({
           })}
         </div>
       )}
+
+      {isIdle ? (
+        <p
+          className="text-[11px] leading-snug"
+          style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+        >
+          Search a name or tap Flagged today to narrow to athletes who need eyes.
+        </p>
+      ) : null}
     </SheetShell>
   )
 }

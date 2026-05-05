@@ -1031,6 +1031,7 @@ export function ScopeSearchControls({
   onToggleFlagged,
   flaggedCount,
   placeholder = 'Search athletes',
+  simpleToggle = false,
 }: {
   query: string
   onQueryChange: (next: string) => void
@@ -1038,6 +1039,11 @@ export function ScopeSearchControls({
   onToggleFlagged: () => void
   flaggedCount: number
   placeholder?: string
+  /** When true, only the Flagged toggle pill renders (no "All athletes"
+   *  companion pill). Used in AddToChatSheet where AG flagged the
+   *  paired pills as visually redundant: a flagged-vs-not toggle is
+   *  enough on that surface. */
+  simpleToggle?: boolean
 }) {
   const hasFlagged = flaggedCount > 0
   return (
@@ -1072,13 +1078,15 @@ export function ScopeSearchControls({
         ) : null}
       </div>
       <div className="flex items-center gap-2">
-        <Pill active={!flaggedOnly} onClick={() => flaggedOnly && onToggleFlagged()}>
-          All athletes
-        </Pill>
+        {simpleToggle ? null : (
+          <Pill active={!flaggedOnly} onClick={() => flaggedOnly && onToggleFlagged()}>
+            All athletes
+          </Pill>
+        )}
         <Pill
           active={flaggedOnly}
           disabled={!hasFlagged}
-          onClick={() => hasFlagged && (!flaggedOnly ? onToggleFlagged() : null)}
+          onClick={() => hasFlagged && onToggleFlagged()}
         >
           Flagged today{hasFlagged ? ` · ${flaggedCount}` : ''}
         </Pill>
@@ -1126,8 +1134,17 @@ export function AddToChatSheet({
   }
 
   const flaggedCount = scopeOptions.filter((o) => o.flagged).length
-  const { pinned, athletes } = filterScopes(scopeOptions, scopeQuery, flaggedOnly)
-  const visibleScopes = [...pinned, ...athletes]
+  // AddToChatSheet intentionally drops the team-pinned chip from the
+  // results — AG flagged the duplicate "All athletes" / "Pacific
+  // Women's Rowing" black pills as visually confusing, and the
+  // dedicated ScopePickerSheet (header chip) already covers team
+  // scoping. Athletes only here.
+  const { athletes } = filterScopes(scopeOptions, scopeQuery, flaggedOnly)
+  // Idle = no search, no Flagged toggle. Hide the chip wall in this
+  // state. The Scope section then collapses to a search bar plus the
+  // single Flagged toggle, which matches AG's "I don't want to see
+  // all the other athletes' names" rule.
+  const isScopeIdle = scopeQuery.trim() === '' && !flaggedOnly
 
   const triggerFile = (accept: string) => {
     const el = fileInputRef.current
@@ -1169,9 +1186,17 @@ export function AddToChatSheet({
             flaggedOnly={flaggedOnly}
             onToggleFlagged={() => setFlaggedOnly((v) => !v)}
             flaggedCount={flaggedCount}
+            simpleToggle
           />
         ) : null}
-        {visibleScopes.length === 0 ? (
+        {isScopeIdle ? (
+          <p
+            className="text-[11px] leading-snug"
+            style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+          >
+            Search a name or tap Flagged today to scope this chat to a specific athlete.
+          </p>
+        ) : athletes.length === 0 ? (
           <p
             className="rounded-2xl px-3 py-2 text-[12px]"
             style={{
@@ -1186,7 +1211,7 @@ export function AddToChatSheet({
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {visibleScopes.map((s) => (
+            {athletes.map((s) => (
               <Pill key={s.id} active={s.id === scopeId} onClick={() => onScopeChange(s.id)}>
                 {s.label}
                 {s.flagged ? (

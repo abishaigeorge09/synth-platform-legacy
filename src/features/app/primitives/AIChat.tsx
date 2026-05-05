@@ -1162,10 +1162,13 @@ export function AddToChatSheet({
     onOpenVoice()
   }
 
-  // Athlete view passes a single self-scoped option with no flagged
-  // metadata. The search controls would just clutter the sheet, so we
-  // hide them whenever there's only one (or zero) athlete option.
-  const showSearch = scopeOptions.filter((o) => !o.pinned).length > 1
+  // Athlete view passes a single self-scoped option (their own id)
+  // with no flagged metadata. There's nothing meaningful to switch
+  // TO, so the entire Scope group is suppressed on that surface —
+  // search controls + chip wall + idle hint all hidden together. We
+  // only render Scope when there are 2+ athlete options to choose
+  // among.
+  const showScopeGroup = scopeOptions.filter((o) => !o.pinned).length > 1
 
   return (
     <SheetShell open={open} onClose={handleClose} title="Add to chat">
@@ -1178,17 +1181,16 @@ export function AddToChatSheet({
         ) : null}
       </div>
 
+      {showScopeGroup ? (
       <Group label="Scope">
-        {showSearch ? (
-          <ScopeSearchControls
-            query={scopeQuery}
-            onQueryChange={setScopeQuery}
-            flaggedOnly={flaggedOnly}
-            onToggleFlagged={() => setFlaggedOnly((v) => !v)}
-            flaggedCount={flaggedCount}
-            simpleToggle
-          />
-        ) : null}
+        <ScopeSearchControls
+          query={scopeQuery}
+          onQueryChange={setScopeQuery}
+          flaggedOnly={flaggedOnly}
+          onToggleFlagged={() => setFlaggedOnly((v) => !v)}
+          flaggedCount={flaggedCount}
+          simpleToggle
+        />
         {isScopeIdle ? (
           <p
             className="text-[11px] leading-snug"
@@ -1226,6 +1228,7 @@ export function AddToChatSheet({
           </div>
         )}
       </Group>
+      ) : null}
 
       <Group label="Response style">
         <div className="flex flex-wrap gap-2">

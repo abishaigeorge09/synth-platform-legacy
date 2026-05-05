@@ -28,6 +28,8 @@ import {
   ToolGenerateError,
 } from '../../../lib/ai/toolGenerateClient'
 import { publishToolVersion } from '../../../lib/ai/publishedTools'
+import { trackToolEvent } from '../../../lib/telemetry'
+import { captureError } from '../../../lib/sentry'
 import { useCoachContextStore } from '../store/useCoachContext'
 import { getAIClientMode } from '../lib/aiClient'
 import { deriveQuestions } from '../../../lib/tools/clarifyingQuestions'
@@ -171,8 +173,15 @@ export function ToolsBuildPage() {
         next.add(lastVersionId)
         return next
       })
+      if (session) {
+        trackToolEvent('tool_published', {
+          spec_id: session.spec.id,
+          version_id: lastVersionId,
+        })
+      }
       toast(`${session?.spec.name ?? 'Tool'} published to your team`, 'success')
     } catch (err) {
+      captureError(err, { area: 'tool-publish' })
       const message = err instanceof Error ? err.message : 'Publish failed'
       toast(message, 'error')
     } finally {
@@ -207,6 +216,11 @@ export function ToolsBuildPage() {
     if (cancelRef.current) return
 
     if (liveGenerationAvailable && coachContext) {
+      trackToolEvent('tool_request_submitted', {
+        prompt_length: augmented.length,
+        is_refinement: toolRequestId !== null,
+        mode: 'live',
+      })
       try {
         const result = await generateToolViaEdge({
           description: augmented,
@@ -221,6 +235,19 @@ export function ToolsBuildPage() {
         if (result.kind === 'spec') {
           setUnmetConnectors(result.unmet_connectors)
           setLastVersionId(result.version_id)
+          const elementCount =
+            (result.spec.elements?.length ?? 0) +
+            (result.spec.pages?.reduce((acc, p) => acc + p.elements.length, 0) ??
+              0)
+          trackToolEvent('tool_generated', {
+            spec_id: result.spec.id,
+            schema_version: result.spec.schema_version,
+            element_count: elementCount,
+            page_count: result.spec.pages?.length ?? 0,
+            unmet_connectors: result.unmet_connectors,
+            turn_number: result.turn_number,
+            mode: 'live',
+          })
           if (result.unmet_connectors.length > 0) {
             toast(
               `Built using demo data — connect ${result.unmet_connectors.join(', ')} for live numbers.`,
@@ -242,6 +269,11 @@ export function ToolsBuildPage() {
         }
 
         // result.kind === 'declined'
+        trackToolEvent('tool_declined', {
+          reason: result.reason,
+          suggested_alternative: result.suggested_alternative,
+          turn_number: result.turn_number,
+        })
         setDeclineState({
           prompt: augmented,
           reason: result.reason,
@@ -250,6 +282,10 @@ export function ToolsBuildPage() {
         return
       } catch (err) {
         setLoadingPhase(null)
+        captureError(err, {
+          area: 'tool-generate',
+          tags: { mode: 'live', is_refinement: toolRequestId !== null },
+        })
         const message =
           err instanceof ToolGenerateError
             ? `Generation failed (${err.status}): ${err.message}`
@@ -262,8 +298,25 @@ export function ToolsBuildPage() {
     // Mock fallback — demo profiles and any session without a live coach
     // context route here. Preserves the keyword-matcher experience that
     // shipped in Phase A.
+    trackToolEvent('tool_request_submitted', {
+      prompt_length: augmented.length,
+      is_refinement: false,
+      mode: 'mock',
+    })
     try {
       const spec = generateToolSpec(augmented)
+      const elementCount =
+        spec.elements.length +
+        (spec.pages?.reduce((acc, p) => acc + p.elements.length, 0) ?? 0)
+      trackToolEvent('tool_generated', {
+        spec_id: spec.id,
+        schema_version: spec.schema_version,
+        element_count: elementCount,
+        page_count: spec.pages?.length ?? 0,
+        unmet_connectors: [],
+        turn_number: 1,
+        mode: 'mock',
+      })
       const id = createSession(augmented, spec)
       setUnmetConnectors([])
       setLoadingPhase(null)
@@ -352,6 +405,10 @@ export function ToolsBuildPage() {
       iconKey: session.spec.icon_key,
     }
     install(meta)
+    trackToolEvent('tool_installed', {
+      spec_id: session.spec.id,
+      source: 'build',
+    })
     toast(`${session.spec.name} added to your collection`, 'success')
   }
 

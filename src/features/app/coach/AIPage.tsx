@@ -4,12 +4,18 @@ import { ChevronLeft, ChevronDown, Menu, Sliders } from 'lucide-react'
 import { SYNTH } from '../lib/theme'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
 import { SheetShell } from '../primitives/SheetShell'
+import { AuroraVoiceOverlay } from '../primitives/AuroraVoiceOverlay'
 import {
   AIThread,
   AIComposer,
   AddToChatSheet,
   ChatHistorySheet,
   CustomizeChatSheet,
+  ScopeSearchControls,
+  SuggestionRow,
+  filterScopes,
+  getActiveSuggestions,
+  type ChatAttachment,
   type ChatMessage,
   type ChatPart,
   type ChartPoint,
@@ -18,14 +24,21 @@ import {
   type ChatHistoryEntry,
   type ChatCustomization,
 } from '../primitives/AIChat'
-import { timeAwareGreeting, DEFAULT_CUSTOMIZATION } from '../primitives/aiChatUtil'
+import { timeAwareGreeting } from '../primitives/aiChatUtil'
 import {
   streamCompletion,
   buildSystemPrompt,
   getAIClientMode,
   type AIMessage,
 } from '../lib/aiClient'
+import { buildUserContent, parseImageDataUrl } from '../../../lib/ai/claude'
+import { parseAIText } from '../lib/aiResponseParser'
+import {
+  ImageAttachmentTooLargeError,
+  readChatAttachment,
+} from '../lib/imageAttachment'
 import { useAppAuthStore } from '../store/useAppAuthStore'
+import { useAIChatCustomization } from '../store/useAIChatCustomization'
 import {
   APP_MOCK_ATHLETES,
   APP_MOCK_TEAM,
@@ -54,8 +67,20 @@ export function AIPage() {
   )
   const scopeLabel = scopeAthlete ? scopeAthlete.name : APP_MOCK_TEAM.name
 
+  // Phase 2 — customization is keyed by a typed scope id, separate from
+  // the URL `scopeId` (which uses raw athlete uuids for routing). The
+  // store namespaces athletes under `athlete:<uuid>` so a future "self:"
+  // scope from the athlete view can never collide with a coach-side
+  // athlete-drilldown of the same athlete.
+  const customScopeId: string = scopeAthlete ? `athlete:${scopeAthlete.id}` : 'team'
+  const custom = useAIChatCustomization((s) => s.byScope[customScopeId]) ?? null
+  const getForScope = useAIChatCustomization((s) => s.getForScope)
+  const setForScope = useAIChatCustomization((s) => s.setForScope)
+  const customResolved = custom ?? getForScope(customScopeId)
+
   const [text, setText] = useState('')
-  const [attachment, setAttachment] = useState<{ name: string; ext: string } | null>(null)
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(null)
+  const [attachError, setAttachError] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [history, setHistory] = useState<ChatHistoryEntry[]>(SEED_HISTORY)
@@ -64,18 +89,30 @@ export function AIPage() {
   const [scopeOpen, setScopeOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  // Phase 3 — voice transcribe via the existing AuroraVoiceOverlay
+  // (synth whisper). On Save, the transcript fills the composer
+  // textarea and the overlay closes; the user reviews + sends. No
+  // auto-send.
+  const [voiceOpen, setVoiceOpen] = useState(false)
   const [style, setStyle] = useState<StyleKey>('synthesized')
-  const [custom, setCustom] = useState<ChatCustomization>(DEFAULT_CUSTOMIZATION)
   const streamingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const scopeOptions: ScopeOption[] = useMemo(
-    () => [
-      { id: 'team', label: APP_MOCK_TEAM.name },
-      ...APP_MOCK_ATHLETES.map((a) => ({ id: a.id, label: a.name })),
-    ],
-    [],
-  )
+  const scopeOptions: ScopeOption[] = useMemo(() => {
+    // Phase 4 polish — surface "Flagged today" as a filter chip in the
+    // scope sheets. Computing flagged-IDs once here keeps both
+    // ScopePickerSheet and AddToChatSheet decoupled from the data
+    // layer; they only see ScopeOption shape.
+    const flaggedIds = new Set(APP_MOCK_ATTENTION.map((a) => a.athleteId))
+    return [
+      { id: 'team', label: APP_MOCK_TEAM.name, pinned: true },
+      ...APP_MOCK_ATHLETES.map((a) => ({
+        id: a.id,
+        label: a.name,
+        flagged: flaggedIds.has(a.id),
+      })),
+    ]
+  }, [])
 
   const onScopeChange = (id: string) => {
     if (id === 'team') {
@@ -88,10 +125,24 @@ export function AIPage() {
   const onPickFiles = (files: FileList | null) => {
     const f = files?.[0]
     if (!f) return
-    const dot = f.name.lastIndexOf('.')
-    const ext = dot >= 0 ? f.name.slice(dot + 1).toUpperCase() : 'FILE'
-    const name = dot >= 0 ? f.name.slice(0, dot) : f.name
-    setAttachment({ name: name.length > 24 ? `${name.slice(0, 24)}…` : name, ext })
+    setAttachError(null)
+    void (async () => {
+      try {
+        const next = await readChatAttachment(f)
+        setAttachment(next)
+      } catch (err) {
+        if (err instanceof ImageAttachmentTooLargeError) {
+          setAttachError(err.message)
+          // Auto-clear after 4s so the inline notice doesn't stick.
+          setTimeout(() => setAttachError(null), 4000)
+          return
+        }
+        // Anything else — surface a generic notice. Logged for debug.
+        console.error('[ai-attach] failed to read file:', err)
+        setAttachError('Could not read that file.')
+        setTimeout(() => setAttachError(null), 4000)
+      }
+    })()
   }
 
   const stopStreaming = () => {
@@ -107,8 +158,12 @@ export function AIPage() {
     setMessages((m) => m.filter((msg) => msg.role !== 'thinking'))
   }
 
-  const send = () => {
-    const trimmed = text.trim()
+  const send = (overrideText?: string) => {
+    // Accepts an explicit text override so suggestion-chip clicks can
+    // fire send without round-tripping through React state. Useful
+    // because setText is async; calling send right after setText
+    // would read the stale value.
+    const trimmed = (overrideText ?? text).trim()
     if (!trimmed && !attachment) return
 
     const userMsg: ChatMessage = {
@@ -139,7 +194,7 @@ export function AIPage() {
     if (mode === 'mock') {
       // No API key — fall back to the canned scenario generator.
       streamingTimer.current = setTimeout(() => {
-        const aiParts = mockResponse({ scopeAthlete, scopeLabel, prompt: trimmed, style, custom })
+        const aiParts = mockResponse({ scopeAthlete, scopeLabel, prompt: trimmed, style, custom: customResolved })
         setMessages((m) => {
           const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
           return [
@@ -177,7 +232,11 @@ export function AIPage() {
       scope: scopeAthlete ? 'athlete' : 'team',
       scopeLabel,
       scopeData,
-      customization: custom,
+      customization: customResolved,
+      // Image-aware prompt branch — instructs Claude to respond with
+      // a 1-sentence observation + the "auto-tagging coming" line +
+      // clarifying [suggest:] chips, instead of generic prose.
+      hasImage: !!userMsg.attachment?.dataUrl,
     })
 
     const history = messages
@@ -191,7 +250,23 @@ export function AIPage() {
         return { role: 'assistant', content: txt || '(prior response)' }
       })
 
-    const apiMessages: AIMessage[] = [...history, { role: 'user', content: trimmed }]
+    // Phase 4 — when an image is attached, build the user message as
+    // an Anthropic content-block array (image first, then text). The
+    // tier override below forces the request onto a vision-capable
+    // model regardless of selectModel's heuristic, since haiku 3 is
+    // text-only and would 400 on the image block.
+    const imagePart =
+      userMsg.attachment?.dataUrl != null
+        ? parseImageDataUrl(userMsg.attachment.dataUrl)
+        : null
+    const userContent = imagePart
+      ? buildUserContent(trimmed || 'What is shown in this image?', [
+          { dataBase64: imagePart.data, mediaType: imagePart.mediaType },
+        ])
+      : trimmed
+
+    const apiMessages: AIMessage[] = [...history, { role: 'user', content: userContent }]
+    const modelOverride = imagePart ? 'sonnet' : undefined
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -201,17 +276,23 @@ export function AIPage() {
     void streamCompletion({
       systemPrompt,
       messages: apiMessages,
+      model: modelOverride,
       signal: ctrl.signal,
       onEvent: (e) => {
         if (e.kind === 'delta') {
           accumulated += e.text
+          // Phase 1 — parseAIText turns the accumulated text into a
+          // mixed ChatPart[] (text + chips + charts + tables +
+          // illustrations) on every delta. Pure + deterministic so
+          // the rendered chat doesn't shimmer as new tokens arrive.
+          const parsed = parseAIText(accumulated)
           setMessages((m) => {
             const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
             const exists = withoutThinking.some((msg) => msg.id === aiId)
             if (exists) {
               return withoutThinking.map((msg) =>
                 msg.id === aiId
-                  ? { ...msg, parts: [{ kind: 'text' as const, text: accumulated }] }
+                  ? { ...msg, parts: parsed }
                   : msg,
               )
             }
@@ -220,7 +301,7 @@ export function AIPage() {
               {
                 id: aiId,
                 role: 'ai' as const,
-                parts: [{ kind: 'text' as const, text: accumulated }],
+                parts: parsed,
                 ts: Date.now(),
               },
             ]
@@ -277,17 +358,24 @@ export function AIPage() {
   const greeting = useMemo(() => timeAwareGreeting(), [])
   const placeholder = messages.length > 0 ? 'Reply to synth.' : `Ask synth. about ${scopeLabel}`
   const customizationActive =
-    custom.tone !== 'normal' ||
-    custom.instructions.trim().length > 0 ||
-    custom.references.length > 0
+    customResolved.tone !== 'normal' ||
+    customResolved.instructions.trim().length > 0 ||
+    customResolved.references.length > 0
 
   return (
     <SwipeBackPage to="/app/coach/home">
       <div
-        className="flex flex-1 flex-col"
+        // h-dvh + overflow-hidden locks this surface to exactly the
+        // viewport height regardless of what `.app-shell-frame`
+        // (`min-height: 100dvh`) does upstream. Without this, the
+        // frame grows with the message thread and the body scrolls
+        // as a whole, taking the header out of view. With it, only
+        // the AIThread inside scrolls and the header + composer
+        // stay pinned.
+        className="flex h-dvh max-h-dvh flex-col overflow-hidden"
         style={{ background: SYNTH.aiCanvas, fontFamily: SYNTH.font }}
       >
-        <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),32px)] pb-3">
+        <header className="flex shrink-0 items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),32px)] pb-3">
           <HeaderIconButton
             ariaLabel="Back"
             onClick={() => navigate('/app/coach/home')}
@@ -322,17 +410,40 @@ export function AIPage() {
           </span>
         </header>
 
-        <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-2">
+        <div className="synth-scroll flex min-h-0 flex-1 flex-col overflow-y-auto pb-2">
           <AIThread messages={messages} emptyHeadline={greeting} />
         </div>
 
-        <div data-tour="coach-ai-input" className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+        <SuggestionRow
+          items={getActiveSuggestions(messages)}
+          onSelect={(q) => send(q)}
+          disabled={isStreaming}
+        />
+
+        {attachError ? (
+          <div className="shrink-0 px-3 pt-1">
+            <p
+              className="rounded-2xl px-3 py-2 text-[12px]"
+              style={{
+                background: SYNTH.aiCard,
+                border: `1px solid ${SYNTH.aiBorder}`,
+                color: SYNTH.ink,
+                fontFamily: SYNTH.font,
+              }}
+            >
+              {attachError}
+            </p>
+          </div>
+        ) : null}
+
+        <div data-tour="coach-ai-input" className="shrink-0 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
           <AIComposer
             value={text}
             onChange={setText}
-            onSubmit={send}
+            onSubmit={() => send()}
             onStop={stopStreaming}
             onAttach={() => setAddOpen(true)}
+            onOpenVoice={() => setVoiceOpen(true)}
             attachment={attachment}
             onClearAttachment={() => setAttachment(null)}
             isStreaming={isStreaming}
@@ -344,11 +455,25 @@ export function AIPage() {
           open={addOpen}
           onClose={() => setAddOpen(false)}
           onPickFiles={onPickFiles}
+          onOpenVoice={() => setVoiceOpen(true)}
           scopeOptions={scopeOptions}
           scopeId={scopeId}
           onScopeChange={onScopeChange}
           style={style}
           onStyleChange={setStyle}
+        />
+
+        <AuroraVoiceOverlay
+          open={voiceOpen}
+          onClose={() => setVoiceOpen(false)}
+          onSave={(transcript) => {
+            // Append rather than replace: if the coach already typed
+            // a partial message and then opened voice to dictate the
+            // rest, we don't want to wipe what they typed.
+            setText((current) => (current ? `${current.trimEnd()} ${transcript}` : transcript))
+            setVoiceOpen(false)
+          }}
+          scopeLabel={scopeLabel}
         />
 
         <ScopePickerSheet
@@ -365,8 +490,9 @@ export function AIPage() {
         <CustomizeChatSheet
           open={customizeOpen}
           onClose={() => setCustomizeOpen(false)}
-          value={custom}
-          onChange={setCustom}
+          value={customResolved}
+          onChange={(next) => setForScope(customScopeId, next)}
+          scopeLabel={scopeLabel}
         />
 
         <ChatHistorySheet
@@ -428,44 +554,119 @@ function ScopePickerSheet({
   activeId: string
   onPick: (id: string) => void
 }) {
+  // Local search + filter state. Reset on close (rather than via
+  // a useEffect that watches `open`) so the sheet shows cleared
+  // controls the next time the coach opens it. Avoids the
+  // set-state-in-effect lint and keeps the reset side-effect tied
+  // to the user-driven close.
+  const [query, setQuery] = useState('')
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const handleClose = () => {
+    setQuery('')
+    setFlaggedOnly(false)
+    onClose()
+  }
+
+  const flaggedCount = useMemo(
+    () => options.filter((o) => o.flagged).length,
+    [options],
+  )
+  const { pinned, athletes } = useMemo(
+    () => filterScopes(options, query, flaggedOnly),
+    [options, query, flaggedOnly],
+  )
+  // Idle = no search, no Flagged toggle. AG asked to hide the athlete
+  // list in this state — 46 names is too much to scroll past every
+  // time. Pinned team option still shows so the coach can scope to
+  // team-wide without typing.
+  const isIdle = query.trim() === '' && !flaggedOnly
+  const visible = isIdle ? pinned : [...pinned, ...athletes]
+
   return (
-    <SheetShell open={open} onClose={onClose} title="Scope this chat">
+    <SheetShell open={open} onClose={handleClose} title="Scope this chat">
       <p className="text-[12px]" style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}>
         synth answers from this scope's data only.
       </p>
-      <div
-        className="overflow-hidden rounded-2xl"
-        style={{ background: SYNTH.aiCard, border: `1px solid ${SYNTH.aiBorder}` }}
-      >
-        {options.map((o, i) => {
-          const active = o.id === activeId
-          return (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => onPick(o.id)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left active:opacity-70"
-              style={{
-                borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.aiBorder}`,
-                background: active ? SYNTH.aiBubble : 'transparent',
-                fontFamily: SYNTH.font,
-              }}
-            >
-              <span className="text-[14px] font-semibold" style={{ color: SYNTH.ink }}>
-                {o.label}
-              </span>
-              {active ? (
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                  style={{ background: SYNTH.accentEmerald, color: SYNTH.inkOnBrand }}
-                >
-                  Active
+
+      <ScopeSearchControls
+        query={query}
+        onQueryChange={setQuery}
+        flaggedOnly={flaggedOnly}
+        onToggleFlagged={() => setFlaggedOnly((v) => !v)}
+        flaggedCount={flaggedCount}
+      />
+
+      {!isIdle && athletes.length === 0 ? (
+        <p
+          className="rounded-2xl px-4 py-3 text-[12px]"
+          style={{
+            background: SYNTH.aiCard,
+            border: `1px solid ${SYNTH.aiBorder}`,
+            color: SYNTH.aiTextMuted,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          No athletes match.
+          {flaggedOnly ? ' Try clearing the Flagged filter.' : ''}
+        </p>
+      ) : (
+        <div
+          className="overflow-hidden rounded-2xl"
+          style={{ background: SYNTH.aiCard, border: `1px solid ${SYNTH.aiBorder}` }}
+        >
+          {visible.map((o, i) => {
+            const active = o.id === activeId
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => onPick(o.id)}
+                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left active:opacity-70"
+                style={{
+                  borderTop: i === 0 ? 'none' : `1px solid ${SYNTH.aiBorder}`,
+                  background: active ? SYNTH.aiBubble : 'transparent',
+                  fontFamily: SYNTH.font,
+                }}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="truncate text-[14px] font-semibold"
+                    style={{ color: SYNTH.ink }}
+                  >
+                    {o.label}
+                  </span>
+                  {o.flagged ? (
+                    <span
+                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]"
+                      style={{ background: SYNTH.accentAmber, color: SYNTH.ink }}
+                      title="On today's attention list"
+                    >
+                      Flagged
+                    </span>
+                  ) : null}
                 </span>
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
+                {active ? (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                    style={{ background: SYNTH.accentEmerald, color: SYNTH.inkOnBrand }}
+                  >
+                    Active
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {isIdle ? (
+        <p
+          className="text-[11px] leading-snug"
+          style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+        >
+          Search a name or tap Flagged today to narrow to athletes who need eyes.
+        </p>
+      ) : null}
     </SheetShell>
   )
 }

@@ -34,7 +34,12 @@ export function SwipeBackPage({ children, to, threshold = 80 }: Props) {
       dragDirectionLock
       onDragEnd={onDragEnd}
       style={{ x, touchAction: 'pan-y' }}
-      className="flex flex-1 flex-col"
+      // min-h-0 keeps the flex chain honest: without it, child
+      // overflow-y-auto containers grow to fit content (the AI
+      // thread's long table) instead of clipping + scrolling
+      // internally, which leaves the parent header scrolling out
+      // of view with the page.
+      className="flex min-h-0 flex-1 flex-col"
     >
       {children}
     </motion.div>

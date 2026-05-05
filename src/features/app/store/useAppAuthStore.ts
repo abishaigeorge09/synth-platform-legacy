@@ -103,46 +103,92 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
       set({ isReady: true })
       return
     }
-    const { data } = await supabase.auth.getSession()
-    const hasDemoFlag = readDemoUser() !== null
+    // (Earlier debug `console.log('[hydrate] ...')` traces were removed
+    // after we confirmed the splash unblocks correctly with this flow.)
 
-    // Demo recovery: localStorage carries the "came in via Continue with
-    // Demo" flag from a prior visit, but the user has no Supabase session
-    // (e.g. their first visit predated the signInAnonymously fix in
-    // setDemoUser, or their session expired). Mint one now so Edge
-    // Functions are reachable. Failure stays silent — the app degrades
-    // to mock mode rather than crashing.
-    if (!data.session && hasDemoFlag) {
-      try {
-        await supabase.auth.signInAnonymously()
-      } catch (err) {
-        if (typeof console !== 'undefined') {
-          console.warn('[demo] anon recovery failed', err)
-        }
-      }
-    }
-
-    // Re-fetch in case the recovery sign-in just landed.
-    const { data: fresh } = await supabase.auth.getSession()
+    // Wire the auth listener FIRST. Supabase calls it with an
+    // INITIAL_SESSION event right after registration, which delivers
+    // whatever session was hydrated from storage — without us having
+    // to await getSession(). That getSession() call has been observed
+    // to hang in @supabase/supabase-js v2 when there's a stale refresh
+    // token in localStorage (auto-refresh blocks on a hung internal
+    // lock). Sidestepping it entirely.
+    //
     // isDemo stays true whenever the demo flow stamped localStorage,
     // even after signInAnonymously gives them a real session. The flag
     // means "came in via Continue with Demo", not "has no session".
-    // Without this, the auth listener flips isDemo → false the moment
-    // anon sign-in lands, breaking demo-only UI affordances.
-    set({
-      user: fresh.session?.user ?? readDemoUser(),
-      isReady: true,
-      isDemo: readDemoUser() !== null,
-    })
     supabase.auth.onAuthStateChange((_event, session) => {
       set({
         user: session?.user ?? readDemoUser(),
         isDemo: readDemoUser() !== null,
       })
     })
+
+    // Splash clears synchronously based on whatever localStorage
+    // already had. The listener above will replace `user` with the
+    // real Supabase user object once the SDK fires INITIAL_SESSION.
+    set({
+      user: readDemoUser(),
+      isReady: true,
+      isDemo: readDemoUser() !== null,
+    })
+
+    // Demo recovery: localStorage has the demo flag but no Supabase
+    // session yet. Fire signInAnonymously in the background — the
+    // listener above catches the session whenever the call lands.
+    // Wrapped in a try so failures don't crash the app.
+    if (readDemoUser() !== null) {
+      void (async () => {
+        // Best-effort check — if there's already a session, skip.
+        // Wrapped in Promise.race so a hung getSession can't take
+        // down the recovery flow either.
+        const sessionCheck = Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 1500),
+          ),
+        ])
+        const { data } = await sessionCheck
+        if (data.session) return
+        try {
+          await supabase.auth.signInAnonymously()
+        } catch (err) {
+          if (typeof console !== 'undefined') {
+            console.warn('[demo] anon recovery failed', err)
+          }
+        }
+      })()
+    }
   },
   signOut: async () => {
-    await signOutFromSupabase()
+    // Order matters. Three race conditions to avoid:
+    //
+    //  1) supabase.auth.signOut hangs. We've seen the v2 SDK's
+    //     internal lock occasionally block this call indefinitely.
+    //     If we await it FIRST, the user stays stuck on the
+    //     settings page with no feedback and the navigate() in the
+    //     button handler never fires. Solved by clearing local
+    //     state synchronously up front, then firing supabase signOut
+    //     with a timeout race in the helper.
+    //
+    //  2) Auth listener race. The onAuthStateChange listener
+    //     installed in hydrate() resets `user` to readDemoUser() on
+    //     every event. When supabase.auth.signOut fires its
+    //     SIGNED_OUT event, the listener runs synchronously and
+    //     reads localStorage. If localStorage still has the demo
+    //     flag at that point, the listener undoes our sign-out by
+    //     reinstating the demo user. By clearing localStorage
+    //     BEFORE the supabase call begins, the listener sees an
+    //     empty localStorage and behaves correctly.
+    //
+    //  3) signInAnonymously side effects. setDemoUser fires
+    //     anonymous sign-in in the background. If we sign out while
+    //     that promise is still in flight, it could land AFTER our
+    //     sign-out, putting a fresh anonymous session back on the
+    //     client. Clearing the demo flag first means setDemoUser is
+    //     no longer the active intent, so we don't trigger another
+    //     anon sign-in. Any in-flight one lands as a stale event
+    //     the cleared listener will route to user=null.
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(ROLE_STORAGE_KEY)
       window.localStorage.removeItem(DEMO_USER_STORAGE_KEY)
@@ -150,5 +196,9 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
     }
     clearGuidedTour()
     set({ user: null, role: null, isDemo: false, hasCompletedOnboarding: false })
+
+    // Fire the supabase signOut last. Helper uses scope: 'local' +
+    // a 1.5s timeout so this never blocks the UI.
+    await signOutFromSupabase()
   },
 }))

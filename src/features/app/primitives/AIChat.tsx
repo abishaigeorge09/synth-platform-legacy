@@ -1,14 +1,20 @@
+/* eslint-disable react-refresh/only-export-components */
+// Primitive module: exports the AI chat components plus type unions
+// (ChatPart, ChatMessage, ChatCustomization), default constants, and
+// the getActiveSuggestions helper used by AIPage. Splitting these into
+// separate files would scatter cohesive UI logic; trade-off is a full
+// HMR reload on edits to this file.
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
   Mic,
-  AudioLines,
   X,
   Camera,
   Image as ImageIcon,
   FileText,
+  Search,
   Star,
   Pencil,
   Trash2,
@@ -54,9 +60,41 @@ export type ChatPart =
       glyph: 'boat' | 'erg' | 'trophy' | 'heart' | 'stopwatch'
       caption?: string
     }
+  | {
+      kind: 'table'
+      title: string
+      columns: string[]
+      rows: string[][]
+      provenance?: string
+    }
+  | {
+      kind: 'suggestions'
+      items: string[]
+    }
+
+export type ChatAttachment = {
+  name: string
+  ext: string
+  /** Image MIME type when the file is an image Anthropic can see. */
+  mediaType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+  /** Full `data:<mime>;base64,<payload>` URL. Only set for images. */
+  dataUrl?: string
+}
 
 export type ChatMessage =
-  | { id: string; role: 'user'; text: string; ts: number; attachment?: { name: string; ext: string } }
+  | {
+      id: string
+      role: 'user'
+      text: string
+      ts: number
+      // Phase 4 — attachments grow optional `mediaType` + `dataUrl`
+      // fields when the picked file is an image. Plain files (PDFs,
+      // CSVs) keep the original {name, ext} chip and don't trigger
+      // vision. dataUrl is a `data:image/<mime>;base64,...` string
+      // from FileReader; AIPage parses + repackages it into Anthropic
+      // content blocks at send time.
+      attachment?: ChatAttachment
+    }
   | { id: string; role: 'ai'; parts: ChatPart[]; ts: number }
   | { id: string; role: 'thinking' }
 
@@ -304,6 +342,89 @@ function BulletListBlock({
   )
 }
 
+function TableBlock({
+  part,
+}: {
+  part: Extract<ChatPart, { kind: 'table' }>
+}) {
+  return (
+    <div
+      className="my-2 overflow-hidden rounded-2xl border"
+      style={{
+        background: SYNTH.aiCard,
+        borderColor: SYNTH.aiBorder,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      <p
+        className="px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]"
+        style={{ color: SYNTH.aiTextMuted, borderBottom: `1px solid ${SYNTH.aiBorder}` }}
+      >
+        {part.title}
+      </p>
+      <div className="overflow-x-auto">
+        <table
+          className="w-full text-[12px]"
+          style={{ color: SYNTH.ink, fontVariantNumeric: 'tabular-nums' }}
+        >
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${SYNTH.aiBorder}` }}>
+              {part.columns.map((col, i) => (
+                <th
+                  key={i}
+                  className="px-3 py-2 text-left font-semibold"
+                  style={{ color: SYNTH.aiTextMuted }}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {part.rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={part.columns.length}
+                  className="px-3 py-3 text-center"
+                  style={{ color: SYNTH.aiTextMuted }}
+                >
+                  No rows
+                </td>
+              </tr>
+            ) : (
+              part.rows.map((row, ri) => (
+                <tr
+                  key={ri}
+                  style={{
+                    background: ri % 2 === 0 ? 'transparent' : SYNTH.aiBubble,
+                  }}
+                >
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="px-3 py-2">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {part.provenance ? (
+        <p
+          className="px-4 py-2 text-[10px]"
+          style={{
+            color: SYNTH.aiTextMuted,
+            borderTop: `1px solid ${SYNTH.aiBorder}`,
+          }}
+        >
+          {part.provenance}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 function IllustrationBlock({
   part,
 }: {
@@ -435,24 +556,41 @@ function MessageRow({ message }: { message: ChatMessage }) {
       >
         <div className="flex max-w-[80%] flex-col items-end gap-2">
           {message.attachment ? (
-            <div
-              className="flex items-center gap-2 rounded-2xl px-3 py-2"
-              style={{
-                background: SYNTH.aiCard,
-                border: `1px solid ${SYNTH.aiBorder}`,
-                fontFamily: SYNTH.font,
-              }}
-            >
-              <span
-                className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
-                style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
+            message.attachment.dataUrl ? (
+              // Phase 4 — image attachments render inline so the
+              // conversation transcript shows what was actually sent
+              // to Anthropic. Cap at 240px to keep bubble width sane;
+              // object-cover would crop, so use object-contain + a
+              // height auto for full-image fidelity.
+              <img
+                src={message.attachment.dataUrl}
+                alt={message.attachment.name}
+                className="max-w-[240px] rounded-2xl"
+                style={{
+                  border: `1px solid ${SYNTH.aiBorder}`,
+                  background: SYNTH.aiCard,
+                }}
+              />
+            ) : (
+              <div
+                className="flex items-center gap-2 rounded-2xl px-3 py-2"
+                style={{
+                  background: SYNTH.aiCard,
+                  border: `1px solid ${SYNTH.aiBorder}`,
+                  fontFamily: SYNTH.font,
+                }}
               >
-                {message.attachment.ext}
-              </span>
-              <span className="text-[12px] font-medium" style={{ color: SYNTH.ink }}>
-                {message.attachment.name}
-              </span>
-            </div>
+                <span
+                  className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                  style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
+                >
+                  {message.attachment.ext}
+                </span>
+                <span className="text-[12px] font-medium" style={{ color: SYNTH.ink }}>
+                  {message.attachment.name}
+                </span>
+              </div>
+            )
           ) : null}
           {message.text ? (
             <div
@@ -505,6 +643,7 @@ function MessageRow({ message }: { message: ChatMessage }) {
         if (g.part.kind === 'callout') return <CalloutBlock key={i} part={g.part} />
         if (g.part.kind === 'bulletList') return <BulletListBlock key={i} part={g.part} />
         if (g.part.kind === 'illustration') return <IllustrationBlock key={i} part={g.part} />
+        if (g.part.kind === 'table') return <TableBlock key={i} part={g.part} />
         return null
       })}
     </motion.div>
@@ -515,13 +654,19 @@ type Group =
   | { kind: 'inline'; parts: Extract<ChatPart, { kind: 'text' | 'chip' }>[] }
   | {
       kind: 'block'
-      part: Extract<ChatPart, { kind: 'chart' | 'callout' | 'bulletList' | 'illustration' }>
+      part: Extract<
+        ChatPart,
+        { kind: 'chart' | 'callout' | 'bulletList' | 'illustration' | 'table' }
+      >
     }
 
 function groupParts(parts: ChatPart[]): Group[] {
   const out: Group[] = []
   let inline: Extract<ChatPart, { kind: 'text' | 'chip' }>[] = []
   for (const p of parts) {
+    // Suggestions are extracted by the AIPage and rendered above the
+    // composer. Skip them from the bubble's inline + block flow.
+    if (p.kind === 'suggestions') continue
     if (p.kind === 'text' || p.kind === 'chip') {
       inline.push(p)
     } else {
@@ -536,6 +681,80 @@ function groupParts(parts: ChatPart[]): Group[] {
   return out
 }
 
+/**
+ * Pull the latest suggestion list from a message thread. AIPage uses
+ * this to decide whether to render the suggestion row between the
+ * scrolling thread and the composer.
+ *
+ * Rules:
+ * - Only the most recent AI message contributes suggestions (older ones
+ *   are stale once the conversation has moved on).
+ * - The thinking placeholder doesn't count.
+ * - If the latest AI message has no suggestion part, returns [].
+ */
+export function getActiveSuggestions(messages: ChatMessage[]): string[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
+    if (m.role === 'thinking') continue
+    if (m.role === 'user') return []
+    // m.role === 'ai'
+    const suggestions = m.parts.find((p) => p.kind === 'suggestions')
+    if (suggestions && suggestions.kind === 'suggestions') {
+      return suggestions.items
+    }
+    return []
+  }
+  return []
+}
+
+// — Suggestion row —
+//
+// Renders the active follow-up chips above the composer. Tapping a
+// chip is identical to typing the question and pressing send: AIPage
+// passes onSelect, which fills the composer + auto-submits.
+
+export function SuggestionRow({
+  items,
+  onSelect,
+  disabled = false,
+}: {
+  items: string[]
+  onSelect: (text: string) => void
+  disabled?: boolean
+}) {
+  if (items.length === 0) return null
+  return (
+    <div
+      className="synth-scroll flex shrink-0 gap-2 overflow-x-auto px-3 pb-2 pt-1"
+      style={{ fontFamily: SYNTH.font }}
+    >
+      {items.map((q, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onSelect(q)}
+          disabled={disabled}
+          className="shrink-0 rounded-full border px-3 py-1.5 text-[12px] disabled:opacity-50"
+          style={{
+            background: SYNTH.sheet,
+            borderColor: SYNTH.aiBorder,
+            color: SYNTH.ink,
+            fontFamily: SYNTH.font,
+            // Cap the chip so very long suggestions don't blow out
+            // the row. Long ones truncate gracefully.
+            maxWidth: 320,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {q}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // — Composer —
 
 type ComposerProps = {
@@ -544,7 +763,12 @@ type ComposerProps = {
   onSubmit: () => void
   onStop: () => void
   onAttach: () => void
-  attachment?: { name: string; ext: string } | null
+  /** Opens the AuroraVoiceOverlay (synth whisper). The composer's idle
+   *  button — shown when there is no text — fires this and acts as a
+   *  functional mic. When the user starts typing, the same slot
+   *  swaps to the send (up-arrow) button. */
+  onOpenVoice?: () => void
+  attachment?: ChatAttachment | null
   onClearAttachment?: () => void
   isStreaming: boolean
   placeholder: string
@@ -556,6 +780,7 @@ export function AIComposer({
   onSubmit,
   onStop,
   onAttach,
+  onOpenVoice,
   attachment,
   onClearAttachment,
   isStreaming,
@@ -581,12 +806,24 @@ export function AIComposer({
             border: `1px solid ${SYNTH.aiBorder}`,
           }}
         >
-          <span
-            className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
-            style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
-          >
-            {attachment.ext}
-          </span>
+          {attachment.dataUrl ? (
+            // Phase 4 — small inline thumbnail so the coach can see
+            // the image they're about to send. Object-cover keeps the
+            // aspect ratio sane regardless of source image dimensions.
+            <img
+              src={attachment.dataUrl}
+              alt={attachment.name}
+              className="h-8 w-8 rounded-md object-cover"
+              style={{ border: `1px solid ${SYNTH.aiBorder}` }}
+            />
+          ) : (
+            <span
+              className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+              style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
+            >
+              {attachment.ext}
+            </span>
+          )}
           <span className="text-[12px] font-medium" style={{ color: SYNTH.ink }}>
             {attachment.name}
           </span>
@@ -600,6 +837,23 @@ export function AIComposer({
             <X size={11} strokeWidth={2.6} />
           </button>
         </div>
+      ) : null}
+
+      {attachment?.dataUrl ? (
+        // Image-staged hint. Sets expectations before send: synth
+        // doesn't yet classify or tag images automatically; the coach
+        // should phrase what they want analysed (catch, finish, etc.).
+        // Keeping this UI-side AND in the system prompt is intentional
+        // — the prompt makes Claude say it once in the response, but
+        // the user still sees it before clicking send and before any
+        // network round-trip.
+        <p
+          className="mb-2 px-1 text-[11px] leading-snug"
+          style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+        >
+          synth can't auto-tag images yet. Describe what you want to know,
+          or hit send and I'll ask follow-ups.
+        </p>
       ) : null}
 
       <textarea
@@ -630,15 +884,13 @@ export function AIComposer({
           <Plus size={18} strokeWidth={2.2} />
         </button>
         <span className="flex-1" />
-        <button
-          type="button"
-          aria-label="Voice transcribe"
-          disabled={isStreaming}
-          className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-50"
-          style={{ color: SYNTH.aiTextMuted }}
-        >
-          <Mic size={18} strokeWidth={2} />
-        </button>
+        {/* Composer trailing button. Three states, swapped through
+            AnimatePresence so the user sees the role flip cleanly:
+              - streaming  -> stop (square)
+              - has text   -> send (up arrow on emerald)
+              - idle       -> mic (opens synth whisper)
+            The mic only renders functional when onOpenVoice is wired;
+            without the prop it falls back to a silent dark glyph. */}
         <AnimatePresence mode="wait" initial={false}>
           {isStreaming ? (
             <motion.button
@@ -675,15 +927,18 @@ export function AIComposer({
             <motion.button
               key="voice"
               type="button"
+              onClick={onOpenVoice}
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.85 }}
               transition={{ duration: 0.12 }}
-              aria-label="Voice mode"
-              className="flex h-9 w-9 items-center justify-center rounded-full"
+              whileTap={{ scale: 0.94 }}
+              aria-label="Voice transcribe"
+              disabled={!onOpenVoice}
+              className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-60"
               style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
             >
-              <AudioLines size={16} strokeWidth={2.2} />
+              <Mic size={16} strokeWidth={2.2} />
             </motion.button>
           )}
         </AnimatePresence>
@@ -711,14 +966,140 @@ function UpArrowGlyph() {
 export type ScopeOption = {
   id: string
   label: string
+  /** True when the athlete is on today's attention list. Surfaces in
+   *  the scope picker + AddToChatSheet as a "Flagged today" filter
+   *  chip so coaches can drill straight to the people who need eyes
+   *  without scrolling 46 names. */
+  flagged?: boolean
+  /** True for the team-wide / fallback scope option. Always pinned
+   *  to the top of the picker and immune to the athlete-only filters
+   *  (search by name + flagged toggle). */
+  pinned?: boolean
 }
 
 export type StyleKey = 'synthesized' | 'raw'
+
+/**
+ * Phase 4 polish — shared filter logic used by ScopePickerSheet
+ * (sheet-style list) and AddToChatSheet (pill-style chips). Both UIs
+ * apply the SAME rules so coaches don't have to re-learn the picker
+ * depending on which sheet they opened.
+ *
+ * Rules:
+ *   - The pinned option (team scope) is ALWAYS shown at the top,
+ *     regardless of search or flagged toggle. The filters are
+ *     athlete-only.
+ *   - Search is case-insensitive substring match against the
+ *     option label.
+ *   - flaggedOnly limits the athlete portion to those with
+ *     option.flagged === true.
+ *   - Order: pinned first (always), then athletes in their input
+ *     order (the seed data order is already coach-curated).
+ */
+export function filterScopes(
+  options: ScopeOption[],
+  query: string,
+  flaggedOnly: boolean,
+): { pinned: ScopeOption[]; athletes: ScopeOption[] } {
+  const q = query.trim().toLowerCase()
+  const pinned: ScopeOption[] = []
+  const athletes: ScopeOption[] = []
+  for (const o of options) {
+    if (o.pinned) {
+      pinned.push(o)
+      continue
+    }
+    if (flaggedOnly && !o.flagged) continue
+    if (q && !o.label.toLowerCase().includes(q)) continue
+    athletes.push(o)
+  }
+  return { pinned, athletes }
+}
+
+/**
+ * Shared search input + "Flagged today" toggle. Used by both
+ * ScopePickerSheet (list-style) and AddToChatSheet (chip-style) so
+ * the filter controls feel identical regardless of which sheet the
+ * coach opened. Compact: search row first, filter pill row right
+ * underneath. flaggedCount drives the disabled state on the pill —
+ * if there's nobody flagged we don't pretend the toggle is useful.
+ */
+export function ScopeSearchControls({
+  query,
+  onQueryChange,
+  flaggedOnly,
+  onToggleFlagged,
+  flaggedCount,
+  placeholder = 'Search athletes',
+  simpleToggle = false,
+}: {
+  query: string
+  onQueryChange: (next: string) => void
+  flaggedOnly: boolean
+  onToggleFlagged: () => void
+  flaggedCount: number
+  placeholder?: string
+  /** When true, only the Flagged toggle pill renders (no "All athletes"
+   *  companion pill). Used in AddToChatSheet where AG flagged the
+   *  paired pills as visually redundant: a flagged-vs-not toggle is
+   *  enough on that surface. */
+  simpleToggle?: boolean
+}) {
+  const hasFlagged = flaggedCount > 0
+  return (
+    <div className="flex flex-col gap-2">
+      <div
+        className="flex items-center gap-2 rounded-2xl border px-3"
+        style={{
+          background: SYNTH.aiCard,
+          borderColor: SYNTH.aiBorder,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        <Search size={14} strokeWidth={2.2} color={SYNTH.aiTextMuted} />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder={placeholder}
+          className="block w-full bg-transparent py-2.5 text-[14px] outline-none placeholder:opacity-60"
+          style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => onQueryChange('')}
+            aria-label="Clear search"
+            className="flex h-6 w-6 items-center justify-center rounded-full"
+            style={{ background: SYNTH.sheetMuted, color: SYNTH.aiTextMuted }}
+          >
+            <X size={11} strokeWidth={2.6} />
+          </button>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2">
+        {simpleToggle ? null : (
+          <Pill active={!flaggedOnly} onClick={() => flaggedOnly && onToggleFlagged()}>
+            All athletes
+          </Pill>
+        )}
+        <Pill
+          active={flaggedOnly}
+          disabled={!hasFlagged}
+          onClick={() => hasFlagged && onToggleFlagged()}
+        >
+          Flagged today{hasFlagged ? ` · ${flaggedCount}` : ''}
+        </Pill>
+      </div>
+    </div>
+  )
+}
 
 export function AddToChatSheet({
   open,
   onClose,
   onPickFiles,
+  onOpenVoice,
   scopeOptions,
   scopeId,
   onScopeChange,
@@ -728,6 +1109,10 @@ export function AddToChatSheet({
   open: boolean
   onClose: () => void
   onPickFiles: (files: FileList | null) => void
+  /** Phase 3 — opens the AuroraVoiceOverlay (synth whisper) at the page
+   *  level. The sheet closes itself first so the overlay isn't stacked
+   *  over a half-shut sheet. Optional so older callers stay valid. */
+  onOpenVoice?: () => void
   scopeOptions: ScopeOption[]
   scopeId: string
   onScopeChange: (id: string) => void
@@ -736,6 +1121,31 @@ export function AddToChatSheet({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Scope search + filter state. Reset on close (not via a useEffect
+  // watching `open`) so the next reopen shows cleared controls
+  // without tripping the set-state-in-effect lint. Mirrors
+  // ScopePickerSheet.
+  const [scopeQuery, setScopeQuery] = useState('')
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const handleClose = () => {
+    setScopeQuery('')
+    setFlaggedOnly(false)
+    onClose()
+  }
+
+  const flaggedCount = scopeOptions.filter((o) => o.flagged).length
+  // AddToChatSheet intentionally drops the team-pinned chip from the
+  // results — AG flagged the duplicate "All athletes" / "Pacific
+  // Women's Rowing" black pills as visually confusing, and the
+  // dedicated ScopePickerSheet (header chip) already covers team
+  // scoping. Athletes only here.
+  const { athletes } = filterScopes(scopeOptions, scopeQuery, flaggedOnly)
+  // Idle = no search, no Flagged toggle. Hide the chip wall in this
+  // state. The Scope section then collapses to a search bar plus the
+  // single Flagged toggle, which matches AG's "I don't want to see
+  // all the other athletes' names" rule.
+  const isScopeIdle = scopeQuery.trim() === '' && !flaggedOnly
+
   const triggerFile = (accept: string) => {
     const el = fileInputRef.current
     if (!el) return
@@ -743,23 +1153,82 @@ export function AddToChatSheet({
     el.click()
   }
 
+  const triggerVoice = () => {
+    if (!onOpenVoice) return
+    // Close the sheet first; the overlay then mounts cleanly above the
+    // page. Without the close, the sheet's backdrop stacks under the
+    // overlay and you see two scrim layers.
+    handleClose()
+    onOpenVoice()
+  }
+
+  // Athlete view passes a single self-scoped option (their own id)
+  // with no flagged metadata. There's nothing meaningful to switch
+  // TO, so the entire Scope group is suppressed on that surface —
+  // search controls + chip wall + idle hint all hidden together. We
+  // only render Scope when there are 2+ athlete options to choose
+  // among.
+  const showScopeGroup = scopeOptions.filter((o) => !o.pinned).length > 1
+
   return (
-    <SheetShell open={open} onClose={onClose} title="Add to chat">
-      <div className="grid grid-cols-3 gap-2 pt-2">
+    <SheetShell open={open} onClose={handleClose} title="Add to chat">
+      <div className="grid grid-cols-2 gap-2 pt-2">
         <Tile icon={<Camera size={20} strokeWidth={2.2} />} label="Camera" onClick={() => triggerFile('image/*')} />
         <Tile icon={<ImageIcon size={20} strokeWidth={2.2} />} label="Photos" onClick={() => triggerFile('image/*')} />
         <Tile icon={<FileText size={20} strokeWidth={2.2} />} label="Files" onClick={() => triggerFile('*/*')} />
+        {onOpenVoice ? (
+          <Tile icon={<Mic size={20} strokeWidth={2.2} />} label="Voice" onClick={triggerVoice} />
+        ) : null}
       </div>
 
+      {showScopeGroup ? (
       <Group label="Scope">
-        <div className="flex flex-wrap gap-2">
-          {scopeOptions.map((s) => (
-            <Pill key={s.id} active={s.id === scopeId} onClick={() => onScopeChange(s.id)}>
-              {s.label}
-            </Pill>
-          ))}
-        </div>
+        <ScopeSearchControls
+          query={scopeQuery}
+          onQueryChange={setScopeQuery}
+          flaggedOnly={flaggedOnly}
+          onToggleFlagged={() => setFlaggedOnly((v) => !v)}
+          flaggedCount={flaggedCount}
+          simpleToggle
+        />
+        {isScopeIdle ? (
+          <p
+            className="text-[11px] leading-snug"
+            style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+          >
+            Search a name or tap Flagged today to scope this chat to a specific athlete.
+          </p>
+        ) : athletes.length === 0 ? (
+          <p
+            className="rounded-2xl px-3 py-2 text-[12px]"
+            style={{
+              background: SYNTH.aiCard,
+              border: `1px solid ${SYNTH.aiBorder}`,
+              color: SYNTH.aiTextMuted,
+              fontFamily: SYNTH.font,
+            }}
+          >
+            No athletes match.
+            {flaggedOnly ? ' Try clearing the Flagged filter.' : ''}
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {athletes.map((s) => (
+              <Pill key={s.id} active={s.id === scopeId} onClick={() => onScopeChange(s.id)}>
+                {s.label}
+                {s.flagged ? (
+                  <span
+                    className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                    style={{ background: SYNTH.accentAmber }}
+                    aria-label="Flagged"
+                  />
+                ) : null}
+              </Pill>
+            ))}
+          </div>
+        )}
       </Group>
+      ) : null}
 
       <Group label="Response style">
         <div className="flex flex-wrap gap-2">
@@ -787,7 +1256,7 @@ export function AddToChatSheet({
         onChange={(e) => {
           onPickFiles(e.target.files)
           if (fileInputRef.current) fileInputRef.current.value = ''
-          onClose()
+          handleClose()
         }}
         className="hidden"
       />
@@ -809,11 +1278,18 @@ export function CustomizeChatSheet({
   onClose,
   value,
   onChange,
+  scopeLabel,
 }: {
   open: boolean
   onClose: () => void
   value: ChatCustomization
   onChange: (next: ChatCustomization) => void
+  /** Active scope shown as a subtitle in the sheet header. Phase 2 of
+   *  the AI deep upgrade keys customizations per scope, so coaches need
+   *  a clear hint about which scope they're editing (team-wide vs. a
+   *  specific athlete drill-in). Passing it as a prop keeps the sheet
+   *  agnostic about scope id format. */
+  scopeLabel?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -838,6 +1314,16 @@ export function CustomizeChatSheet({
 
   return (
     <SheetShell open={open} onClose={onClose} title="Customize chat">
+      {scopeLabel ? (
+        <p
+          className="-mt-1 mb-1 text-[12px]"
+          style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+        >
+          Editing for{' '}
+          <span style={{ color: SYNTH.ink, fontWeight: 600 }}>{scopeLabel}</span>
+          {'. '}Other scopes keep their own settings.
+        </p>
+      ) : null}
       <Group label="Custom instructions">
         <textarea
           value={value.instructions}
@@ -1245,17 +1731,20 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 function Pill({
   active,
   onClick,
+  disabled,
   children,
 }: {
   active: boolean
   onClick: () => void
+  disabled?: boolean
   children: ReactNode
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full border px-3 py-1.5 text-[12px] font-semibold"
+      disabled={disabled}
+      className="rounded-full border px-3 py-1.5 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         background: active ? SYNTH.accentBlack : SYNTH.sheet,
         borderColor: active ? SYNTH.accentBlack : SYNTH.aiBorder,

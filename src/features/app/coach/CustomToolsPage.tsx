@@ -32,6 +32,7 @@ import {
   fetchPublishedTeamTools,
   type PublishedTool,
 } from '../../../lib/ai/publishedTools'
+import { trackToolEvent } from '../../../lib/telemetry'
 
 // ─── Catalog ─────────────────────────────────────────────────────────────────
 
@@ -286,6 +287,10 @@ export function CustomToolsPage() {
       iconKey: tool.iconKey,
     }
     install(meta)
+    trackToolEvent('tool_installed', {
+      spec_id: tool.id,
+      source: 'catalog',
+    })
     toast('Tool added to your collection', 'success')
     setTab('installed')
   }
@@ -378,6 +383,10 @@ export function CustomToolsPage() {
                         iconKey: pt.spec.icon_key,
                       }
                       install(meta)
+                      trackToolEvent('tool_installed', {
+                        spec_id: pt.spec.id,
+                        source: 'published_team',
+                      })
                       toast(`${pt.spec.name} added to your collection`, 'success')
                       setTab('installed')
                     }}

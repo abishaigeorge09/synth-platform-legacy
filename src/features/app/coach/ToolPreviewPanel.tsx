@@ -11,6 +11,7 @@ import {
   PencilLine,
   Maximize2,
   RefreshCw,
+  PlugZap,
 } from 'lucide-react'
 import type { ToolSpec } from '../../../lib/tools/schema'
 import { ToolRenderer } from '../../../lib/tools/ToolRenderer'
@@ -41,9 +42,17 @@ type PreviewActions = {
 export function ToolPreviewPanel({
   spec,
   actions,
+  unmetConnectors = [],
 }: {
   spec: ToolSpec | null
   actions: PreviewActions | null
+  /**
+   * Sprint 9.2 — sources the spec references but the team hasn't
+   * connected. Rendered as a small inline pill inside the phone frame
+   * so coaches see "you'll need to connect Concept2" without leaving
+   * the preview.
+   */
+  unmetConnectors?: string[]
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   // `rendererKey` bumps to force a fresh mount of <ToolRenderer> — used
@@ -72,7 +81,10 @@ export function ToolPreviewPanel({
           name={spec?.name ?? null}
           onSettings={spec ? () => setSettingsOpen(true) : null}
         />
-        <div className="synth-scroll relative flex flex-1 flex-col overflow-y-auto px-4 pb-20 pt-3">
+        <div className="synth-scroll relative flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-20 pt-3">
+          {spec && unmetConnectors.length > 0 ? (
+            <ConnectorBanner sources={unmetConnectors} />
+          ) : null}
           {spec ? (
             <ToolRenderer key={rendererKey} spec={spec} />
           ) : (
@@ -149,6 +161,58 @@ function PreviewTopBar({
         <Settings size={14} strokeWidth={2.2} />
       </button>
     </header>
+  )
+}
+
+// Sprint 9.2 — inline banner above the rendered spec when one or more
+// of the spec's binding sources isn't a connected connector_account.
+// The resolver continues to render against MOCK_SNAPSHOTS (demo seed
+// data) so the preview still looks alive; the banner just makes the
+// "you'll need to connect Concept2 for live numbers" implication
+// explicit.
+const CONNECTOR_LABEL: Record<string, string> = {
+  concept2: 'Concept2',
+  strava: 'Strava',
+  whoop: 'WHOOP',
+  sheets: 'Google Sheets',
+}
+
+function ConnectorBanner({ sources }: { sources: string[] }) {
+  const labels = sources.map((s) => CONNECTOR_LABEL[s] ?? s)
+  return (
+    <div
+      className="flex items-start gap-2.5 rounded-2xl px-3 py-2.5"
+      style={{
+        background: 'rgba(243,158,92,0.16)',
+        border: `1px solid ${SYNTH.accentAmber}55`,
+        color: SYNTH.inkOnBrand,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      <span
+        aria-hidden
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+        style={{ background: 'rgba(243,158,92,0.30)', color: SYNTH.accentAmber }}
+      >
+        <PlugZap size={11} strokeWidth={2.4} />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.14em]"
+          style={{ color: SYNTH.accentAmber }}
+        >
+          {labels.length === 1 ? `${labels[0]} not connected` : 'Connectors needed'}
+        </span>
+        <span
+          className="text-[11px] leading-[1.4]"
+          style={{ color: SYNTH.inkOnBrandMuted }}
+        >
+          {labels.length === 1
+            ? `Showing demo data. Connect ${labels[0]} in Sources for live numbers.`
+            : `Showing demo data. Connect ${labels.join(', ')} for live numbers.`}
+        </span>
+      </div>
+    </div>
   )
 }
 

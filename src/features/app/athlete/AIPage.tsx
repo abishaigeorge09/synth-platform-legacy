@@ -35,6 +35,7 @@ import {
   readChatAttachment,
 } from '../lib/imageAttachment'
 import { useAppAuthStore } from '../store/useAppAuthStore'
+import { useDemoUsage, DEMO_DAILY_AI_LIMIT } from '../store/useDemoUsage'
 import { useAIChatCustomization } from '../store/useAIChatCustomization'
 import { APP_MOCK_ATHLETES, buildErgHistory, fmtErgTime } from '../data/mockTeam'
 
@@ -48,6 +49,15 @@ export function AIPage() {
   const me = APP_MOCK_ATHLETES[0]
   const scopeLabel = me.name
   const isDemo = useAppAuthStore((s) => s.isDemo)
+  // Demo daily-cap state. Mirrors the coach AIPage wiring; see that
+  // file for the rationale (client-side counter as a soft defence,
+  // server-side cap is the hard guarantee).
+  const demoCount = useDemoUsage((s) => s.count)
+  const demoDate = useDemoUsage((s) => s.date)
+  const recordDemoMessage = useDemoUsage((s) => s.recordMessage)
+  const todayUtc = new Date().toISOString().slice(0, 10)
+  const demoOverLimit =
+    isDemo && demoDate === todayUtc && demoCount >= DEMO_DAILY_AI_LIMIT
 
   const scopeOptions: ScopeOption[] = useMemo(
     () => [{ id: me.id, label: `Just ${me.name.split(' ')[0]}` }],
@@ -123,6 +133,25 @@ export function AIPage() {
     const trimmed = (overrideText ?? text).trim()
     if (!trimmed && !attachment) return
 
+    // Demo daily cap. See coach AIPage for the design notes.
+    if (isDemo && useDemoUsage.getState().isOverLimit()) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: `err-${Date.now()}`,
+          role: 'ai' as const,
+          parts: [
+            {
+              kind: 'text' as const,
+              text: `You've hit the demo daily limit of ${DEMO_DAILY_AI_LIMIT} messages. Sign up for unlimited access, or come back tomorrow.`,
+            },
+          ],
+          ts: Date.now(),
+        },
+      ])
+      return
+    }
+
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: 'user',
@@ -135,6 +164,7 @@ export function AIPage() {
     setText('')
     setAttachment(null)
     setIsStreaming(true)
+    if (isDemo) recordDemoMessage()
 
     if (!activeChatId) {
       const newId = `h-${Date.now()}`
@@ -363,6 +393,19 @@ export function AIPage() {
               }}
             >
               {attachError}
+            </p>
+          </div>
+        ) : null}
+
+        {isDemo && demoDate === todayUtc && demoCount > 0 ? (
+          <div className="shrink-0 px-3 pt-1">
+            <p
+              className="text-center text-[11px]"
+              style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+            >
+              {demoOverLimit
+                ? `Demo daily limit reached (${DEMO_DAILY_AI_LIMIT}). Sign up for unlimited.`
+                : `Demo: ${demoCount} of ${DEMO_DAILY_AI_LIMIT} messages today`}
             </p>
           </div>
         ) : null}

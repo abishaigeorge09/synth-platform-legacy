@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -12,42 +13,49 @@ import {
   Search,
   Settings,
   ChevronRight,
-  Send,
   Sparkles,
   Lock,
   Map,
-  Wand2,
+  Check,
 } from 'lucide-react'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import { SYNTH } from '../lib/theme'
+import { CANVAS_ENTER, INSTALL_PULSE } from '../lib/motion'
 import { toast } from '../../../shared/store/useToastStore'
+import {
+  useInstalledToolsStore,
+  type InstalledToolMeta,
+} from '../store/useInstalledToolsStore'
 
 // ─── Catalog ─────────────────────────────────────────────────────────────────
 
 type ToolCategory = 'lineups' | 'timing' | 'analysis' | 'coaching' | 'data'
-type ToolBase = {
+
+type CatalogTool = {
   id: string
   name: string
   shortDesc: string
   publisher: string
   category: ToolCategory
-  icon: React.ReactNode
+  iconKey: string
   accent: string
+  /**
+   * `coming-soon` for unfinished tools, `installable` for tools that are
+   * ready to install via the catalog. Sprint 1 ships every non-core tool
+   * as `coming-soon` — Sprint 4 flips a couple to `installable` once the
+   * mock generator can stand in for them.
+   */
+  state: 'installable' | 'coming-soon'
+  /** Route to navigate to when this tool is opened (installable / installed). */
+  to?: string
+  /** Display version + activation chip; only used when state !== 'coming-soon'. */
+  version?: string
+  loadMs?: number
+  /** ETA string for coming-soon tools. */
+  eta?: string
 }
 
-type InstalledTool = ToolBase & {
-  status: 'installed'
-  to: string
-  version: string
-  loadMs: number
-}
-
-type ComingSoonTool = ToolBase & {
-  status: 'coming-soon'
-  eta: string
-}
-
-const INSTALLED: InstalledTool[] = [
+const CATALOG: CatalogTool[] = [
   {
     id: 'lineup-builder',
     name: 'Lineup Builder',
@@ -55,16 +63,13 @@ const INSTALLED: InstalledTool[] = [
       'Build, compare, and publish boat lineups. Drag athletes into seats, run a session timer, save history.',
     publisher: 'synth · core',
     category: 'lineups',
-    icon: <LayoutGrid size={22} strokeWidth={2.2} />,
+    iconKey: 'lineups',
     accent: SYNTH.cardSky,
-    status: 'installed',
+    state: 'installable',
     to: '/app/coach/lineups',
     version: 'v1.4.2',
     loadMs: 84,
   },
-]
-
-const COMING_SOON: ComingSoonTool[] = [
   {
     id: 'stopwatch',
     name: 'Stopwatch',
@@ -72,10 +77,12 @@ const COMING_SOON: ComingSoonTool[] = [
       'Time anything — pieces, intervals, races. Auto-tags the session and the athletes when you stop.',
     publisher: 'synth · core',
     category: 'timing',
-    icon: <Timer size={22} strokeWidth={2.2} />,
+    iconKey: 'timer',
     accent: SYNTH.cardLemon,
-    status: 'coming-soon',
-    eta: 'May 2026',
+    state: 'installable',
+    to: '/app/coach/tools/stopwatch',
+    version: 'v1.0.0',
+    loadMs: 62,
   },
   {
     id: 'race-recorder',
@@ -84,21 +91,21 @@ const COMING_SOON: ComingSoonTool[] = [
       'Capture race-day footage. Auto-syncs splits to the video timeline so you can scrub stroke-by-stroke.',
     publisher: 'synth · core',
     category: 'analysis',
-    icon: <Video size={22} strokeWidth={2.2} />,
+    iconKey: 'video',
     accent: SYNTH.cardPink,
-    status: 'coming-soon',
+    state: 'coming-soon',
     eta: 'Q2 2026',
   },
   {
     id: 'lineup-compare',
     name: 'Lineup Compare',
     shortDesc:
-      'A/B two crews. Predicted boat-speed delta plus a per-seat athlete swap analysis.',
+      "A/B two crews. Predicted boat-speed delta plus a per-seat athlete swap analysis.",
     publisher: 'synth · core',
     category: 'analysis',
-    icon: <GitCompareArrows size={22} strokeWidth={2.2} />,
+    iconKey: 'compare',
     accent: SYNTH.cardMint,
-    status: 'coming-soon',
+    state: 'coming-soon',
     eta: 'Q2 2026',
   },
   {
@@ -108,9 +115,9 @@ const COMING_SOON: ComingSoonTool[] = [
       'Searchable catalog of rigging, technique, and warm-up drills. Bookmark and assign to athletes.',
     publisher: 'synth · partner',
     category: 'coaching',
-    icon: <BookOpen size={22} strokeWidth={2.2} />,
+    iconKey: 'book',
     accent: SYNTH.cardCream,
-    status: 'coming-soon',
+    state: 'coming-soon',
     eta: 'Q3 2026',
   },
   {
@@ -120,9 +127,9 @@ const COMING_SOON: ComingSoonTool[] = [
       'Estimate boat speed before launch from erg, weight, and recent rigging data.',
     publisher: 'synth · core',
     category: 'analysis',
-    icon: <Gauge size={22} strokeWidth={2.2} />,
+    iconKey: 'gauge',
     accent: SYNTH.cardSky,
-    status: 'coming-soon',
+    state: 'coming-soon',
     eta: 'Q3 2026',
   },
   {
@@ -132,9 +139,9 @@ const COMING_SOON: ComingSoonTool[] = [
       'Snap a regatta heat sheet — synth pulls events, lineups, and report times into your calendar.',
     publisher: 'synth · core',
     category: 'data',
-    icon: <Upload size={22} strokeWidth={2.2} />,
+    iconKey: 'upload',
     accent: SYNTH.cardYellow,
-    status: 'coming-soon',
+    state: 'coming-soon',
     eta: 'Q4 2026',
   },
   {
@@ -144,24 +151,39 @@ const COMING_SOON: ComingSoonTool[] = [
       'AI-drafted race plan per athlete and per crew, calibrated to recent splits and the conditions on file.',
     publisher: 'synth · ai',
     category: 'coaching',
-    icon: <Map size={22} strokeWidth={2.2} />,
+    iconKey: 'map',
     accent: SYNTH.cardMint,
-    status: 'coming-soon',
+    state: 'coming-soon',
     eta: 'Q4 2026',
   },
 ]
 
-type RequestIdea = { id: string; label: string; description: string }
-const REQUEST_IDEAS: RequestIdea[] = [
-  { id: 'video-coach', label: 'Video coaching review', description: 'Per-stroke annotations + voice notes' },
-  { id: 'wellness-triage', label: 'Wellness triage', description: 'Auto-flag at-risk athletes from biometrics' },
-  { id: 'erg-comparator', label: 'Erg comparator', description: "Compare two athletes' pieces stroke-by-stroke" },
-  { id: 'recovery-coach', label: 'Recovery coach', description: 'Daily wellness questions + insights' },
-  { id: 'ranking-board', label: 'Team ranking board', description: 'Public team leaderboard widget' },
-  { id: 'parents-digest', label: 'Parents digest', description: 'Auto-weekly summary email home' },
-]
+// iconKey → ReactNode. Keeps the persisted store JSON-safe while the page
+// renders real lucide glyphs.
+function renderIcon(iconKey: string): ReactNode {
+  switch (iconKey) {
+    case 'lineups':
+      return <LayoutGrid size={22} strokeWidth={2.2} />
+    case 'timer':
+      return <Timer size={22} strokeWidth={2.2} />
+    case 'video':
+      return <Video size={22} strokeWidth={2.2} />
+    case 'compare':
+      return <GitCompareArrows size={22} strokeWidth={2.2} />
+    case 'book':
+      return <BookOpen size={22} strokeWidth={2.2} />
+    case 'gauge':
+      return <Gauge size={22} strokeWidth={2.2} />
+    case 'upload':
+      return <Upload size={22} strokeWidth={2.2} />
+    case 'map':
+      return <Map size={22} strokeWidth={2.2} />
+    default:
+      return <Sparkles size={22} strokeWidth={2.2} />
+  }
+}
 
-type Tab = 'installed' | 'coming-soon' | 'request'
+type Tab = 'installed' | 'catalog'
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -169,37 +191,74 @@ export function CustomToolsPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('installed')
   const [query, setQuery] = useState('')
-  const [requestText, setRequestText] = useState('')
+
+  const installedTools = useInstalledToolsStore((s) => s.tools)
+  const isInstalled = useInstalledToolsStore((s) => s.isInstalled)
+  const install = useInstalledToolsStore((s) => s.install)
+  const lastInstalledId = useInstalledToolsStore((s) => s.lastInstalledId)
+  const lastInstalledAt = useInstalledToolsStore((s) => s.lastInstalledAt)
+  const clearLastInstalled = useInstalledToolsStore((s) => s.clearLastInstalled)
+
+  // Retire the pulse signal once the animation has had time to play
+  // (~2.5 s, longer than INSTALL_PULSE's 1.6 s duration). Keying on
+  // `lastInstalledAt` resets the timer on each install.
+  useEffect(() => {
+    if (lastInstalledAt === null) return
+    const t = window.setTimeout(() => clearLastInstalled(), 2500)
+    return () => window.clearTimeout(t)
+  }, [lastInstalledAt, clearLastInstalled])
 
   const q = query.trim().toLowerCase()
+
   const installedFiltered = useMemo(
-    () => (q ? INSTALLED.filter(matches(q)) : INSTALLED),
-    [q],
-  )
-  const comingFiltered = useMemo(
-    () => (q ? COMING_SOON.filter(matches(q)) : COMING_SOON),
-    [q],
-  )
-  const requestFiltered = useMemo(
     () =>
       q
-        ? REQUEST_IDEAS.filter(
-            (i) =>
-              i.label.toLowerCase().includes(q) ||
-              i.description.toLowerCase().includes(q),
+        ? installedTools.filter(
+            (t) =>
+              t.name.toLowerCase().includes(q) ||
+              t.shortDesc.toLowerCase().includes(q),
           )
-        : REQUEST_IDEAS,
+        : installedTools,
+    [q, installedTools],
+  )
+
+  const catalogFiltered = useMemo(
+    () =>
+      q
+        ? CATALOG.filter(
+            (t) =>
+              t.name.toLowerCase().includes(q) ||
+              t.shortDesc.toLowerCase().includes(q),
+          )
+        : CATALOG,
     [q],
   )
 
-  const submitRequest = (idOrText: string) => {
-    toast(`Request received — we'll keep you posted on "${idOrText}"`, 'success')
-    setRequestText('')
+  const installFromCatalog = (tool: CatalogTool) => {
+    if (!tool.to || !tool.version || tool.loadMs === undefined) return
+    const meta: InstalledToolMeta = {
+      id: tool.id,
+      name: tool.name,
+      shortDesc: tool.shortDesc,
+      publisher: tool.publisher,
+      category: tool.category,
+      accent: tool.accent,
+      version: tool.version,
+      loadMs: tool.loadMs,
+      to: tool.to,
+      iconKey: tool.iconKey,
+    }
+    install(meta)
+    toast('Tool added to your collection', 'success')
+    setTab('installed')
   }
 
   return (
-    <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab">
-      <CoachPageHeader title="Tools" subtitle="Custom tools catalog" />
+    <motion.div
+      className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-safe-tab"
+      {...CANVAS_ENTER}
+    >
+      <CoachPageHeader title="Tools" subtitle="Custom tools" />
 
       {/* Tech-feel grid backdrop sits behind everything else in this page */}
       <DotGridBackdrop />
@@ -209,19 +268,17 @@ export function CustomToolsPage() {
         <SearchBar
           query={query}
           onChange={setQuery}
-          placeholder={
-            tab === 'request' ? 'Search ideas or describe what you need…' : 'Search the tool catalog'
-          }
+          placeholder="Search the tool catalog"
         />
 
-        {/* Tabs */}
+        {/* Tabs — Build is a navigation, not a panel */}
         <TabStrip
           tab={tab}
           onChange={setTab}
+          onBuild={() => navigate('/app/coach/tools/build')}
           counts={{
             installed: installedFiltered.length,
-            coming: comingFiltered.length,
-            request: requestFiltered.length,
+            catalog: catalogFiltered.length,
           }}
         />
 
@@ -243,41 +300,40 @@ export function CustomToolsPage() {
                     tool={t}
                     index={i}
                     onOpen={() => navigate(t.to)}
+                    pulse={t.id === lastInstalledId}
+                    pulseKey={lastInstalledAt ?? 0}
                   />
                 ))}
                 {installedFiltered.length === 0 && (
                   <EmptyState
                     icon={<LayoutGrid size={20} strokeWidth={2.2} />}
-                    title="No installed tools match"
-                    body="Clear the search to see everything that's wired up."
+                    title="No installed tools yet"
+                    body="Browse the Catalog or build your own from the Build tab."
                   />
                 )}
               </>
             )}
 
-            {tab === 'coming-soon' && (
+            {tab === 'catalog' && (
               <>
-                {comingFiltered.map((t, i) => (
-                  <ComingSoonCard key={t.id} tool={t} index={i} />
+                {catalogFiltered.map((t, i) => (
+                  <CatalogCard
+                    key={t.id}
+                    tool={t}
+                    index={i}
+                    installed={isInstalled(t.id)}
+                    onOpen={() => t.to && navigate(t.to)}
+                    onInstall={() => installFromCatalog(t)}
+                  />
                 ))}
-                {comingFiltered.length === 0 && (
+                {catalogFiltered.length === 0 && (
                   <EmptyState
                     icon={<Sparkles size={20} strokeWidth={2.2} />}
                     title="Nothing matches that"
-                    body="Try a different keyword, or jump to Request to ask for it."
+                    body="Try a different keyword, or jump to Build to describe a new tool."
                   />
                 )}
               </>
-            )}
-
-            {tab === 'request' && (
-              <RequestPane
-                customText={requestText}
-                onCustomTextChange={setRequestText}
-                onSubmitCustom={() => submitRequest(requestText.trim() || 'a custom tool')}
-                ideas={requestFiltered}
-                onPick={(idea) => submitRequest(idea.label)}
-              />
             )}
           </motion.section>
         </AnimatePresence>
@@ -289,24 +345,16 @@ export function CustomToolsPage() {
         >
           <span>synth · tools</span>
           <span>·</span>
-          <span>v0.4 · build {new Date().toISOString().slice(0, 10)}</span>
+          <span>v0.5 · build {new Date().toISOString().slice(0, 10)}</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
-}
-
-function matches(q: string) {
-  return (t: ToolBase) =>
-    t.name.toLowerCase().includes(q) || t.shortDesc.toLowerCase().includes(q)
 }
 
 // ─── Backdrop ────────────────────────────────────────────────────────────────
 
 function DotGridBackdrop() {
-  // 12 px dot grid in low-opacity white — pure decoration. Sits absolute under
-  // the content layer so it reads as "engineering surface" without competing
-  // with the cards.
   return (
     <div
       aria-hidden
@@ -380,93 +428,161 @@ function SearchBar({
 function TabStrip({
   tab,
   onChange,
+  onBuild,
   counts,
 }: {
   tab: Tab
   onChange: (t: Tab) => void
-  counts: { installed: number; coming: number; request: number }
+  onBuild: () => void
+  counts: { installed: number; catalog: number }
 }) {
-  const tabs: Array<{ id: Tab; label: string; count: number; index: string }> = [
-    { id: 'installed', label: 'Installed', count: counts.installed, index: '01' },
-    { id: 'coming-soon', label: 'Coming soon', count: counts.coming, index: '02' },
-    { id: 'request', label: 'Request', count: counts.request, index: '03' },
-  ]
-
   return (
     <div className="mt-4 grid grid-cols-3 gap-2">
-      {tabs.map((t) => {
-        const active = t.id === tab
-        return (
-          <motion.button
-            key={t.id}
-            type="button"
-            whileTap={{ scale: 0.97 }}
-            layout
-            onClick={() => onChange(t.id)}
-            className="relative flex h-[64px] flex-col items-start justify-between rounded-2xl px-3 py-2.5 text-left"
-            style={{
-              background: active ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.08)',
-              border: `1px solid ${active ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.22)'}`,
-              color: active ? SYNTH.ink : SYNTH.inkOnBrand,
-              fontFamily: SYNTH.font,
-              boxShadow: active
-                ? '0 8px 22px -10px rgba(255,255,255,0.4), 0 1px 0 rgba(255,255,255,0.6) inset'
-                : '0 1px 0 rgba(255,255,255,0.08) inset',
-            }}
-          >
-            {/* Top row — index + count */}
-            <div className="flex w-full items-center justify-between">
-              <span
-                className="text-[9px] font-bold uppercase tracking-[0.18em]"
-                style={{
-                  color: active ? SYNTH.inkMuted : SYNTH.inkOnBrandMuted,
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {t.index}
-              </span>
-              <span
-                className="flex h-4 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold"
-                style={{
-                  background: active ? SYNTH.accentBlack : 'rgba(255,255,255,0.14)',
-                  color: active ? SYNTH.inkOnBrand : SYNTH.inkOnBrand,
-                  fontVariantNumeric: 'tabular-nums',
-                  border: active ? 'none' : `1px solid ${SYNTH.glassBorder}`,
-                }}
-              >
-                {t.count}
-              </span>
-            </div>
-
-            {/* Bottom row — label + active dot */}
-            <div className="flex w-full items-center gap-1.5">
-              {active ? (
-                <motion.span
-                  layoutId="tab-active-dot"
-                  className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{
-                    background: SYNTH.accentEmerald,
-                    boxShadow: `0 0 0 3px ${SYNTH.accentEmerald}33`,
-                  }}
-                />
-              ) : null}
-              <span
-                className="truncate text-[11px] font-bold uppercase tracking-[0.12em]"
-                style={{
-                  color: active ? SYNTH.ink : SYNTH.inkOnBrand,
-                }}
-              >
-                {t.label}
-              </span>
-            </div>
-          </motion.button>
-        )
-      })}
+      <PanelPill
+        index="01"
+        label="Installed"
+        count={counts.installed}
+        active={tab === 'installed'}
+        onClick={() => onChange('installed')}
+      />
+      <BuildPill index="02" onClick={onBuild} />
+      <PanelPill
+        index="03"
+        label="Catalog"
+        count={counts.catalog}
+        active={tab === 'catalog'}
+        onClick={() => onChange('catalog')}
+      />
     </div>
   )
 }
 
+function PanelPill({
+  index,
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  index: string
+  label: string
+  count: number
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.97 }}
+      layout
+      onClick={onClick}
+      className="relative flex h-[64px] flex-col items-start justify-between rounded-2xl px-3 py-2.5 text-left"
+      style={{
+        background: active ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.08)',
+        border: `1px solid ${active ? SYNTH.inkOnBrand : 'rgba(255,255,255,0.22)'}`,
+        color: active ? SYNTH.ink : SYNTH.inkOnBrand,
+        fontFamily: SYNTH.font,
+        boxShadow: active
+          ? '0 8px 22px -10px rgba(255,255,255,0.4), 0 1px 0 rgba(255,255,255,0.6) inset'
+          : '0 1px 0 rgba(255,255,255,0.08) inset',
+      }}
+    >
+      <div className="flex w-full items-center justify-between">
+        <span
+          className="text-[9px] font-bold uppercase tracking-[0.18em]"
+          style={{
+            color: active ? SYNTH.inkMuted : SYNTH.inkOnBrandMuted,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {index}
+        </span>
+        <span
+          className="flex h-4 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold"
+          style={{
+            background: active ? SYNTH.accentBlack : 'rgba(255,255,255,0.14)',
+            color: SYNTH.inkOnBrand,
+            fontVariantNumeric: 'tabular-nums',
+            border: active ? 'none' : `1px solid ${SYNTH.glassBorder}`,
+          }}
+        >
+          {count}
+        </span>
+      </div>
+
+      <div className="flex w-full items-center gap-1.5">
+        {active ? (
+          <motion.span
+            layoutId="tab-active-dot"
+            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{
+              background: SYNTH.accentEmerald,
+              boxShadow: `0 0 0 3px ${SYNTH.accentEmerald}33`,
+            }}
+          />
+        ) : null}
+        <span
+          className="truncate text-[11px] font-bold uppercase tracking-[0.12em]"
+          style={{ color: active ? SYNTH.ink : SYNTH.inkOnBrand }}
+        >
+          {label}
+        </span>
+      </div>
+    </motion.button>
+  )
+}
+
+function BuildPill({ index, onClick }: { index: string; onClick: () => void }) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.97 }}
+      onClick={onClick}
+      aria-label="Build a tool"
+      className="relative flex h-[64px] flex-col items-start justify-between rounded-2xl px-3 py-2.5 text-left"
+      style={{
+        background: SYNTH.accentEmerald,
+        border: `1px solid ${SYNTH.accentEmerald}`,
+        color: SYNTH.inkOnBrand,
+        fontFamily: SYNTH.font,
+        boxShadow:
+          '0 10px 24px -8px rgba(16,185,129,0.55), 0 1px 0 rgba(255,255,255,0.25) inset',
+      }}
+    >
+      <div className="flex w-full items-center justify-between">
+        <span
+          className="text-[9px] font-bold uppercase tracking-[0.18em]"
+          style={{
+            color: 'rgba(255,255,255,0.7)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {index}
+        </span>
+        <Sparkles size={12} strokeWidth={2.6} color={SYNTH.inkOnBrand} />
+      </div>
+
+      <span
+        className="truncate text-[11px] font-bold uppercase tracking-[0.12em]"
+        style={{ color: SYNTH.inkOnBrand }}
+      >
+        Build
+      </span>
+    </motion.button>
+  )
+}
+
 // ─── Tool card surface (shared shell) ────────────────────────────────────────
+
+type ToolBase = {
+  id: string
+  name: string
+  shortDesc: string
+  publisher: string
+  category: string
+  accent: string
+  iconKey: string
+}
 
 function ToolShell({
   tool,
@@ -475,7 +591,7 @@ function ToolShell({
   dimmed = false,
 }: {
   tool: ToolBase
-  children: React.ReactNode
+  children: ReactNode
   onClick?: () => void
   dimmed?: boolean
 }) {
@@ -492,7 +608,6 @@ function ToolShell({
         boxShadow: '0 12px 28px -12px rgba(8,8,40,0.45)',
       }}
     >
-      {/* Icon medallion */}
       <span
         className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
         style={{
@@ -501,8 +616,7 @@ function ToolShell({
           boxShadow: '0 8px 20px -8px rgba(8,8,40,0.45), 0 1px 0 rgba(255,255,255,0.4) inset',
         }}
       >
-        {tool.icon}
-        {/* Tiny category chip on the icon corner */}
+        {renderIcon(tool.iconKey)}
         <span
           className="absolute -bottom-1 -right-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em]"
           style={{
@@ -516,7 +630,6 @@ function ToolShell({
         </span>
       </span>
 
-      {/* Body — dimmed when coming-soon so the title overlay reads cleanly */}
       <div
         className="min-w-0 flex-1"
         style={dimmed ? { filter: 'blur(0.4px)', opacity: 0.7 } : undefined}
@@ -533,16 +646,24 @@ function InstalledCard({
   tool,
   index,
   onOpen,
+  pulse = false,
+  pulseKey = 0,
 }: {
-  tool: InstalledTool
+  tool: InstalledToolMeta
   index: number
   onOpen: () => void
+  pulse?: boolean
+  pulseKey?: number
 }) {
+  // Re-trigger the install pulse on each new install by keying on
+  // pulseKey (the lastInstalledAt timestamp from the store).
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.32 }}
+      key={pulse ? `pulse-${pulseKey}` : `rest-${tool.id}`}
+      initial={pulse ? INSTALL_PULSE.initial : { opacity: 0, y: 8 }}
+      animate={pulse ? INSTALL_PULSE.animate : { opacity: 1, y: 0 }}
+      transition={pulse ? INSTALL_PULSE.transition : { delay: index * 0.04, duration: 0.32 }}
+      className="rounded-3xl"
     >
       <ToolShell tool={tool} onClick={onOpen}>
         <div className="flex items-start justify-between gap-3">
@@ -575,7 +696,6 @@ function InstalledCard({
           <ChevronRight size={16} color={SYNTH.inkOnBrandFaint} strokeWidth={2.2} />
         </div>
 
-        {/* Footer row — publisher + load-time tech chip + gear */}
         <div className="mt-3 flex items-center gap-2">
           <span
             className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em]"
@@ -623,9 +743,24 @@ function InstalledCard({
   )
 }
 
-// ─── Coming soon card ────────────────────────────────────────────────────────
+// ─── Catalog card ────────────────────────────────────────────────────────────
 
-function ComingSoonCard({ tool, index }: { tool: ComingSoonTool; index: number }) {
+function CatalogCard({
+  tool,
+  index,
+  installed,
+  onOpen,
+  onInstall,
+}: {
+  tool: CatalogTool
+  index: number
+  installed: boolean
+  onOpen: () => void
+  onInstall: () => void
+}) {
+  const isComingSoon = tool.state === 'coming-soon'
+  const cardOnClick = installed ? onOpen : undefined
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -633,7 +768,7 @@ function ComingSoonCard({ tool, index }: { tool: ComingSoonTool; index: number }
       transition={{ delay: index * 0.04, duration: 0.32 }}
       className="relative"
     >
-      <ToolShell tool={tool} dimmed>
+      <ToolShell tool={tool} onClick={cardOnClick} dimmed={isComingSoon}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p
@@ -649,8 +784,11 @@ function ComingSoonCard({ tool, index }: { tool: ComingSoonTool; index: number }
               {tool.shortDesc}
             </p>
           </div>
-          <Lock size={14} color={SYNTH.inkOnBrandFaint} strokeWidth={2.2} />
+          {isComingSoon ? (
+            <Lock size={14} color={SYNTH.inkOnBrandFaint} strokeWidth={2.2} />
+          ) : null}
         </div>
+
         <div className="mt-3 flex items-center gap-2">
           <span
             className="text-[10px] font-bold uppercase tracking-[0.14em]"
@@ -658,177 +796,112 @@ function ComingSoonCard({ tool, index }: { tool: ComingSoonTool; index: number }
           >
             {tool.publisher}
           </span>
-          <span
-            className="ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
-            style={{
-              background: 'rgba(255,255,255,0.10)',
-              color: SYNTH.inkOnBrandMuted,
-              border: `1px solid ${SYNTH.glassBorder}`,
-              fontFamily: SYNTH.font,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            ETA · {tool.eta}
-          </span>
+          <div className="ml-auto">
+            <CatalogStateChip
+              tool={tool}
+              installed={installed}
+              onInstall={onInstall}
+            />
+          </div>
         </div>
       </ToolShell>
-
-      {/* Sharp "COMING SOON" stamp — sits on top of the dimmed/blurred body
-          and stays crisp because it's outside ToolShell's blur filter. */}
-      <span
-        className="pointer-events-none absolute right-3 top-3 rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em]"
-        style={{
-          background: SYNTH.accentBlack,
-          color: SYNTH.inkOnBrand,
-          fontFamily: SYNTH.font,
-          letterSpacing: '0.16em',
-          boxShadow: '0 4px 14px -4px rgba(8,8,40,0.6)',
-          border: `1px solid ${SYNTH.glassBorder}`,
-        }}
-      >
-        Coming soon
-      </span>
     </motion.div>
   )
 }
 
-// ─── Request pane ────────────────────────────────────────────────────────────
+const INSTALL_PROGRESS_MS = 800
 
-function RequestPane({
-  customText,
-  onCustomTextChange,
-  onSubmitCustom,
-  ideas,
-  onPick,
+function CatalogStateChip({
+  tool,
+  installed,
+  onInstall,
 }: {
-  customText: string
-  onCustomTextChange: (v: string) => void
-  onSubmitCustom: () => void
-  ideas: RequestIdea[]
-  onPick: (idea: RequestIdea) => void
+  tool: CatalogTool
+  installed: boolean
+  onInstall: () => void
 }) {
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Big "describe what you need" input — primary action */}
-      <div
-        className="rounded-3xl p-4"
+  const [installing, setInstalling] = useState(false)
+
+  const startInstall = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (installing) return
+    setInstalling(true)
+    window.setTimeout(() => {
+      onInstall()
+      setInstalling(false)
+    }, INSTALL_PROGRESS_MS)
+  }
+
+  if (installed) {
+    return (
+      <span
+        className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
         style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: `1px solid ${SYNTH.glassBorder}`,
+          background: 'rgba(16,185,129,0.14)',
+          color: SYNTH.accentEmerald,
+          border: `1px solid ${SYNTH.accentEmerald}55`,
+          fontFamily: SYNTH.font,
         }}
       >
-        <div className="flex items-center gap-2">
-          <Wand2 size={14} color={SYNTH.accentEmerald} strokeWidth={2.4} />
-          <span
-            className="text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
-          >
-            Tell synth what you need
-          </span>
-        </div>
-        <textarea
-          value={customText}
-          onChange={(e) => onCustomTextChange(e.target.value)}
-          rows={3}
-          placeholder="e.g. A way to log heart-rate alerts during the warm-up row, with a notification to the cox"
-          className="mt-3 w-full resize-none bg-transparent text-[14px] leading-[1.5] outline-none placeholder:opacity-50"
-          style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-        />
-        <div className="mt-2 flex items-center justify-between">
-          <span
-            className="text-[10px] uppercase tracking-[0.14em]"
-            style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
-          >
-            {customText.length}/500
-          </span>
-          <button
-            type="button"
-            onClick={onSubmitCustom}
-            disabled={customText.trim().length === 0}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] disabled:opacity-40"
-            style={{
-              background: SYNTH.accentEmerald,
-              color: SYNTH.inkOnBrand,
-              fontFamily: SYNTH.font,
-            }}
-          >
-            <Send size={11} strokeWidth={2.6} />
-            Submit
-          </button>
-        </div>
-      </div>
+        <Check size={10} strokeWidth={2.6} />
+        Installed
+      </span>
+    )
+  }
 
-      {/* Suggested ideas — quick-tap requests */}
-      <div>
-        <p
-          className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-          style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
+  if (tool.state === 'installable') {
+    if (installing) {
+      return (
+        <div
+          className="relative flex items-center justify-center overflow-hidden rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em]"
+          style={{
+            width: 96,
+            background: 'rgba(16,185,129,0.18)',
+            color: SYNTH.inkOnBrand,
+            border: `1px solid ${SYNTH.accentEmerald}66`,
+            fontFamily: SYNTH.font,
+          }}
         >
-          Or pick from frequent requests
-        </p>
-        <div className="flex flex-col gap-2">
-          {ideas.map((idea, i) => (
-            <motion.button
-              key={idea.id}
-              type="button"
-              whileTap={{ scale: 0.99 }}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.03, duration: 0.22 }}
-              onClick={() => onPick(idea)}
-              className="flex items-center gap-3 rounded-2xl p-3 text-left"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: `1px solid ${SYNTH.glassBorder}`,
-              }}
-            >
-              <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  border: `1px solid ${SYNTH.glassBorder}`,
-                  color: SYNTH.accentEmerald,
-                }}
-              >
-                <Sparkles size={14} strokeWidth={2.4} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p
-                  className="truncate text-[13px] font-bold"
-                  style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
-                >
-                  {idea.label}
-                </p>
-                <p
-                  className="truncate text-[11px]"
-                  style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}
-                >
-                  {idea.description}
-                </p>
-              </div>
-              <span
-                className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
-                style={{
-                  background: 'rgba(255,255,255,0.10)',
-                  color: SYNTH.inkOnBrand,
-                  border: `1px solid ${SYNTH.glassBorder}`,
-                  fontFamily: SYNTH.font,
-                }}
-              >
-                Request →
-              </span>
-            </motion.button>
-          ))}
-          {ideas.length === 0 && (
-            <EmptyState
-              icon={<Sparkles size={18} strokeWidth={2.2} />}
-              title="No matching ideas"
-              body="Type your request above — we'll log it and follow up."
-            />
-          )}
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: '100%' }}
+            transition={{ duration: INSTALL_PROGRESS_MS / 1000, ease: 'easeOut' }}
+            className="absolute inset-y-0 left-0"
+            style={{ background: SYNTH.accentEmerald, opacity: 0.55 }}
+          />
+          <span className="relative z-10">Installing…</span>
         </div>
-      </div>
-    </div>
+      )
+    }
+    return (
+      <button
+        type="button"
+        onClick={startInstall}
+        className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em]"
+        style={{
+          background: SYNTH.accentEmerald,
+          color: SYNTH.inkOnBrand,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        Install
+      </button>
+    )
+  }
+
+  return (
+    <span
+      className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em]"
+      style={{
+        background: SYNTH.accentBlack,
+        color: SYNTH.inkOnBrand,
+        fontFamily: SYNTH.font,
+        boxShadow: '0 4px 14px -4px rgba(8,8,40,0.6)',
+        border: `1px solid ${SYNTH.glassBorder}`,
+      }}
+    >
+      Coming soon{tool.eta ? ` · ${tool.eta}` : ''}
+    </span>
   )
 }
 
@@ -839,7 +912,7 @@ function EmptyState({
   title,
   body,
 }: {
-  icon: React.ReactNode
+  icon: ReactNode
   title: string
   body: string
 }) {

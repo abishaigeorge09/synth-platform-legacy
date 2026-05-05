@@ -9,7 +9,7 @@ export type ISODateTime = string // ISO 8601
 
 // ─── Identity ──────────────────────────────────────────────────────────────
 
-export type UserRole = 'coach' | 'athlete' | 'staff'
+export type UserRole = 'head_coach' | 'assistant_coach' | 'athlete'
 
 export type Team = {
   id: UUID

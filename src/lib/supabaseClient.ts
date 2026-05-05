@@ -29,6 +29,23 @@ export const supabase: SupabaseClient | null =
       })
     : null
 
+// One-shot diagnostic — fires at module load when the client couldn't
+// be created. Visible in the production console so a missing-env-var
+// situation (which silently degrades AI to mock mode) is loud and
+// debuggable instead of mysterious. Never logs in dev when both vars
+// are present in .env.local; only fires when the build environment
+// itself is missing them.
+if (!supabase && typeof console !== 'undefined') {
+  const missing: string[] = []
+  if (!url || url.length === 0) missing.push('VITE_SUPABASE_URL')
+  if (!anonKey || anonKey.length === 0) missing.push('VITE_SUPABASE_ANON_KEY')
+  console.warn(
+    `[supabase] client is null at module load. Missing build-time env: ${missing.join(', ')}. ` +
+      `AI calls will fall back to mock mode and Edge Functions are unreachable. ` +
+      `Set these in Vercel → Settings → Environment Variables for the Production environment.`,
+  )
+}
+
 export function isSupabaseConfigured(): boolean {
   return supabase !== null
 }

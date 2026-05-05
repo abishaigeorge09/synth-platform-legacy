@@ -103,11 +103,17 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
       set({ isReady: true })
       return
     }
-    const { data } = await supabase.auth.getSession()
-    const hasDemoFlag = readDemoUser() !== null
+    // (Earlier debug `console.log('[hydrate] ...')` traces were removed
+    // after we confirmed the splash unblocks correctly with this flow.)
 
-    // Wire the auth listener BEFORE flipping isReady so it picks up
-    // any session change that lands during the recovery sign-in below.
+    // Wire the auth listener FIRST. Supabase calls it with an
+    // INITIAL_SESSION event right after registration, which delivers
+    // whatever session was hydrated from storage — without us having
+    // to await getSession(). That getSession() call has been observed
+    // to hang in @supabase/supabase-js v2 when there's a stale refresh
+    // token in localStorage (auto-refresh blocks on a hung internal
+    // lock). Sidestepping it entirely.
+    //
     // isDemo stays true whenever the demo flow stamped localStorage,
     // even after signInAnonymously gives them a real session. The flag
     // means "came in via Continue with Demo", not "has no session".
@@ -118,24 +124,32 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
       })
     })
 
-    // Splash clears immediately. Whatever session getSession returned
-    // right now is what the app sees on first render; the listener
-    // above updates it later if the recovery sign-in lands.
+    // Splash clears synchronously based on whatever localStorage
+    // already had. The listener above will replace `user` with the
+    // real Supabase user object once the SDK fires INITIAL_SESSION.
     set({
-      user: data.session?.user ?? readDemoUser(),
+      user: readDemoUser(),
       isReady: true,
-      isDemo: hasDemoFlag,
+      isDemo: readDemoUser() !== null,
     })
 
-    // Demo recovery: localStorage carries the "came in via Continue
-    // with Demo" flag from a prior visit, but the user has no Supabase
-    // session yet (their first visit predated the signInAnonymously
-    // wiring in setDemoUser, or their session expired). Mint one now
-    // so Edge Functions are reachable. Fire and forget — never await
-    // a network call inside hydrate or the splash will hang when the
-    // network is slow or anon sign-in is rate-limited.
-    if (!data.session && hasDemoFlag) {
+    // Demo recovery: localStorage has the demo flag but no Supabase
+    // session yet. Fire signInAnonymously in the background — the
+    // listener above catches the session whenever the call lands.
+    // Wrapped in a try so failures don't crash the app.
+    if (readDemoUser() !== null) {
       void (async () => {
+        // Best-effort check — if there's already a session, skip.
+        // Wrapped in Promise.race so a hung getSession can't take
+        // down the recovery flow either.
+        const sessionCheck = Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 1500),
+          ),
+        ])
+        const { data } = await sessionCheck
+        if (data.session) return
         try {
           await supabase.auth.signInAnonymously()
         } catch (err) {

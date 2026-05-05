@@ -18,6 +18,8 @@
  *     path. It holds the Anthropic key as a Supabase secret.
  */
 
+import { modelChainForTier } from './claude'
+
 const ANTHROPIC_API = '/api/anthropic/v1/messages'
 const ANTHROPIC_VERSION = '2023-06-01'
 
@@ -60,25 +62,57 @@ export async function streamDirectMessages(args: {
   const key = getDirectKey()
   if (!key) throw new Error('Direct Anthropic key not available')
 
-  const res = await fetch(ANTHROPIC_API, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': ANTHROPIC_VERSION,
-    },
-    body: JSON.stringify({
-      model: args.model,
-      max_tokens: 2048,
-      stream: true,
-      system: args.system,
-      messages: args.messages,
-    }),
-  })
+  // Anthropic's model access varies by key — AG's current key supports
+  // opus-4-7 but rejects 3.5 Sonnet. Resolve `args.model` (a tier name
+  // like "haiku" / "sonnet" / "opus") into a tier-aware fallback list:
+  // cheap models first, escalate to higher tiers only if the whole
+  // requested tier 404s. First hit wins.
+  const tryModels: string[] = (() => {
+    if (args.model === 'haiku' || args.model === 'sonnet' || args.model === 'opus') {
+      return modelChainForTier(args.model)
+    }
+    // Caller passed a literal model ID. Try it first, then walk the
+    // sonnet → opus chain as a safety net.
+    return [...new Set([args.model, ...modelChainForTier('sonnet')])]
+  })()
 
-  if (!res.ok) {
-    const t = await res.text()
-    throw new Error(`Anthropic ${res.status}: ${t}`)
+  let res: Response | null = null
+  let lastBody = ''
+  for (const model of tryModels) {
+    res = await fetch(ANTHROPIC_API, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': ANTHROPIC_VERSION,
+        // Required when Anthropic detects a browser-context request
+        // (Origin header forwarded by the Vite dev proxy).
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2048,
+        stream: true,
+        system: args.system,
+        messages: args.messages,
+      }),
+    })
+    if (res.ok) {
+      console.log('[anthropic-direct] using model:', model)
+      break
+    }
+    // Streaming responses can't be replayed, so we have to clone the
+    // body for the error log before potentially trying the next model.
+    lastBody = await res.clone().text()
+    console.warn('[anthropic-direct] model failed:', model, res.status, lastBody)
+    // Authentication / rate-limit errors aren't model-specific. Stop
+    // the fallback so we don't hammer the API with bad attempts.
+    if (res.status === 401 || res.status === 403 || res.status === 429) break
+  }
+
+  if (!res || !res.ok) {
+    const trimmed = lastBody.length > 500 ? `${lastBody.slice(0, 500)}…` : lastBody
+    throw new Error(`Anthropic ${res?.status ?? 'no response'}: ${trimmed || '(empty body)'}`)
   }
   if (!res.body) throw new Error('No response body from Anthropic')
 

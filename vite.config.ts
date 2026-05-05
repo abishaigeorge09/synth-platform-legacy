@@ -70,6 +70,26 @@ export default defineConfig({
       },
     }),
   ],
+  // Dev-only: forward `/api/anthropic/*` to Anthropic so directClient.ts
+  // can bypass CORS during `npm run dev`. The browser can't call
+  // api.anthropic.com directly even with the dangerous-allow-browser
+  // header (that's an SDK flag, not a CORS bypass). The proxy strips the
+  // `/api/anthropic` prefix and forwards to api.anthropic.com server-
+  // side from Vite, so the Anthropic key set via VITE_ANTHROPIC_API_KEY
+  // never has to round-trip through the browser's CORS gate.
+  //
+  // Production never uses this — `isDirectKeyConfigured()` is gated to
+  // import.meta.env.DEV and prod hits the claude-chat Edge Function.
+  server: {
+    proxy: {
+      '/api/anthropic': {
+        target: 'https://api.anthropic.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/anthropic/, ''),
+        secure: true,
+      },
+    },
+  },
   build: {
     // Keep chunking on Vite/Rollup defaults.
     // Our previous manualChunks strategy created circular chunks

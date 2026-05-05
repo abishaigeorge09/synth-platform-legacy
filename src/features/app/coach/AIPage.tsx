@@ -10,6 +10,8 @@ import {
   AddToChatSheet,
   ChatHistorySheet,
   CustomizeChatSheet,
+  SuggestionRow,
+  getActiveSuggestions,
   type ChatMessage,
   type ChatPart,
   type ChartPoint,
@@ -25,6 +27,7 @@ import {
   getAIClientMode,
   type AIMessage,
 } from '../lib/aiClient'
+import { parseAIText } from '../lib/aiResponseParser'
 import { useAppAuthStore } from '../store/useAppAuthStore'
 import {
   APP_MOCK_ATHLETES,
@@ -107,8 +110,12 @@ export function AIPage() {
     setMessages((m) => m.filter((msg) => msg.role !== 'thinking'))
   }
 
-  const send = () => {
-    const trimmed = text.trim()
+  const send = (overrideText?: string) => {
+    // Accepts an explicit text override so suggestion-chip clicks can
+    // fire send without round-tripping through React state. Useful
+    // because setText is async; calling send right after setText
+    // would read the stale value.
+    const trimmed = (overrideText ?? text).trim()
     if (!trimmed && !attachment) return
 
     const userMsg: ChatMessage = {
@@ -205,13 +212,18 @@ export function AIPage() {
       onEvent: (e) => {
         if (e.kind === 'delta') {
           accumulated += e.text
+          // Phase 1 — parseAIText turns the accumulated text into a
+          // mixed ChatPart[] (text + chips + charts + tables +
+          // illustrations) on every delta. Pure + deterministic so
+          // the rendered chat doesn't shimmer as new tokens arrive.
+          const parsed = parseAIText(accumulated)
           setMessages((m) => {
             const withoutThinking = m.filter((msg) => msg.role !== 'thinking')
             const exists = withoutThinking.some((msg) => msg.id === aiId)
             if (exists) {
               return withoutThinking.map((msg) =>
                 msg.id === aiId
-                  ? { ...msg, parts: [{ kind: 'text' as const, text: accumulated }] }
+                  ? { ...msg, parts: parsed }
                   : msg,
               )
             }
@@ -220,7 +232,7 @@ export function AIPage() {
               {
                 id: aiId,
                 role: 'ai' as const,
-                parts: [{ kind: 'text' as const, text: accumulated }],
+                parts: parsed,
                 ts: Date.now(),
               },
             ]
@@ -284,10 +296,17 @@ export function AIPage() {
   return (
     <SwipeBackPage to="/app/coach/home">
       <div
-        className="flex flex-1 flex-col"
+        // h-dvh + overflow-hidden locks this surface to exactly the
+        // viewport height regardless of what `.app-shell-frame`
+        // (`min-height: 100dvh`) does upstream. Without this, the
+        // frame grows with the message thread and the body scrolls
+        // as a whole, taking the header out of view. With it, only
+        // the AIThread inside scrolls and the header + composer
+        // stay pinned.
+        className="flex h-dvh max-h-dvh flex-col overflow-hidden"
         style={{ background: SYNTH.aiCanvas, fontFamily: SYNTH.font }}
       >
-        <header className="flex items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),32px)] pb-3">
+        <header className="flex shrink-0 items-center gap-2 px-4 pt-[max(env(safe-area-inset-top),32px)] pb-3">
           <HeaderIconButton
             ariaLabel="Back"
             onClick={() => navigate('/app/coach/home')}
@@ -322,15 +341,21 @@ export function AIPage() {
           </span>
         </header>
 
-        <div className="synth-scroll flex flex-1 flex-col overflow-y-auto pb-2">
+        <div className="synth-scroll flex min-h-0 flex-1 flex-col overflow-y-auto pb-2">
           <AIThread messages={messages} emptyHeadline={greeting} />
         </div>
 
-        <div data-tour="coach-ai-input" className="px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+        <SuggestionRow
+          items={getActiveSuggestions(messages)}
+          onSelect={(q) => send(q)}
+          disabled={isStreaming}
+        />
+
+        <div data-tour="coach-ai-input" className="shrink-0 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
           <AIComposer
             value={text}
             onChange={setText}
-            onSubmit={send}
+            onSubmit={() => send()}
             onStop={stopStreaming}
             onAttach={() => setAddOpen(true)}
             attachment={attachment}

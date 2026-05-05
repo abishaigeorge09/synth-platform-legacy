@@ -1,3 +1,9 @@
+/* eslint-disable react-refresh/only-export-components */
+// Primitive module: exports the AI chat components plus type unions
+// (ChatPart, ChatMessage, ChatCustomization), default constants, and
+// the getActiveSuggestions helper used by AIPage. Splitting these into
+// separate files would scatter cohesive UI logic; trade-off is a full
+// HMR reload on edits to this file.
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -53,6 +59,17 @@ export type ChatPart =
       kind: 'illustration'
       glyph: 'boat' | 'erg' | 'trophy' | 'heart' | 'stopwatch'
       caption?: string
+    }
+  | {
+      kind: 'table'
+      title: string
+      columns: string[]
+      rows: string[][]
+      provenance?: string
+    }
+  | {
+      kind: 'suggestions'
+      items: string[]
     }
 
 export type ChatMessage =
@@ -304,6 +321,89 @@ function BulletListBlock({
   )
 }
 
+function TableBlock({
+  part,
+}: {
+  part: Extract<ChatPart, { kind: 'table' }>
+}) {
+  return (
+    <div
+      className="my-2 overflow-hidden rounded-2xl border"
+      style={{
+        background: SYNTH.aiCard,
+        borderColor: SYNTH.aiBorder,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      <p
+        className="px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]"
+        style={{ color: SYNTH.aiTextMuted, borderBottom: `1px solid ${SYNTH.aiBorder}` }}
+      >
+        {part.title}
+      </p>
+      <div className="overflow-x-auto">
+        <table
+          className="w-full text-[12px]"
+          style={{ color: SYNTH.ink, fontVariantNumeric: 'tabular-nums' }}
+        >
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${SYNTH.aiBorder}` }}>
+              {part.columns.map((col, i) => (
+                <th
+                  key={i}
+                  className="px-3 py-2 text-left font-semibold"
+                  style={{ color: SYNTH.aiTextMuted }}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {part.rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={part.columns.length}
+                  className="px-3 py-3 text-center"
+                  style={{ color: SYNTH.aiTextMuted }}
+                >
+                  No rows
+                </td>
+              </tr>
+            ) : (
+              part.rows.map((row, ri) => (
+                <tr
+                  key={ri}
+                  style={{
+                    background: ri % 2 === 0 ? 'transparent' : SYNTH.aiBubble,
+                  }}
+                >
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="px-3 py-2">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {part.provenance ? (
+        <p
+          className="px-4 py-2 text-[10px]"
+          style={{
+            color: SYNTH.aiTextMuted,
+            borderTop: `1px solid ${SYNTH.aiBorder}`,
+          }}
+        >
+          {part.provenance}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 function IllustrationBlock({
   part,
 }: {
@@ -505,6 +605,7 @@ function MessageRow({ message }: { message: ChatMessage }) {
         if (g.part.kind === 'callout') return <CalloutBlock key={i} part={g.part} />
         if (g.part.kind === 'bulletList') return <BulletListBlock key={i} part={g.part} />
         if (g.part.kind === 'illustration') return <IllustrationBlock key={i} part={g.part} />
+        if (g.part.kind === 'table') return <TableBlock key={i} part={g.part} />
         return null
       })}
     </motion.div>
@@ -515,13 +616,19 @@ type Group =
   | { kind: 'inline'; parts: Extract<ChatPart, { kind: 'text' | 'chip' }>[] }
   | {
       kind: 'block'
-      part: Extract<ChatPart, { kind: 'chart' | 'callout' | 'bulletList' | 'illustration' }>
+      part: Extract<
+        ChatPart,
+        { kind: 'chart' | 'callout' | 'bulletList' | 'illustration' | 'table' }
+      >
     }
 
 function groupParts(parts: ChatPart[]): Group[] {
   const out: Group[] = []
   let inline: Extract<ChatPart, { kind: 'text' | 'chip' }>[] = []
   for (const p of parts) {
+    // Suggestions are extracted by the AIPage and rendered above the
+    // composer. Skip them from the bubble's inline + block flow.
+    if (p.kind === 'suggestions') continue
     if (p.kind === 'text' || p.kind === 'chip') {
       inline.push(p)
     } else {
@@ -534,6 +641,80 @@ function groupParts(parts: ChatPart[]): Group[] {
   }
   if (inline.length) out.push({ kind: 'inline', parts: inline })
   return out
+}
+
+/**
+ * Pull the latest suggestion list from a message thread. AIPage uses
+ * this to decide whether to render the suggestion row between the
+ * scrolling thread and the composer.
+ *
+ * Rules:
+ * - Only the most recent AI message contributes suggestions (older ones
+ *   are stale once the conversation has moved on).
+ * - The thinking placeholder doesn't count.
+ * - If the latest AI message has no suggestion part, returns [].
+ */
+export function getActiveSuggestions(messages: ChatMessage[]): string[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
+    if (m.role === 'thinking') continue
+    if (m.role === 'user') return []
+    // m.role === 'ai'
+    const suggestions = m.parts.find((p) => p.kind === 'suggestions')
+    if (suggestions && suggestions.kind === 'suggestions') {
+      return suggestions.items
+    }
+    return []
+  }
+  return []
+}
+
+// — Suggestion row —
+//
+// Renders the active follow-up chips above the composer. Tapping a
+// chip is identical to typing the question and pressing send: AIPage
+// passes onSelect, which fills the composer + auto-submits.
+
+export function SuggestionRow({
+  items,
+  onSelect,
+  disabled = false,
+}: {
+  items: string[]
+  onSelect: (text: string) => void
+  disabled?: boolean
+}) {
+  if (items.length === 0) return null
+  return (
+    <div
+      className="synth-scroll flex shrink-0 gap-2 overflow-x-auto px-3 pb-2 pt-1"
+      style={{ fontFamily: SYNTH.font }}
+    >
+      {items.map((q, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onSelect(q)}
+          disabled={disabled}
+          className="shrink-0 rounded-full border px-3 py-1.5 text-[12px] disabled:opacity-50"
+          style={{
+            background: SYNTH.sheet,
+            borderColor: SYNTH.aiBorder,
+            color: SYNTH.ink,
+            fontFamily: SYNTH.font,
+            // Cap the chip so very long suggestions don't blow out
+            // the row. Long ones truncate gracefully.
+            maxWidth: 320,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {q}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 // — Composer —

@@ -38,6 +38,7 @@ import {
   readChatAttachment,
 } from '../lib/imageAttachment'
 import { useAppAuthStore } from '../store/useAppAuthStore'
+import { useDemoUsage, DEMO_DAILY_AI_LIMIT } from '../store/useDemoUsage'
 import { useAIChatCustomization } from '../store/useAIChatCustomization'
 import {
   APP_MOCK_ATHLETES,
@@ -60,6 +61,15 @@ export function AIPage() {
   const athleteIdFromUrl = params.get('athlete')
   const scopeId = athleteIdFromUrl ?? 'team'
   const isDemo = useAppAuthStore((s) => s.isDemo)
+  // Demo daily-cap state. Reading both methods + count here so the
+  // component re-renders when the count rolls (otherwise the store
+  // method calls are stale closures).
+  const demoCount = useDemoUsage((s) => s.count)
+  const demoDate = useDemoUsage((s) => s.date)
+  const recordDemoMessage = useDemoUsage((s) => s.recordMessage)
+  const todayUtc = new Date().toISOString().slice(0, 10)
+  const demoOverLimit =
+    isDemo && demoDate === todayUtc && demoCount >= DEMO_DAILY_AI_LIMIT
 
   const scopeAthlete = useMemo(
     () => APP_MOCK_ATHLETES.find((a) => a.id === scopeId) ?? null,
@@ -166,6 +176,29 @@ export function AIPage() {
     const trimmed = (overrideText ?? text).trim()
     if (!trimmed && !attachment) return
 
+    // Demo daily cap. The store's localStorage-backed counter is the
+    // soft client-side defence; the server-side hard cap will live in
+    // the claude-chat Edge Function (when deployed). Bypassable in
+    // DevTools, but enough to discourage casual over-use and surface
+    // the limit cleanly to the user.
+    if (isDemo && useDemoUsage.getState().isOverLimit()) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: `err-${Date.now()}`,
+          role: 'ai' as const,
+          parts: [
+            {
+              kind: 'text' as const,
+              text: `You've hit the demo daily limit of ${DEMO_DAILY_AI_LIMIT} messages. Sign up for unlimited access, or come back tomorrow.`,
+            },
+          ],
+          ts: Date.now(),
+        },
+      ])
+      return
+    }
+
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: 'user',
@@ -178,6 +211,11 @@ export function AIPage() {
     setText('')
     setAttachment(null)
     setIsStreaming(true)
+    // Tick the demo counter on every fired send so the cap kicks in
+    // even if the AI request itself errors mid-stream. Conservative
+    // accounting: if we counted only successful turns a flapping
+    // network could allow infinite retries.
+    if (isDemo) recordDemoMessage()
 
     if (!activeChatId) {
       const newId = `h-${Date.now()}`
@@ -432,6 +470,23 @@ export function AIPage() {
               }}
             >
               {attachError}
+            </p>
+          </div>
+        ) : null}
+
+        {isDemo && demoDate === todayUtc && demoCount > 0 ? (
+          // Inline demo-usage hint. Renders only when the counter has
+          // ticked at least once today, and quietly shows how many
+          // messages remain. Once the cap is hit the send blocks with
+          // a clear "limit reached" turn (see send()'s early return).
+          <div className="shrink-0 px-3 pt-1">
+            <p
+              className="text-center text-[11px]"
+              style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
+            >
+              {demoOverLimit
+                ? `Demo daily limit reached (${DEMO_DAILY_AI_LIMIT}). Sign up for unlimited.`
+                : `Demo: ${demoCount} of ${DEMO_DAILY_AI_LIMIT} messages today`}
             </p>
           </div>
         ) : null}

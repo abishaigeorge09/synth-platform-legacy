@@ -64,6 +64,32 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
       window.localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(user))
     }
     set({ user, isDemo: true })
+    // Mint a real Supabase anonymous session so demo users can call Edge
+    // Functions (claude-chat, tool-generate). The handle_new_auth_user
+    // trigger auto-provisions a public.users row pointing at the shared
+    // demo team, which lets the live tool-generate path activate without
+    // a real signup. Without this call demo users have no JWT and the
+    // build chat falls through to the keyword-matcher mock.
+    //
+    // Failures are silent: if anonymous sign-in is disabled on the
+    // Supabase project, or the network is offline, the localStorage
+    // demo flag still works for the rest of the app — only the live
+    // AI paths degrade to mock mode.
+    void (async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: existing } = await supabase.auth.getSession()
+      if (existing.session) return
+      try {
+        await supabase.auth.signInAnonymously()
+        // onAuthStateChange (wired in hydrate) picks up the new session
+        // and replaces `user` with the real Supabase user object.
+      } catch (err) {
+        if (typeof console !== 'undefined') {
+          console.warn('[demo] anonymous sign-in failed', err)
+        }
+      }
+    })()
   },
   markOnboardingDone: () => {
     if (typeof window !== 'undefined') {
@@ -78,15 +104,20 @@ export const useAppAuthStore = create<AppAuthState>((set) => ({
       return
     }
     const { data } = await supabase.auth.getSession()
+    // isDemo stays true whenever the demo flow stamped localStorage,
+    // even after signInAnonymously gives them a real session. The flag
+    // means "came in via Continue with Demo", not "has no session".
+    // Without this, the auth listener flips isDemo → false the moment
+    // anon sign-in lands, breaking demo-only UI affordances.
     set({
       user: data.session?.user ?? readDemoUser(),
       isReady: true,
-      isDemo: !data.session?.user && readDemoUser() !== null,
+      isDemo: readDemoUser() !== null,
     })
     supabase.auth.onAuthStateChange((_event, session) => {
       set({
         user: session?.user ?? readDemoUser(),
-        isDemo: !session?.user && readDemoUser() !== null,
+        isDemo: readDemoUser() !== null,
       })
     })
   },

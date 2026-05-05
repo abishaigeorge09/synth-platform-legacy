@@ -18,7 +18,8 @@
  * full-reload this file when edited; that's acceptable for a registry.
  */
 import type { ReactNode, FC } from 'react'
-import { Fragment } from 'react'
+import { Fragment, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   Bar,
   BarChart,
@@ -31,6 +32,7 @@ import {
 } from 'recharts'
 import type { ToolElement } from './schema'
 import type { ResolvedBindings } from './resolver'
+import { useToolState } from './instanceState'
 import { SYNTH } from '../../features/app/lib/theme'
 
 // ─── Renderer type ────────────────────────────────────────────────────────
@@ -502,13 +504,51 @@ const BadgeRenderer: ElementRenderer = ({ element }) => {
 }
 
 const ButtonRenderer: ElementRenderer = ({ element }) => {
+  // Hooks must run on every render in the same order, so hoist them above
+  // the type guard. They're cheap and the closure captures `element`.
+  const { data, dispatch } = useToolState()
+  // Held across renders so each button instance has its own clock.
+  // useToolInstanceState sits above this component, so this ref lives
+  // for the lifetime of one rendered tool — switching sessions remounts
+  // the renderer and reinitializes the clock.
+  const firstStampRef = useRef<number | null>(null)
+  const lastStampRef = useRef<number | null>(null)
+
   if (element.type !== 'button') return null
+
+  const onClick = () => {
+    if (element.action.kind !== 'submit') return
+    const payload = element.action.payload as Record<string, unknown> | undefined
+    const target = typeof payload?.append_to === 'string' ? payload.append_to : null
+    if (!target) return
+
+    const now = Date.now()
+    if (firstStampRef.current === null) firstStampRef.current = now
+    const elapsedMs = now - firstStampRef.current
+    const splitMs = lastStampRef.current === null ? 0 : now - lastStampRef.current
+    lastStampRef.current = now
+
+    const existing = Array.isArray(data[target]) ? (data[target] as unknown[]) : []
+    const index = existing.length + 1
+
+    let row: Record<string, unknown>
+    if (payload?.kind === 'lap') {
+      row = {
+        lap: index,
+        elapsed: formatMs(elapsedMs),
+        split: formatMs(splitMs),
+      }
+    } else {
+      row = { index, ts: now, ...((payload?.row as Record<string, unknown>) ?? {}) }
+    }
+
+    dispatch({ kind: 'append_row', target, row })
+  }
+
   return (
     <button
       type="button"
-      onClick={() => {
-        /* Sprint 4+ wires the action handler. */
-      }}
+      onClick={onClick}
       className="rounded-full px-4 py-2 text-[12px] font-bold uppercase tracking-[0.12em]"
       style={{
         background: SYNTH.accentEmerald,
@@ -520,8 +560,23 @@ const ButtonRenderer: ElementRenderer = ({ element }) => {
   )
 }
 
+function formatMs(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000)
+  const m = Math.floor(totalSeconds / 60)
+  const s = totalSeconds % 60
+  const cs = Math.floor((ms % 1000) / 10)
+  const pad = (n: number, w = 2) => String(n).padStart(w, '0')
+  return `${pad(m)}:${pad(s)}.${pad(cs)}`
+}
+
 const InputRenderer: ElementRenderer = ({ element }) => {
+  // Hoist hooks above the type guard (rules-of-hooks).
+  const { data, dispatch } = useToolState()
+
   if (element.type !== 'input') return null
+  const inputs = (data.__inputs as Record<string, unknown> | undefined) ?? {}
+  const value = (inputs[element.name] as string | number | undefined) ?? ''
+
   return (
     <label className="flex flex-col gap-1.5">
       <span
@@ -534,7 +589,14 @@ const InputRenderer: ElementRenderer = ({ element }) => {
         type={element.kind === 'number' ? 'number' : element.kind === 'date' ? 'date' : 'text'}
         name={element.name}
         placeholder={element.placeholder}
-        readOnly
+        value={value as string}
+        onChange={(e) =>
+          dispatch({
+            kind: 'set_input',
+            name: element.name,
+            value: element.kind === 'number' ? Number(e.target.value) : e.target.value,
+          })
+        }
         className="rounded-2xl px-3 py-2.5 text-[13px] outline-none"
         style={{
           background: 'rgba(255,255,255,0.06)',
@@ -610,6 +672,281 @@ const TextRenderer: ElementRenderer = ({ element }) => {
   )
 }
 
+// ─── boat_race (schema v2, Sprint 5.7) ────────────────────────────────────
+
+type BoatRaceData = {
+  boats: Array<{ name: string; finishMs: number; color?: string }>
+}
+
+const RACE_PALETTE = [
+  SYNTH.accentEmerald,
+  SYNTH.cardSky,
+  SYNTH.cardLemon,
+  SYNTH.cardPink,
+  SYNTH.cardMint,
+  SYNTH.cardLavender,
+]
+
+const BOAT_DIAMETER = 20
+
+function formatRaceTime(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+const BoatRaceRenderer: ElementRenderer = ({ element, data }) => {
+  // Hooks must be called unconditionally — keep above the type guard.
+  const [replayKey, setReplayKey] = useState(0)
+  if (element.type !== 'boat_race') return null
+
+  const raw = data[element.dataKey] as BoatRaceData | undefined
+  const allBoats = raw?.boats ?? []
+  const durationMs = element.durationMs ?? 8000
+
+  // Sprint 5.8 — when filterStateKey is set, only show boats whose name
+  // is in data[filterStateKey] (a string[] in instance state). Empty
+  // selection renders the "select boats" empty state below.
+  const filterKey = element.filterStateKey
+  const filterRaw = filterKey ? data[filterKey] : null
+  const filterNames = Array.isArray(filterRaw)
+    ? filterRaw.filter((v): v is string => typeof v === 'string')
+    : null
+  const boats = filterNames
+    ? allBoats.filter((b) => filterNames.includes(b.name))
+    : allBoats
+
+  if (boats.length === 0) {
+    const message = filterNames
+      ? 'Pick at least one boat from the Lineups tab'
+      : 'No race data'
+    return (
+      <div
+        className="rounded-2xl px-4 py-6 text-center"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: `1px dashed ${SYNTH.glassBorder}`,
+          color: SYNTH.inkOnBrandMuted,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        <span className="text-[11px] uppercase tracking-[0.14em]">{message}</span>
+      </div>
+    )
+  }
+
+  // Race semantics: at the end of the animation, the fastest boat (lowest
+  // finishMs) is at 100% (the finish line). Slower boats are proportionally
+  // behind, holding the rank order visually. Linear easing — boats hold
+  // constant speed across a 2K, no theatrical ease-in/out.
+  const minFinishMs = Math.min(...boats.map((b) => b.finishMs))
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-2xl px-4 py-4"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        border: `1px solid ${SYNTH.glassBorder}`,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      <div key={replayKey} className="flex flex-col gap-2.5">
+        {boats.map((boat, i) => {
+          const target = (minFinishMs / boat.finishMs) * 100
+          const color = boat.color ?? RACE_PALETTE[i % RACE_PALETTE.length]
+          return (
+            <div key={i} className="flex h-7 items-center gap-2">
+              <span
+                className="w-12 shrink-0 text-[10px] font-bold uppercase tracking-[0.12em]"
+                style={{ color: SYNTH.inkOnBrand }}
+              >
+                {boat.name}
+              </span>
+              <div className="relative h-full flex-1" style={{ minWidth: 0 }}>
+                <div
+                  className="absolute left-0 right-0 top-1/2 h-px"
+                  style={{ background: 'rgba(255,255,255,0.18)' }}
+                />
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-px"
+                  style={{ background: 'rgba(255,255,255,0.45)' }}
+                />
+                <motion.div
+                  initial={{ left: '0%' }}
+                  animate={{ left: `${target}%` }}
+                  transition={{ duration: durationMs / 1000, ease: 'linear' }}
+                  className="absolute top-1/2 flex items-center justify-center rounded-full"
+                  style={{
+                    width: BOAT_DIAMETER,
+                    height: BOAT_DIAMETER,
+                    marginTop: -BOAT_DIAMETER / 2,
+                    marginLeft: -BOAT_DIAMETER / 2,
+                    background: color,
+                    boxShadow: '0 0 0 2px rgba(8,8,40,0.35), 0 4px 10px rgba(8,8,40,0.35)',
+                  }}
+                >
+                  <span className="text-[8px] font-bold" style={{ color: SYNTH.ink }}>
+                    {i + 1}
+                  </span>
+                </motion.div>
+              </div>
+              <span
+                className="w-10 shrink-0 text-right text-[10px] font-bold tabular-nums"
+                style={{ color: SYNTH.inkOnBrand }}
+              >
+                {formatRaceTime(boat.finishMs)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setReplayKey((k) => k + 1)}
+        className="self-end rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+        style={{
+          background: SYNTH.glass,
+          border: `1px solid ${SYNTH.glassBorder}`,
+          color: SYNTH.inkOnBrand,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        Replay
+      </button>
+    </div>
+  )
+}
+
+// ─── lineup_picker (schema v2, Sprint 5.8) ────────────────────────────────
+
+type LineupPickerItem = { name: string; finishMs?: number; color?: string }
+
+function readLineupItems(raw: unknown): LineupPickerItem[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((b): b is LineupPickerItem => {
+      return Boolean(b && typeof b === 'object' && typeof (b as { name?: unknown }).name === 'string')
+    })
+  }
+  if (raw && typeof raw === 'object' && Array.isArray((raw as { boats?: unknown }).boats)) {
+    return readLineupItems((raw as { boats: unknown }).boats)
+  }
+  return []
+}
+
+const LineupPickerRenderer: ElementRenderer = ({ element, data }) => {
+  const { dispatch } = useToolState()
+  if (element.type !== 'lineup_picker') return null
+
+  const items = readLineupItems(data[element.dataKey])
+  const stateRaw = data[element.stateKey]
+  const selected = Array.isArray(stateRaw)
+    ? stateRaw.filter((v): v is string => typeof v === 'string')
+    : []
+
+  if (items.length === 0) {
+    return (
+      <div
+        className="rounded-2xl px-4 py-6 text-center"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: `1px dashed ${SYNTH.glassBorder}`,
+          color: SYNTH.inkOnBrandMuted,
+          fontFamily: SYNTH.font,
+        }}
+      >
+        <span className="text-[11px] uppercase tracking-[0.14em]">No boats available</span>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="flex flex-col gap-2 rounded-2xl px-3 py-3"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        border: `1px solid ${SYNTH.glassBorder}`,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      {element.title ? (
+        <span
+          className="px-1 pb-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+          style={{ color: SYNTH.inkOnBrandMuted }}
+        >
+          {element.title}
+        </span>
+      ) : null}
+      <div className="flex flex-col gap-1.5">
+        {items.map((item, i) => {
+          const active = selected.includes(item.name)
+          const dot = item.color ?? RACE_PALETTE[i % RACE_PALETTE.length]
+          return (
+            <motion.button
+              key={item.name}
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              onClick={() =>
+                dispatch({
+                  kind: 'toggle_set_member',
+                  stateKey: element.stateKey,
+                  value: item.name,
+                })
+              }
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left"
+              style={{
+                background: active
+                  ? 'rgba(16,185,129,0.18)'
+                  : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${active ? `${SYNTH.accentEmerald}66` : SYNTH.glassBorder}`,
+              }}
+            >
+              <span
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                style={{
+                  background: dot,
+                  boxShadow: '0 0 0 2px rgba(8,8,40,0.35)',
+                }}
+              />
+              <span
+                className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-[0.10em]"
+                style={{ color: SYNTH.inkOnBrand }}
+              >
+                {item.name}
+              </span>
+              {typeof item.finishMs === 'number' ? (
+                <span
+                  className="text-[10px] tabular-nums"
+                  style={{ color: SYNTH.inkOnBrandMuted }}
+                >
+                  {formatRaceTime(item.finishMs)}
+                </span>
+              ) : null}
+              <span
+                aria-hidden
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                style={{
+                  background: active ? SYNTH.accentEmerald : 'rgba(255,255,255,0.10)',
+                  color: active ? SYNTH.ink : SYNTH.inkOnBrandFaint,
+                  border: `1px solid ${active ? SYNTH.accentEmerald : SYNTH.glassBorder}`,
+                }}
+              >
+                {active ? '✓' : '+'}
+              </span>
+            </motion.button>
+          )
+        })}
+      </div>
+      <div
+        className="mt-1 px-1 text-[10px]"
+        style={{ color: SYNTH.inkOnBrandMuted }}
+      >
+        {selected.length} of {items.length} selected
+      </div>
+    </div>
+  )
+}
+
 // ─── Registry map ─────────────────────────────────────────────────────────
 
 /**
@@ -630,4 +967,6 @@ export const ELEMENT_RENDERERS: Record<ToolElement['type'], ElementRenderer> = {
   input: InputRenderer,
   select: SelectRenderer,
   text: TextRenderer,
+  boat_race: BoatRaceRenderer,
+  lineup_picker: LineupPickerRenderer,
 }

@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
+// Race recorder module: exports the recorder component plus shared
+// types and helpers used by sibling capture components. Trade-off
+// is full HMR reload on edits.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Square, X, MapPin, BarChart3 } from 'lucide-react'
@@ -89,6 +93,9 @@ export function RaceRecorder({
   const [view, setView] = useState<'lanes' | 'stats'>('lanes')
   const [elapsed, setElapsed] = useState(0)
   const [splits, setSplits] = useState<Split[]>([])
+  // Seed the ref with a render-time timestamp; the ref persists across
+  // renders, so the impurity is paid exactly once.
+  // eslint-disable-next-line react-hooks/purity
   const startedAtRef = useRef<number | null>(performance.now())
   const accumRef = useRef(0)
   const rafRef = useRef<number | null>(null)

@@ -29,12 +29,14 @@ export function RunSwapSheet({ open, onClose, boats: initialBoats, onConfirm }: 
   const [swaps, setSwaps] = useState<RunSwap[]>([])
   const [first, setFirst] = useState<Pick | null>(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return
     setBoats(initialBoats.map((b) => ({ ...b, seats: b.seats.map((s) => ({ ...s })) })))
     setSwaps([])
     setFirst(null)
   }, [open, initialBoats])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const onSeatTap = (boatId: string, position: number) => {
     if (!first) {

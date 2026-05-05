@@ -4,6 +4,7 @@ import { LINEUP_COMPARE } from './lineupCompare'
 import { WELLNESS_SUMMARY } from './wellnessSummary'
 import { LAP_COUNTER } from './lapCounter'
 import { RACE_PLAN } from './racePlan'
+import { PACIFIC_BOAT_RACE } from './pacificBoatRace'
 
 export {
   STROKE_RATE_LOGGER,
@@ -11,6 +12,7 @@ export {
   WELLNESS_SUMMARY,
   LAP_COUNTER,
   RACE_PLAN,
+  PACIFIC_BOAT_RACE,
 }
 
 export const EXAMPLES: ToolSpec[] = [
@@ -19,4 +21,5 @@ export const EXAMPLES: ToolSpec[] = [
   WELLNESS_SUMMARY,
   LAP_COUNTER,
   RACE_PLAN,
+  PACIFIC_BOAT_RACE,
 ]

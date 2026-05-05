@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
+// Primitive module: exports several capture-flow sheets plus shared types
+// and helpers consumed by sibling files. Keeping them co-located preserves
+// cohesion at the cost of full HMR reloads when this file is edited.
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Camera, Video, Copy, Mail, FileUp, Play, Send } from 'lucide-react'
@@ -691,6 +695,8 @@ export function RecordingDetailSheet({ open, onClose, recording }: RecordingDeta
   const [comments, setComments] = useState<Comment[]>([])
 
   useEffect(() => {
+    // Reseed comments when the sheet opens against a new recording.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (recording) setComments(recording.comments)
   }, [recording])
 

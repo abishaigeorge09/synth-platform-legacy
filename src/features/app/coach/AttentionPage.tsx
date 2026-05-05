@@ -29,11 +29,14 @@ export function AttentionPage() {
   const [selectedId, setSelectedId] = useState<string>('')
 
   // Default the selection to either the URL ?focus param or the first item
-  // once the seed athletes have hydrated.
+  // once the seed athletes have hydrated. Initialization-on-data-arrival is
+  // a legitimate use of useEffect; the new rule's recommended alternatives
+  // (lift state up, key prop) don't apply here since `items` is hook-derived.
   useEffect(() => {
     if (selectedId) return
     if (items.length === 0) return
     if (focusId && items.some((it) => it.id === focusId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedId(focusId)
     } else {
       setSelectedId(items[0]!.id)

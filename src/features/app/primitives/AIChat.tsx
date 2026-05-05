@@ -378,13 +378,9 @@ function ErgGlyph() {
 export function AIThread({
   messages,
   emptyHeadline,
-  emptyHint,
-  scopeLabel,
 }: {
   messages: ChatMessage[]
   emptyHeadline: string
-  emptyHint?: string
-  scopeLabel: string
 }) {
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -401,21 +397,6 @@ export function AIThread({
         >
           {emptyHeadline}
         </h2>
-        {emptyHint ? (
-          <p
-            className="text-center text-[12px] font-semibold uppercase tracking-[0.16em]"
-            style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font }}
-          >
-            {emptyHint}
-          </p>
-        ) : null}
-        <p
-          className="mt-2 max-w-[280px] text-center text-[12px]"
-          style={{ color: SYNTH.aiTextMuted, fontFamily: SYNTH.font, opacity: 0.85 }}
-        >
-          synth answers from your team's data only. Scope is{' '}
-          <span style={{ color: SYNTH.ink, fontWeight: 600 }}>{scopeLabel}</span>.
-        </p>
       </div>
     )
   }

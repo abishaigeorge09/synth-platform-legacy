@@ -54,7 +54,11 @@ export function LineupHeroPanel({
 
   useEffect(() => {
     if (sessions.length === 0) return
+    // Pick the default once `sessions` hydrates; the functional updater
+    // keeps the user's choice if they've already picked a date.
     setSelectedDate((prev) => prev || pickDefaultDate(sessions))
+    // sessions intentionally omitted from deps — only react to length flips.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions.length])
 
   const source: HeroSource = useMemo(

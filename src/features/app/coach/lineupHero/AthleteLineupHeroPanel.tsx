@@ -38,6 +38,7 @@ export function AthleteLineupHeroPanel({ onPeekDashboard }: { onPeekDashboard: (
   const [activeBoatIndex, setActiveBoatIndex] = useState(0)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveBoatIndex(0)
     carouselRef.current?.scrollTo({ left: 0 })
   }, [selectedDate])

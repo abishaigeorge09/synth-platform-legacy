@@ -36,6 +36,7 @@ export function PublishSessionSheet({ open, onClose, onPublished }: Props) {
   const [notes, setNotes] = useState('')
   const titleRef = useRef<HTMLInputElement | null>(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return
     setTitle('')
@@ -47,6 +48,7 @@ export function PublishSessionSheet({ open, onClose, onPublished }: Props) {
     setNotes('')
     setTimeout(() => titleRef.current?.focus(), 80)
   }, [open])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const finalType = raceType === 'Other' ? (otherType.trim() || 'Other') : raceType
   const hasEmptySeats = boats.some((b) => b.seats.some((s) => s.athleteId === null))

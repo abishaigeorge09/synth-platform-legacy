@@ -14,10 +14,25 @@ import { SYNTH } from '../lib/theme'
 import { CANVAS_ENTER, THINKING_DOT } from '../lib/motion'
 import {
   useChatSessionsStore,
+  type ChatMessage,
+  type ChatMessageRole,
   type ChatSession,
 } from '../store/useChatSessionsStore'
+import {
+  useInstalledToolsStore,
+  type InstalledToolMeta,
+} from '../store/useInstalledToolsStore'
+import { toast } from '../../../shared/store/useToastStore'
 import { generateToolSpec, MockGenerationError } from '../../../lib/tools/mockGenerator'
-import { ToolRenderer } from '../../../lib/tools/ToolRenderer'
+import { deriveQuestions } from '../../../lib/tools/clarifyingQuestions'
+import type { ToolSpec } from '../../../lib/tools/schema'
+import { ToolPreviewPanel } from './ToolPreviewPanel'
+
+type ClarifyingState = {
+  originalPrompt: string
+  questions: string[]
+  answered: { q: string; a: string }[]
+}
 
 const SUGGESTED_PROMPTS: string[] = [
   'Stroke rate logger that pulls from Concept2',
@@ -35,21 +50,28 @@ const PHASE_DELAY_MS = 700
 const FINAL_DELAY_MS = 600
 
 type LoadingPhase = 0 | 1 | 2 | null
+type MobilePane = 'chat' | 'preview'
 
 export function ToolsBuildPage() {
   const navigate = useNavigate()
   const { chatId } = useParams<{ chatId: string }>()
-  const sessions = useChatSessionsStore((s) => s.sessions)
   const createSession = useChatSessionsStore((s) => s.createSession)
-  const session = chatId ? sessions.find((s) => s.id === chatId) ?? null : null
+  const getSession = useChatSessionsStore((s) => s.getSession)
+  const getRecent = useChatSessionsStore((s) => s.getRecent)
+  const install = useInstalledToolsStore((s) => s.install)
+  const isInstalled = useInstalledToolsStore((s) => s.isInstalled)
+  // Resolve the active session via getSession so seeded examples load too.
+  const session = chatId ? getSession(chatId) ?? null : null
+  // Combined list (user sessions then seeded examples) for the sidebar.
+  const recent = getRecent(20)
 
   const [text, setText] = useState('')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [mobilePane, setMobilePane] = useState<MobilePane>('preview')
+  const [clarifyingState, setClarifyingState] = useState<ClarifyingState | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  // Cleared on unmount; the Send pipeline checks it between awaits so
-  // an unmount mid-flight doesn't trigger a navigate after teardown.
   const cancelRef = useRef(false)
 
   useEffect(() => {
@@ -60,6 +82,7 @@ export function ToolsBuildPage() {
   }, [])
 
   const isLoading = loadingPhase !== null
+  const previewSpec: ToolSpec | null = session?.spec ?? null
 
   const fillPrompt = (prompt: string) => {
     setText(prompt)
@@ -70,13 +93,18 @@ export function ToolsBuildPage() {
     if (isLoading) return
     setText('')
     setMobileSidebarOpen(false)
+    setMobilePane('chat')
+    setClarifyingState(null)
     navigate('/app/coach/tools/build')
   }
 
-  const onSend = async () => {
-    const prompt = text.trim()
-    if (!prompt || isLoading) return
+  const proceedToGenerate = async (basePrompt: string, answered: { q: string; a: string }[] = []) => {
+    const augmented =
+      answered.length > 0
+        ? `${basePrompt} (${answered.map((qa) => qa.a).join(', ')})`
+        : basePrompt
 
+    setClarifyingState(null)
     setText('')
     setErrorMessage(null)
     setLoadingPhase(0)
@@ -90,8 +118,8 @@ export function ToolsBuildPage() {
     if (cancelRef.current) return
 
     try {
-      const spec = generateToolSpec(prompt)
-      const id = createSession(prompt, spec)
+      const spec = generateToolSpec(augmented)
+      const id = createSession(augmented, spec)
       setLoadingPhase(null)
       navigate(`/app/coach/tools/build/${id}`)
     } catch (err) {
@@ -104,6 +132,79 @@ export function ToolsBuildPage() {
     }
   }
 
+  const onSend = async () => {
+    const prompt = text.trim()
+    if (!prompt || isLoading) return
+
+    // First Send on a fresh chat → ask clarifying questions before generating.
+    if (!clarifyingState && !chatId) {
+      const questions = deriveQuestions(prompt)
+      setClarifyingState({ originalPrompt: prompt, questions, answered: [] })
+      setText('')
+      return
+    }
+
+    // Refinement on an existing session, or follow-up text in any state →
+    // fire generation directly.
+    await proceedToGenerate(prompt)
+  }
+
+  const onAnswerQuestion = (q: string, a: string) => {
+    setClarifyingState((cs) =>
+      cs ? { ...cs, answered: [...cs.answered, { q, a }] } : null,
+    )
+  }
+
+  const onLooksGood = () => {
+    if (!clarifyingState) return
+    void proceedToGenerate(clarifyingState.originalPrompt, clarifyingState.answered)
+  }
+
+  const onSkipQuestions = () => {
+    if (!clarifyingState) return
+    void proceedToGenerate(clarifyingState.originalPrompt)
+  }
+
+  const onRefine = () => {
+    // On mobile, switch to the chat pane so the input we're focusing is
+    // actually on screen. Defer the focus call so the textarea is
+    // mounted in the chat-pane DOM tree before we ask for focus.
+    setMobilePane('chat')
+    setText('Refine: ')
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
+  const onOpenFullscreen = () => {
+    if (!session) return
+    // Sprint 5.8 — prefer spec.id when the tool is installed (the
+    // installed-tools route owns that slug); otherwise fall back to the
+    // session id so seeded examples and unsaved drafts still resolve.
+    const slug = isInstalled(session.spec.id) ? session.spec.id : session.id
+    navigate(`/app/coach/tools/${slug}`)
+  }
+
+  const onInstall = () => {
+    if (!session) return
+    if (isInstalled(session.spec.id)) {
+      toast(`${session.spec.name} is already installed`, 'info')
+      return
+    }
+    const meta: InstalledToolMeta = {
+      id: session.spec.id,
+      name: session.spec.name,
+      shortDesc: session.spec.description,
+      publisher: 'synth · custom',
+      category: session.spec.category,
+      accent: SYNTH.cardLemon,
+      version: session.spec.version,
+      loadMs: 50,
+      to: `/app/coach/tools/${session.spec.id}`,
+      iconKey: session.spec.icon_key,
+    }
+    install(meta)
+    toast(`${session.spec.name} added to your collection`, 'success')
+  }
+
   return (
     <div
       className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -114,9 +215,16 @@ export function ToolsBuildPage() {
         onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
       />
 
+      {/* Mobile-only Chat | Preview toggle */}
+      <PaneToggle
+        pane={mobilePane}
+        onChange={setMobilePane}
+        hasPreview={Boolean(previewSpec)}
+      />
+
       <div className="flex min-h-0 flex-1">
         <DesktopSidebar
-          sessions={sessions}
+          sessions={recent}
           activeId={chatId}
           onNewChat={newChat}
         />
@@ -124,24 +232,64 @@ export function ToolsBuildPage() {
         <MobileSidebar
           open={mobileSidebarOpen}
           onClose={() => setMobileSidebarOpen(false)}
-          sessions={sessions}
+          sessions={recent}
           activeId={chatId}
           onNewChat={newChat}
         />
 
-        <section className="relative flex min-h-0 flex-1 flex-col">
+        {/* Preview pane (LEFT now — leads the eye, dominates the workspace).
+            Visible always on ≥md; on <md only when mobilePane==='preview'. */}
+        <section
+          className={`relative min-h-0 flex-col md:flex md:flex-1 ${
+            mobilePane === 'preview' ? 'flex flex-1' : 'hidden md:flex'
+          }`}
+        >
+          <ToolPreviewPanel
+            spec={previewSpec}
+            actions={
+              session
+                ? {
+                    installed: isInstalled(session.spec.id),
+                    onInstall,
+                    onRefine,
+                    onOpenFullscreen,
+                  }
+                : null
+            }
+          />
+        </section>
+
+        {/* Chat pane (RIGHT). Visible always on ≥md; on <md only when chat tab. */}
+        <section
+          className={`relative flex min-h-0 flex-col md:max-w-[440px] md:flex-1 ${
+            mobilePane === 'chat' ? 'flex flex-1' : 'hidden md:flex'
+          }`}
+        >
           <motion.div
-            className="synth-scroll flex flex-1 flex-col items-center overflow-y-auto px-5 pb-[180px]"
+            className="synth-scroll flex flex-1 flex-col items-center overflow-y-auto px-5 pb-[160px]"
             {...CANVAS_ENTER}
           >
             {isLoading ? (
               <LoadingState phase={loadingPhase} />
             ) : errorMessage ? (
-              <ErrorState message={errorMessage} onDismiss={() => setErrorMessage(null)} />
+              <ErrorState
+                message={errorMessage}
+                onDismiss={() => setErrorMessage(null)}
+              />
+            ) : clarifyingState ? (
+              <ClarifyingView
+                state={clarifyingState}
+                onAnswer={onAnswerQuestion}
+                onLooksGood={onLooksGood}
+                onSkip={onSkipQuestions}
+              />
             ) : session ? (
-              <SessionView session={session} />
+              <SessionChatView session={session} />
             ) : (
-              <EmptyCanvas key={chatId ?? 'empty'} onPickPrompt={fillPrompt} />
+              <EmptyCanvas
+                key={chatId ?? 'empty'}
+                onPickPrompt={fillPrompt}
+              />
             )}
           </motion.div>
 
@@ -223,6 +371,71 @@ function Header({
         </span>
       </div>
     </header>
+  )
+}
+
+// ─── Mobile pane toggle ────────────────────────────────────────────────────
+
+function PaneToggle({
+  pane,
+  onChange,
+  hasPreview,
+}: {
+  pane: MobilePane
+  onChange: (p: MobilePane) => void
+  hasPreview: boolean
+}) {
+  return (
+    <div className="flex justify-center px-5 pb-2 md:hidden">
+      <div
+        className="grid grid-cols-2 rounded-full p-1"
+        style={{
+          background: SYNTH.glass,
+          backdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+          WebkitBackdropFilter: `blur(${SYNTH.glassBlur}px) saturate(${SYNTH.glassSaturate}%)`,
+          border: `1px solid ${SYNTH.glassBorder}`,
+        }}
+      >
+        <ToggleButton
+          label="Chat"
+          active={pane === 'chat'}
+          onClick={() => onChange('chat')}
+        />
+        <ToggleButton
+          label="Preview"
+          active={pane === 'preview'}
+          onClick={() => onChange('preview')}
+          dimmed={!hasPreview}
+        />
+      </div>
+    </div>
+  )
+}
+
+function ToggleButton({
+  label,
+  active,
+  onClick,
+  dimmed = false,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+  dimmed?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em]"
+      style={{
+        background: active ? SYNTH.inkOnBrand : 'transparent',
+        color: active ? SYNTH.ink : dimmed ? SYNTH.inkOnBrandFaint : SYNTH.inkOnBrand,
+        fontFamily: SYNTH.font,
+      }}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -381,35 +594,94 @@ function SidebarBody({
   activeId: string | undefined
   onPick?: () => void
 }) {
-  if (sessions.length === 0) {
+  // Split user sessions vs seeded examples for the rendered groupings.
+  const userSessions = sessions.filter((s) => !s.seeded)
+  const seededSessions = sessions.filter((s) => s.seeded)
+
+  if (userSessions.length === 0 && seededSessions.length === 0) {
     return <SidebarEmptyState />
   }
+
   return (
     <ul className="synth-scroll flex flex-1 flex-col gap-1 overflow-y-auto">
-      {sessions.slice(0, 20).map((s) => {
-        const active = s.id === activeId
-        return (
-          <li key={s.id}>
-            <Link
-              to={`/app/coach/tools/build/${s.id}`}
-              onClick={onPick}
-              className="block rounded-xl px-3 py-2"
-              style={{
-                background: active ? 'rgba(255,255,255,0.14)' : 'transparent',
-                border: `1px solid ${active ? SYNTH.glassBorder : 'transparent'}`,
-              }}
-            >
-              <span
-                className="block truncate text-[12px] font-semibold leading-tight"
-                style={{ color: SYNTH.inkOnBrand }}
-              >
-                {s.title}
-              </span>
-            </Link>
+      {userSessions.map((s) => (
+        <SidebarRow
+          key={s.id}
+          session={s}
+          active={s.id === activeId}
+          onPick={onPick}
+        />
+      ))}
+      {seededSessions.length > 0 ? (
+        <>
+          {userSessions.length > 0 ? (
+            <li
+              aria-hidden
+              className="my-1.5 h-px"
+              style={{ background: SYNTH.glassBorder }}
+            />
+          ) : null}
+          <li
+            aria-hidden
+            className="px-2 pb-1 pt-1 text-[9px] font-bold uppercase tracking-[0.18em]"
+            style={{ color: SYNTH.inkOnBrandFaint }}
+          >
+            Examples
           </li>
-        )
-      })}
+          {seededSessions.map((s) => (
+            <SidebarRow
+              key={s.id}
+              session={s}
+              active={s.id === activeId}
+              onPick={onPick}
+            />
+          ))}
+        </>
+      ) : null}
     </ul>
+  )
+}
+
+function SidebarRow({
+  session,
+  active,
+  onPick,
+}: {
+  session: ChatSession
+  active: boolean
+  onPick?: () => void
+}) {
+  return (
+    <li>
+      <Link
+        to={`/app/coach/tools/build/${session.id}`}
+        onClick={onPick}
+        className="flex items-center gap-2 rounded-xl px-3 py-2"
+        style={{
+          background: active ? 'rgba(255,255,255,0.14)' : 'transparent',
+          border: `1px solid ${active ? SYNTH.glassBorder : 'transparent'}`,
+        }}
+      >
+        <span
+          className="block min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight"
+          style={{ color: SYNTH.inkOnBrand }}
+        >
+          {session.title}
+        </span>
+        {session.seeded ? (
+          <span
+            className="shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em]"
+            style={{
+              background: 'rgba(255,255,255,0.10)',
+              color: SYNTH.inkOnBrandMuted,
+              border: `1px solid ${SYNTH.glassBorder}`,
+            }}
+          >
+            Example
+          </span>
+        ) : null}
+      </Link>
+    </li>
   )
 }
 
@@ -449,7 +721,11 @@ function SidebarEmptyState() {
 
 // ─── Empty canvas (no chat yet) ────────────────────────────────────────────
 
-function EmptyCanvas({ onPickPrompt }: { onPickPrompt: (prompt: string) => void }) {
+function EmptyCanvas({
+  onPickPrompt,
+}: {
+  onPickPrompt: (prompt: string) => void
+}) {
   return (
     <div className="flex w-full max-w-[640px] flex-col items-center justify-center gap-6 py-10">
       <span
@@ -462,14 +738,13 @@ function EmptyCanvas({ onPickPrompt }: { onPickPrompt: (prompt: string) => void 
         className="text-center text-[28px] font-bold leading-[1.15] tracking-[-0.01em] sm:text-[34px]"
         style={{ color: SYNTH.inkOnBrand }}
       >
-        What should we build?
+        What should we build today?
       </h1>
       <p
         className="max-w-[440px] text-center text-[13px] leading-[1.5]"
         style={{ color: SYNTH.inkOnBrandMuted }}
       >
-        Describe a tool your program needs. synth will scaffold a working
-        version and wire it to your sources.
+        Describe a tool your program needs. synth will scaffold a working version and wire it to your sources.
       </p>
 
       <div className="flex w-full flex-col gap-2 px-1">
@@ -593,20 +868,164 @@ function ErrorState({
   )
 }
 
-// ─── Session view (rendered tool) ──────────────────────────────────────────
+// ─── Session chat view (multi-turn transcript, no action chips) ───────────
+// Sprint 5.8 — chat panel is conversation only. Workflow chips
+// (Install / Refine / Open fullscreen) live under the preview phone
+// frame so the preview owns the "this is the working app" surface.
 
-function SessionView({ session }: { session: ChatSession }) {
+function SessionChatView({ session }: { session: ChatSession }) {
+  // Multi-turn when the seeded example or future user session carries
+  // a `messages` transcript. Single-turn fallback: just the original
+  // prompt + a generated "Built X" assistant turn.
+  const messages: ChatMessage[] =
+    session.messages && session.messages.length > 0
+      ? session.messages
+      : [
+          { role: 'user', content: session.prompt },
+          {
+            role: 'assistant',
+            content: `Built **${session.spec.name}** — see the preview.`,
+          },
+        ]
+
   return (
     <motion.div
       key={session.id}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
-      className="flex w-full max-w-[640px] flex-col gap-4 py-6"
+      className="flex w-full max-w-[640px] flex-col gap-3 py-6"
+    >
+      {messages.map((msg, i) => (
+        <ChatBubble key={i} role={msg.role} content={msg.content} index={i} />
+      ))}
+
+      <BuiltBadge spec={session.spec} />
+    </motion.div>
+  )
+}
+
+function ChatBubble({
+  role,
+  content,
+  index,
+}: {
+  role: ChatMessageRole
+  content: string
+  index: number
+}) {
+  const isUser = role === 'user'
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.05, 0.3), duration: 0.24 }}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+    >
+      <div
+        className="flex max-w-[85%] flex-col gap-1.5 rounded-2xl px-4 py-3"
+        style={{
+          background: isUser
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${SYNTH.glassBorder}`,
+        }}
+      >
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.14em]"
+          style={{ color: SYNTH.inkOnBrandMuted }}
+        >
+          {isUser ? 'You' : 'synth'}
+        </span>
+        <div
+          className="whitespace-pre-line text-[13px] leading-[1.55]"
+          style={{ color: SYNTH.inkOnBrand }}
+        >
+          {renderInlineMarkdown(content)}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function BuiltBadge({ spec }: { spec: ChatSession['spec'] }) {
+  return (
+    <div className="flex justify-start">
+      <div
+        className="flex max-w-[85%] items-center gap-2 rounded-2xl px-3.5 py-2"
+        style={{
+          background: 'rgba(16,185,129,0.10)',
+          border: `1px solid ${SYNTH.accentEmerald}55`,
+        }}
+      >
+        <span
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{
+            background: SYNTH.accentEmerald,
+            boxShadow: `0 0 0 3px ${SYNTH.accentEmerald}33`,
+          }}
+        />
+        <span
+          className="text-[11px] font-semibold"
+          style={{ color: SYNTH.inkOnBrand }}
+        >
+          Live preview ready
+        </span>
+        <span
+          className="text-[11px]"
+          style={{ color: SYNTH.inkOnBrandMuted }}
+        >
+          — {spec.name}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// Lightweight inline **bold** renderer so the seeded conversation can
+// emphasize page names without pulling in a markdown parser. Anything
+// else (lists, headings) renders as plain text via whitespace-pre-line.
+function renderInlineMarkdown(content: string): React.ReactNode {
+  const parts = content.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} style={{ color: SYNTH.inkOnBrand }}>
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
+}
+
+// ─── Clarifying view (chips before generation) ────────────────────────────
+
+function ClarifyingView({
+  state,
+  onAnswer,
+  onLooksGood,
+  onSkip,
+}: {
+  state: ClarifyingState
+  onAnswer: (q: string, a: string) => void
+  onLooksGood: () => void
+  onSkip: () => void
+}) {
+  const remaining = state.questions.filter(
+    (q) => !state.answered.some((a) => a.q === q),
+  )
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+      className="flex w-full max-w-[640px] flex-col gap-3 py-6"
     >
       <div className="flex justify-end">
         <div
-          className="flex max-w-[80%] flex-col gap-1.5 rounded-2xl px-4 py-3"
+          className="flex max-w-[85%] flex-col gap-1.5 rounded-2xl px-4 py-3"
           style={{
             background: 'rgba(255,255,255,0.10)',
             border: `1px solid ${SYNTH.glassBorder}`,
@@ -622,12 +1041,108 @@ function SessionView({ session }: { session: ChatSession }) {
             className="text-[13px] leading-[1.5]"
             style={{ color: SYNTH.inkOnBrand }}
           >
-            {session.prompt}
+            {state.originalPrompt}
           </span>
         </div>
       </div>
 
-      <ToolRenderer spec={session.spec} />
+      <div className="flex justify-start">
+        <div
+          className="flex max-w-[85%] flex-col gap-2 rounded-2xl px-4 py-3"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: `1px solid ${SYNTH.glassBorder}`,
+          }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: SYNTH.inkOnBrandMuted }}
+          >
+            synth
+          </span>
+          <span
+            className="text-[13px] leading-[1.5]"
+            style={{ color: SYNTH.inkOnBrand }}
+          >
+            Before I build, a few quick questions:
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 pl-2">
+        {remaining.map((q) => (
+          <motion.button
+            key={q}
+            type="button"
+            whileTap={{ scale: 0.99 }}
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            onClick={() => onAnswer(q, q)}
+            className="flex items-center gap-2 rounded-2xl px-3 py-2 text-left"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: `1px solid ${SYNTH.glassBorder}`,
+            }}
+          >
+            <Sparkles size={12} strokeWidth={2.4} color={SYNTH.accentEmerald} />
+            <span
+              className="text-[12px] font-semibold"
+              style={{ color: SYNTH.inkOnBrand }}
+            >
+              {q}
+            </span>
+          </motion.button>
+        ))}
+      </div>
+
+      {state.answered.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5 pl-2">
+          {state.answered.map((qa) => (
+            <span
+              key={qa.q}
+              className="rounded-full px-2.5 py-1 text-[10px] font-semibold"
+              style={{
+                background: 'rgba(16,185,129,0.14)',
+                color: SYNTH.accentEmerald,
+                border: `1px solid ${SYNTH.accentEmerald}55`,
+              }}
+            >
+              {qa.a}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2 pt-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={onLooksGood}
+          className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em]"
+          style={{
+            background: SYNTH.accentEmerald,
+            color: SYNTH.inkOnBrand,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          Looks good →
+        </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={onSkip}
+          className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em]"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: `1px solid ${SYNTH.glassBorder}`,
+            color: SYNTH.inkOnBrand,
+            fontFamily: SYNTH.font,
+          }}
+        >
+          Skip questions
+        </motion.button>
+      </div>
     </motion.div>
   )
 }

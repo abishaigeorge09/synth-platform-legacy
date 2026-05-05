@@ -1852,9 +1852,11 @@ export function MyLineupsPage() {
         {/* Coach-published lineups from store, newest first */}
         {storeCards.map((pl) => {
           const isOpen = expanded === pl.id
-          const starSeat = pl.boats
-            .flatMap((b) => b.seats.filter((s) => s.athleteId === STAR_MILLER_ID).map((s) => ({ ...s, boatName: b.name })))
-            [0]
+          const starSeat = pl.boats.flatMap((b) =>
+            b.seats
+              .filter((s) => s.athleteId === STAR_MILLER_ID)
+              .map((s) => ({ ...s, boatName: b.name })),
+          )[0]
           const seatSummary = starSeat
             ? `Seat ${starSeat.seatNumber} · ${starSeat.side} · ${starSeat.boatName}`
             : 'Seat assigned'

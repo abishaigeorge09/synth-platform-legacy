@@ -14,6 +14,8 @@ export function useMediaQuery(query: string) {
     if (typeof window === 'undefined') return
     const mql = window.matchMedia(query)
     const onChange = () => setMatches(mql.matches)
+    // Reseed in case the query changed between render and effect commit.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMatches(mql.matches)
     mql.addEventListener('change', onChange)
     return () => mql.removeEventListener('change', onChange)

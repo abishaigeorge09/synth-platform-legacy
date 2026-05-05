@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
+// Primitive module: exports both components and shared constants/helpers.
+// Splitting them across files would scatter cohesive UI logic; trade-off
+// is full HMR reload on edits to this file.
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { SYNTH } from '../lib/theme'

@@ -349,7 +349,26 @@ For every sprint, the work isn't complete until:
 |---|---|---|
 | Sprint 1 | ✅ Complete | Three-tab homepage + Build workspace shell shipped |
 | Sprint 2 | ✅ Complete | JSON spec schema + 5 examples shipped (commit 2f8fd24). zod v3.25.76. |
-| Sprint 3 | 🔜 Next | ToolRenderer + binding resolver + primitive registry |
+| Sprint 3 | ✅ Complete | ToolRenderer + binding resolver + primitive registry |
+| Sprint 4 | ✅ Complete | Mock generator wired into ToolsBuildPage |
+| Sprint 5 | ✅ Complete | Three animation moments + error/empty/install states |
+| Sprint 5.5–5.9 | ✅ Complete | Multi-page tools, lineup picker, animated boat race, multi-turn seeded chat, pinned chat input, decline UI, connector banners |
+| Sprint 6 | ✅ Complete | Supabase schema + 30 production tables applied via MCP |
+| Sprint 7 | ✅ Complete | RLS policies + role enum (head_coach / assistant_coach / athlete) |
+| Sprint 8 | ✅ Complete | tool_requests / tool_versions / tool_runs + tool-generate Edge Function scaffold |
+| Sprint 9.1 | ✅ Complete | Anthropic Opus 4.7 powered tool-generate engine + capability manifest |
+| Sprint 9.2 | ✅ Complete | Frontend wired to live Edge Function + decline UI + connector banners |
+| Sprint 10 | ✅ Complete | Publish flow + team catalog hydration |
+| Sprint 11 | ⏸ Deferred | TanStack Query migration deferred to post-MVP — pure plumbing, no demo-visible value |
+| Sprint 12 | ⏸ Deferred | Concept2 OAuth deferred — resolver falls back to Pacific seed data when no connector wired, bot warns the coach in chat |
+| Sprint 13 | ✅ Complete | PostHog telemetry harness (5 events) + Sentry stub + CSP narrowing. Rate limiting deferred (per-instance memory ineffective; trust Anthropic's per-key limits for MVP) |
+
+### Architectural shifts during execution
+
+- **v0 Platform API dropped** in favor of Anthropic Claude Opus 4.7 with tool use. One model, one key, lower coordination. Original master plan named v0 for spec generation; we proved Claude with `tool_choice: any` and three function-tools (`emit_spec` / `request_clarification` / `decline_request`) handles JSON specs cleanly without a separate code-generation engine.
+- **Capability manifest** (`src/lib/tools/capabilities.ts`) is the single source of truth for what the renderer expresses today (14 elements / 7 sources / 6 input kinds / 3 scopes / 6 categories). The Anthropic system prompt embeds this manifest plus 8 explicit "we're an MVP, can't do that" cases (computer vision, video form analysis, real-time GPS streaming, voice/audio, ML predictions, native camera, biomechanics sensors, free-form chatbots) — each with a concrete alternative the bot offers instead. `capabilities.test.ts` locks the manifest in step with the schema.
+- **Connector awareness**: tool-generate pre-flights `connector_accounts` for the team. Specs that bind to unconnected sources still emit; the bot mentions the missing connector in its chat reply, and the preview pane renders an amber banner ("Concept2 not connected — showing demo data. Connect in Sources for live numbers."). The resolver falls back to `MOCK_SNAPSHOTS` (Pacific Women's seed data) so the preview still looks alive.
+- **Sprint 11 + 12 deferral**: the resolver's existing fallback path means demo + production both render real-looking data without live OAuth. Real Concept2 / Strava / WHOOP connectors come post-MVP when a real coach asks. TanStack Query migration is pure plumbing with no demo-visible value.
 
 When I say "**Generate Sprint N prompt**", you will:
 

@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
   Mic,
-  AudioLines,
   X,
   Camera,
   Image as ImageIcon,
@@ -763,6 +762,11 @@ type ComposerProps = {
   onSubmit: () => void
   onStop: () => void
   onAttach: () => void
+  /** Opens the AuroraVoiceOverlay (synth whisper). The composer's idle
+   *  button — shown when there is no text — fires this and acts as a
+   *  functional mic. When the user starts typing, the same slot
+   *  swaps to the send (up-arrow) button. */
+  onOpenVoice?: () => void
   attachment?: ChatAttachment | null
   onClearAttachment?: () => void
   isStreaming: boolean
@@ -775,6 +779,7 @@ export function AIComposer({
   onSubmit,
   onStop,
   onAttach,
+  onOpenVoice,
   attachment,
   onClearAttachment,
   isStreaming,
@@ -861,11 +866,13 @@ export function AIComposer({
           <Plus size={18} strokeWidth={2.2} />
         </button>
         <span className="flex-1" />
-        {/* Phase 3 — the previous decorative mic button used to live
-            here. It did nothing (no onClick). Voice now opens through
-            AddToChatSheet's Voice tile, which routes through the
-            existing AuroraVoiceOverlay (synth whisper). One entry
-            point keeps the composer simple. */}
+        {/* Composer trailing button. Three states, swapped through
+            AnimatePresence so the user sees the role flip cleanly:
+              - streaming  -> stop (square)
+              - has text   -> send (up arrow on emerald)
+              - idle       -> mic (opens synth whisper)
+            The mic only renders functional when onOpenVoice is wired;
+            without the prop it falls back to a silent dark glyph. */}
         <AnimatePresence mode="wait" initial={false}>
           {isStreaming ? (
             <motion.button
@@ -902,15 +909,18 @@ export function AIComposer({
             <motion.button
               key="voice"
               type="button"
+              onClick={onOpenVoice}
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.85 }}
               transition={{ duration: 0.12 }}
-              aria-label="Voice mode"
-              className="flex h-9 w-9 items-center justify-center rounded-full"
+              whileTap={{ scale: 0.94 }}
+              aria-label="Voice transcribe"
+              disabled={!onOpenVoice}
+              className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-60"
               style={{ background: SYNTH.ink, color: SYNTH.inkOnBrand }}
             >
-              <AudioLines size={16} strokeWidth={2.2} />
+              <Mic size={16} strokeWidth={2.2} />
             </motion.button>
           )}
         </AnimatePresence>

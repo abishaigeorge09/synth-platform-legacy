@@ -429,6 +429,7 @@ export function AIPage() {
             onSubmit={() => send()}
             onStop={stopStreaming}
             onAttach={() => setAddOpen(true)}
+            onOpenVoice={() => setVoiceOpen(true)}
             attachment={attachment}
             onClearAttachment={() => setAttachment(null)}
             isStreaming={isStreaming}

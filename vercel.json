@@ -2,6 +2,20 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "synth-platform-alt.vercel.app" }],
+      "destination": "https://synthsports.co/$1",
+      "permanent": false
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "synthplatform.vercel.app" }],
+      "destination": "https://synthsports.co/$1",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/demos/(.*)", "destination": "/demos/$1" },
     { "source": "/(.*)", "destination": "/index.html" }

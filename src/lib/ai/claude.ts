@@ -28,20 +28,27 @@ export const ANTHROPIC_MODELS = {
 // Per-tier preference order. directClient tries them in order, falls
 // back to the next-higher tier when the whole tier is rejected by
 // the user's API key. Opus tier is the final stop.
+//
+// Trimmed to ONLY the model IDs that are in claude-chat's
+// ALLOWED_MODELS (supabase/functions/claude-chat/index.ts). Earlier
+// chains included a dozen legacy and current IDs to maximise the
+// chance of landing on something Anthropic accepted, but every one
+// not on the edge function's allowlist returned a 400 and forced the
+// next iteration. On a slow network those 400 round-trips stacked into
+// 2-5 seconds of false starts before the actual success call, which is
+// what made AG's prod synth-AI feel "sometimes works, sometimes
+// doesn't" — local always works because the Vite proxy bypasses the
+// edge function entirely.
+//
+// Keep this list IN LOCK-STEP with claude-chat/index.ts ALLOWED_MODELS.
+// Adding a model here without adding it there is silent waste.
 export const MODEL_TIER_CHAINS = {
   haiku: [
     'claude-haiku-4-5-20251001',
-    'claude-haiku-4-5',
-    'claude-3-5-haiku-20241022',
-    'claude-3-haiku-20240307',
   ],
   sonnet: [
-    'claude-sonnet-4-5',
     'claude-sonnet-4-6',
     'claude-sonnet-4-20250514',
-    'claude-3-7-sonnet-20250219',
-    'claude-3-5-sonnet-20241022',
-    'claude-3-5-sonnet-latest',
   ],
   opus: [
     'claude-opus-4-7',

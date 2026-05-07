@@ -7,18 +7,27 @@
     <meta name="theme-color" content="#065F46" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="synth. — every data signal, one platform. A unified data surface for coaches and athletes." />
 
-    <!-- Open Graph (social sharing) -->
+    <!-- Open Graph link preview. og:image is a 1200x630 card with
+         the synth icon centered + small on a cobalt canvas, so
+         iMessage / Slack / Twitter / Facebook render a calm preview
+         instead of the full-bleed solid emerald the PWA icon used to
+         produce. Width + height meta let renderers reserve layout
+         without re-fetching the file. -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="synth. — Every data signal. One platform." />
     <meta property="og:description" content="A unified data surface for coaches and athletes. Connect every tool your program uses, synthesize the data, and see one clear picture." />
-    <meta property="og:image" content="/logos/icon-512.png" />
+    <meta property="og:image" content="/logos/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="synth." />
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary" />
+    <!-- Twitter Card. summary_large_image picks up the new landscape
+         OG card. iMessage / Slack ignore this hint and use the og:*
+         tags above regardless. -->
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="synth. — Every data signal. One platform." />
     <meta name="twitter:description" content="A unified data surface for coaches and athletes. Connect every tool your program uses, synthesize the data, and see one clear picture." />
-    <meta name="twitter:image" content="/logos/icon-512.png" />
+    <meta name="twitter:image" content="/logos/og-card.png" />
 
     <!-- Favicons (web) -->
     <link rel="icon" type="image/svg+xml" href="/logos/synth-icon-green.svg" />

@@ -20,7 +20,9 @@ import {
   useAthleteProfileLineups,
   useAthleteWellness,
   useAthleteCoachNotes,
+  useIngestedEventsForAthlete,
 } from '../../../shared/data/queries'
+import type { IngestionEvent } from '../../../shared/data/types'
 import { SynthAiIllustration } from '../../../shared/illustrations/sidebarIllustrations'
 import { SkeletonLine, SkeletonBlock, SkeletonStatTile, SkeletonChart } from '../../../shared/components/Skeleton'
 import { QueryError } from '../../../shared/components/QueryError'
@@ -123,6 +125,7 @@ export function AthleteProfilePage() {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
           >
+            <IngestedEventsPanel athleteId={athlete.id} />
             <AthleteOverview athleteId={athlete.id} />
           </motion.div>
         )}
@@ -214,6 +217,85 @@ export function AthleteProfilePage() {
 }
 
 // Men-only report UI removed — parity requires identical athlete profiles for both squads.
+
+function IngestedEventsPanel({ athleteId }: { athleteId: string }) {
+  const { data: events, isLoading } = useIngestedEventsForAthlete(athleteId)
+  if (isLoading || events.length === 0) return null
+  // Cap visible rows at 8; everything else lives in the synth. AI chat
+  // context once Phase 5 lands.
+  const visible = events.slice(0, 8)
+  return (
+    <div className="px-5 sm:px-10 pt-4">
+      <div className="mx-auto max-w-[1320px]">
+        <section
+          className="rounded-xl border p-4"
+          style={{
+            borderColor: THEME.border,
+            background: 'var(--bg-primary)',
+          }}
+        >
+          <div className="flex items-baseline justify-between">
+            <div
+              className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+              style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
+            >
+              Ingested data · {events.length}
+            </div>
+            <div
+              className="text-[11px]"
+              style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+            >
+              from your uploads
+            </div>
+          </div>
+          <div className="mt-3 grid gap-1.5">
+            {visible.map((evt) => (
+              <IngestedEventRow key={evt.id} evt={evt} />
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function IngestedEventRow({ evt }: { evt: IngestionEvent }) {
+  const valueLabel =
+    evt.value !== undefined && evt.value !== null
+      ? `${evt.value}${evt.unit ? ` ${evt.unit}` : ''}`
+      : evt.valueText ?? '—'
+  return (
+    <div
+      className="flex items-center justify-between rounded-md border px-3 py-2 text-[12px]"
+      style={{ borderColor: THEME.border, background: THEME.light }}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+          style={{
+            background: `${THEME.primary}18`,
+            color: THEME.primary,
+            fontFamily: THEME.fontMono,
+          }}
+        >
+          {evt.category}
+        </span>
+        <span
+          className="text-[11px]"
+          style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+        >
+          {evt.occurredAt.slice(0, 10)}
+        </span>
+        <span style={{ color: THEME.textPrimary }}>{evt.metric}</span>
+      </div>
+      <span
+        style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
+      >
+        {valueLabel}
+      </span>
+    </div>
+  )
+}
 
 function ergOrDefault(d?: string) {
   return d ?? '—'

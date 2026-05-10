@@ -13,10 +13,12 @@ import {
   useScanLogs,
   useScanLogsForSource,
   useLatestScanForSource,
+  useSourceUploads,
 } from '../../../shared/data/queries'
 import { useUiStore } from '../../../shared/store/useUiStore'
 import { SkeletonCard, SkeletonLine } from '../../../shared/components/Skeleton'
 import { QueryError } from '../../../shared/components/QueryError'
+import type { SourceUpload } from '../../../shared/data/types'
 
 export function SourcesPage() {
   const [params] = useSearchParams()
@@ -151,6 +153,8 @@ export function SourcesPage() {
         ))}
       </motion.div>
 
+      <RecentUploadsSection />
+
       <div className="mt-8 grid gap-4 px-5 sm:px-10 xl:grid-cols-[320px_1fr]">
         <section
           className="rounded-2xl border p-4"
@@ -201,6 +205,92 @@ export function SourcesPage() {
         open={detailSourceId !== null}
         onClose={() => setDetailSourceId(null)}
       />
+    </div>
+  )
+}
+
+function RecentUploadsSection() {
+  const { data: uploads, isLoading } = useSourceUploads(15)
+  if (isLoading || uploads.length === 0) return null
+  return (
+    <section className="mt-8 px-5 sm:px-10">
+      <div
+        className="mb-3 text-[9px] font-semibold uppercase tracking-[0.2em]"
+        style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+      >
+        Recent uploads · {uploads.length}
+      </div>
+      <div className="grid gap-2">
+        {uploads.map((u) => (
+          <UploadRow key={u.id} upload={u} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function UploadRow({ upload }: { upload: SourceUpload }) {
+  const statusColor =
+    upload.status === 'confirmed'
+      ? THEME.primary
+      : upload.status === 'failed'
+      ? THEME.red
+      : upload.status === 'preview'
+      ? THEME.amber
+      : THEME.textMuted
+  return (
+    <div
+      className="flex items-center justify-between rounded-lg border px-4 py-3"
+      style={{
+        background: 'var(--bg-primary)',
+        borderColor: THEME.border,
+        borderLeft: `3px solid ${statusColor}`,
+      }}
+    >
+      <div className="min-w-0">
+        <div
+          className="text-[9px] font-semibold uppercase tracking-[0.18em]"
+          style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
+        >
+          {upload.kind} · {new Date(upload.createdAt).toLocaleString()}
+        </div>
+        <div
+          className="mt-0.5 truncate text-[14px] font-semibold"
+          style={{ color: THEME.textPrimary }}
+        >
+          {upload.filename}
+        </div>
+        {upload.parseError && (
+          <div
+            className="mt-1 text-[11px]"
+            style={{ fontFamily: THEME.fontMono, color: THEME.red }}
+          >
+            {upload.parseError}
+          </div>
+        )}
+      </div>
+      <div className="ml-4 flex items-center gap-3">
+        <div
+          className="text-right text-[11px]"
+          style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
+        >
+          {upload.eventsConfirmed > 0
+            ? `${upload.eventsConfirmed} confirmed`
+            : upload.eventsExtracted > 0
+            ? `${upload.eventsExtracted} pending`
+            : '—'}
+        </div>
+        <span
+          className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
+          style={{
+            background: `${statusColor}22`,
+            color: statusColor,
+            fontFamily: THEME.fontMono,
+          }}
+        >
+          {upload.status}
+        </span>
+      </div>
     </div>
   )
 }

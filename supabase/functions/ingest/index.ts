@@ -551,9 +551,9 @@ async function handleParse(
   if (!ALLOWED_KINDS.has(kind)) {
     return jsonError(400, `kind must be one of: ${[...ALLOWED_KINDS].join(", ")}`)
   }
-  if (team_id && !UUID_REGEX.test(team_id)) {
-    return jsonError(400, "team_id must be a UUID if provided")
-  }
+  // team_id is text now (slice 1) so any non-empty string is acceptable.
+  // We previously enforced UUID-only; that broke uploads from the seed
+  // /coach surface where useTeamStore returns 'team-cal-womens-rowing'.
 
   // Path safety: enforce that the storage path lives under {userId}/.
   // The Storage RLS policy enforces this too, but a server-side check
@@ -607,8 +607,13 @@ async function handleParse(
     return jsonError(422, `Failed to parse ${kind}: ${msg}`)
   }
 
-  // Extract events via Claude.
-  const roster = await loadRoster(supabase, uploadRow.team_id)
+  // Extract events via Claude. loadRoster expects a UUID team_id since
+  // public.athletes.team_id is uuid-typed; if the caller passed a seed
+  // string ('team-cal-womens-rowing'), skip roster lookup so the coach
+  // tags manually from the dropdown.
+  const roster = team_id && UUID_REGEX.test(team_id)
+    ? await loadRoster(supabase, team_id)
+    : []
   const extraction = await extractEvents(apiKey, parsed, roster)
   if (extraction.kind === "error") {
     await supabase

@@ -19,6 +19,8 @@ function CoachProfileInner({ close }: { close: () => void }) {
   const navigate = useNavigate()
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const user = useAuthStore((s) => s.user)
+  const mode = useAuthStore((s) => s.mode)
+  const isAnonymous = useAuthStore((s) => s.isAnonymous)
   const signOut = useAuthStore((s) => s.signOut)
   const team = useTeamStore((s) => s.activeTeam)
 
@@ -46,11 +48,18 @@ function CoachProfileInner({ close }: { close: () => void }) {
     }
   }, [])
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     close()
-    signOut()
+    await signOut()
     navigate('/')
   }
+
+  const sessionLabel =
+    mode === 'supabase' && user
+      ? `Signed in · ${user.email}`
+      : isAnonymous
+      ? 'Demo session · anonymous'
+      : 'Demo session · seed data'
 
   const initials = user?.name
     ? user.name
@@ -161,20 +170,38 @@ function CoachProfileInner({ close }: { close: () => void }) {
             className="text-[10px]"
             style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
           >
-            Demo session · no remote auth
+            {sessionLabel}
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--bg-surface)]"
-            style={{
-              borderColor: THEME.border,
-              color: THEME.red,
-              fontFamily: THEME.fontMono,
-            }}
-          >
-            Sign out
-          </button>
+          {mode === 'supabase' && !user && !isAnonymous ? (
+            <button
+              type="button"
+              onClick={() => {
+                close()
+                navigate('/login')
+              }}
+              className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--bg-surface)]"
+              style={{
+                borderColor: THEME.primary,
+                color: THEME.primary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              Sign in
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--bg-surface)]"
+              style={{
+                borderColor: THEME.border,
+                color: THEME.red,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              Sign out
+            </button>
+          )}
         </footer>
       </motion.div>
     </motion.div>

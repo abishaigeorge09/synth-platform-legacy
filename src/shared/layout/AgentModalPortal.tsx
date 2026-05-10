@@ -5,12 +5,23 @@ import { useUiStore } from '../store/useUiStore'
 import { THEME } from '../../lib/theme'
 import { useSources, useScanLogs, useAiImportJobs } from '../data/queries'
 import { connectConnector } from '../data/connectors/connectorService'
-import type { ConnectorProvider, Source, SourceType } from '../data/types'
+import type {
+  ConnectorProvider,
+  IngestionPreview,
+  Source,
+  SourceType,
+} from '../data/types'
 import { toast } from '../store/useToastStore'
 import { useTeamStore } from '../store/useTeamStore'
 import { useConnectorConnectionsStore } from '../store/useConnectorConnectionsStore'
 import { useCoachOnboardingStore } from '../store/useCoachOnboardingStore'
 import { useAthleteOnboardingStore } from '../store/useAthleteOnboardingStore'
+import { isSupabaseConfigured } from '../../lib/supabaseClient'
+import {
+  classifyFile,
+  uploadAndParse,
+} from '../../lib/ingest/uploadClient'
+import { IngestionPreviewPanel } from '../../features/coach/agent/IngestionPreviewPanel'
 
 type Tab = 'sources' | 'scans' | 'add'
 
@@ -82,6 +93,12 @@ function AgentModalInner({ close }: { close: () => void }) {
 
   const tabs = useMemo(() => (hideHistory ? (['add'] as Tab[]) : (Object.keys(TAB_LABELS) as Tab[])), [hideHistory])
   const effectiveTab: Tab = hideHistory ? 'add' : tab
+
+  // Lifted ingestion preview state. When non-null, the modal body
+  // swaps the tab grid for the preview-and-confirm UI. Owned here
+  // (rather than inside AddSourceTab) so the user can close the modal
+  // mid-review and the preview disappears cleanly.
+  const [ingestionPreview, setIngestionPreview] = useState<IngestionPreview | null>(null)
 
   // Phase 19 — focus trap + focus restore. Captures the previously-focused
   // element on mount, auto-focuses the close button, and restores focus on
@@ -226,9 +243,21 @@ function AgentModalInner({ close }: { close: () => void }) {
             </nav>
 
             <div className="synth-scroll flex-1 overflow-y-auto px-6 py-5">
-              {effectiveTab === 'add' && <AddSourceTab />}
-              {!hideHistory && effectiveTab === 'sources' && <SourcesTab />}
-              {!hideHistory && effectiveTab === 'scans' && <ScansTab />}
+              {ingestionPreview ? (
+                <IngestionPreviewPanel
+                  preview={ingestionPreview}
+                  onDone={() => setIngestionPreview(null)}
+                  onCancel={() => setIngestionPreview(null)}
+                />
+              ) : (
+                <>
+                  {effectiveTab === 'add' && (
+                    <AddSourceTab onUploaded={setIngestionPreview} />
+                  )}
+                  {!hideHistory && effectiveTab === 'sources' && <SourcesTab />}
+                  {!hideHistory && effectiveTab === 'scans' && <ScansTab />}
+                </>
+              )}
             </div>
           </motion.div>
         </motion.div>
@@ -412,7 +441,11 @@ function ScansTab() {
   )
 }
 
-function AddSourceTab() {
+function AddSourceTab({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const [sub, setSub] = useState<'official' | 'aiImport' | 'manual'>('official')
 
   return (
@@ -437,8 +470,8 @@ function AddSourceTab() {
       </div>
 
       {sub === 'official' && <OfficialConnectorsFlow />}
-      {sub === 'aiImport' && <AiImportFlow />}
-      {sub === 'manual' && <ManualFlow />}
+      {sub === 'aiImport' && <AiImportFlow onUploaded={onUploaded} />}
+      {sub === 'manual' && <ManualFlow onUploaded={onUploaded} />}
 
       <ExtensionWaitlistBanner />
     </div>
@@ -510,13 +543,19 @@ function OfficialConnectorsFlow() {
   )
 }
 
-function AiImportFlow() {
+function AiImportFlow({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const { data: jobs } = useAiImportJobs()
+  const teamId = useTeamStore((s) => s.activeTeam.id)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [photoName, setPhotoName] = useState<string | null>(null)
   const [pasteText, setPasteText] = useState('')
   const [recording, setRecording] = useState(false)
   const [voiceInfo, setVoiceInfo] = useState<string | null>(null)
+  const [parsing, setParsing] = useState(false)
   const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
@@ -566,21 +605,39 @@ function AiImportFlow() {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0]
               if (!file) return
               setPhotoName(file.name)
-              markCoachSourcesConnected(true)
-              toast(`Screenshot selected: ${file.name}`, 'success')
+              if (!isSupabaseConfigured()) {
+                toast(
+                  'Sign in to ingest — connect a Supabase project to enable real uploads.',
+                  'info',
+                )
+                return
+              }
+              setParsing(true)
+              try {
+                toast(`Parsing ${file.name}…`, 'info')
+                const preview = await uploadAndParse(file, teamId)
+                markCoachSourcesConnected(true)
+                onUploaded(preview)
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err)
+                toast(`Upload failed: ${msg}`, 'error')
+              } finally {
+                setParsing(false)
+              }
             }}
           />
           <button
             type="button"
+            disabled={parsing}
             onClick={() => fileRef.current?.click()}
-            className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
+            className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50 disabled:opacity-60"
             style={{ background: 'var(--bg-primary)', color: THEME.primary, border: `1px solid ${THEME.primary}`, fontFamily: THEME.fontMono }}
           >
-            Choose file
+            {parsing ? 'Parsing…' : 'Choose file'}
           </button>
           {photoName && (
             <div className="mt-2 text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
@@ -704,20 +761,45 @@ function ExtensionWaitlistBanner() {
   )
 }
 
-function ManualFlow() {
+function ManualFlow({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const [dragOver, setDragOver] = useState(false)
-  const [uploaded, setUploaded] = useState<string | null>(null)
+  const [parsingName, setParsingName] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
+  const teamId = useTeamStore((s) => s.activeTeam.id)
   const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
 
-  function simulateUpload(name: string) {
-    setUploaded(null)
-    toast(`Parsing ${name}…`, 'info')
-    window.setTimeout(() => {
-      setUploaded(name)
+  async function handleFile(file: File) {
+    if (!isSupabaseConfigured()) {
+      toast(
+        'Sign in to ingest — connect a Supabase project to enable real uploads.',
+        'info',
+      )
+      return
+    }
+    const kind = classifyFile(file)
+    if (!kind) {
+      toast(
+        `Unsupported file type: ${file.type || 'unknown'}. Try CSV, XLSX, PDF, or image.`,
+        'error',
+      )
+      return
+    }
+    setParsingName(file.name)
+    toast(`Parsing ${file.name}…`, 'info')
+    try {
+      const preview = await uploadAndParse(file, teamId)
       markCoachSourcesConnected(true)
-      toast(`${name} — preview ready`, 'success')
-    }, 1500)
+      onUploaded(preview)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      toast(`Upload failed: ${msg}`, 'error')
+    } finally {
+      setParsingName(null)
+    }
   }
 
   return (
@@ -734,22 +816,28 @@ function ManualFlow() {
           e.preventDefault()
           setDragOver(false)
           const file = e.dataTransfer.files[0]
-          if (file) simulateUpload(file.name)
+          if (file) void handleFile(file)
         }}
       >
         <div
           className="text-[11px] font-semibold uppercase tracking-[0.18em]"
           style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
         >
-          {dragOver ? 'Drop to upload' : 'Drag & drop'}
+          {parsingName
+            ? `Parsing ${parsingName}…`
+            : dragOver
+            ? 'Drop to upload'
+            : 'Drag & drop'}
         </div>
         <div className="mt-2 max-w-[380px] text-[13px]" style={{ color: THEME.textSecondary }}>
-          Drop CSVs, Excel workbooks, or screenshots here. synth. parses and previews before committing anything to the
-          roster.
+          Drop a CSV, XLSX, PDF, or screenshot. Claude reads the file, extracts
+          structured events, and matches each to an athlete — you review before
+          anything lands.
         </div>
         <button
           type="button"
-          className="mt-4 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
+          disabled={!!parsingName}
+          className="mt-4 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50 disabled:opacity-60"
           style={{
             background: 'var(--bg-primary)',
             color: THEME.primary,
@@ -758,42 +846,19 @@ function ManualFlow() {
           }}
           onClick={() => fileRef.current?.click()}
         >
-          Browse files
+          {parsingName ? 'Parsing…' : 'Browse files'}
         </button>
         <input
           ref={fileRef}
           type="file"
+          accept=".csv,.xlsx,.xls,.pdf,image/*"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
-            if (file) simulateUpload(file.name)
+            if (file) void handleFile(file)
           }}
         />
       </div>
-      {uploaded && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-3 flex items-center gap-2 rounded-lg border px-4 py-3"
-          style={{ borderColor: THEME.primary, background: `${THEME.primary}08` }}
-        >
-          <span className="h-2 w-2 rounded-full" style={{ background: THEME.primary }} />
-          <span className="text-[12px] font-semibold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
-            {uploaded}
-          </span>
-          <span className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
-            — preview ready · 0 conflicts
-          </span>
-          <button
-            type="button"
-            className="ml-auto rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
-            style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
-            onClick={() => { toast('Import committed to roster', 'success'); setUploaded(null) }}
-          >
-            Commit
-          </button>
-        </motion.div>
-      )}
     </div>
   )
 }

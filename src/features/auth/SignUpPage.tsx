@@ -4,18 +4,21 @@ import { THEME } from '../../lib/theme'
 import { posthog } from '../../shared/analytics/posthog'
 import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient'
 
-// Real signup. When Supabase is configured:
-//   - "Continue with Google" hits the same OAuth flow as LoginPage
-//   - email + password runs supabase.auth.signUp
+// Real signup. Two steps so team_name + sport land in user_metadata
+// when supabase.auth.signUp fires — the public.handle_new_auth_user
+// trigger reads them and provisions the coach's team automatically.
 //
-// If the project has email confirmation enabled, signUp returns no
-// session — we show a "check your email" state. If confirmation is
-// disabled, signUp returns a session immediately and we drop the user
-// into the dashboard. Either way, the second-step "team setup" form
-// here is informational only — team_id scoping isn't enforced via RLS
-// in slice 1, so we don't block dashboard entry on team creation.
+//   Step 1 "account" → name + email + password, no network call.
+//                      "Continue" advances to step 2.
+//   Step 2 "team"    → team name + sport. Submission calls signUp
+//                      with everything in user_metadata.
+//   Step 3 "check_email" → only if email confirmation is on.
+//
+// "Continue with Google" is a single-step OAuth redirect; the trigger
+// still provisions a team for them using their Google display name as
+// "<Name>'s team" since user_metadata.team_name isn't set.
 
-type SignUpStep = 'account' | 'check_email' | 'team'
+type SignUpStep = 'account' | 'team' | 'check_email'
 
 export function SignUpPage() {
   const navigate = useNavigate()
@@ -24,6 +27,8 @@ export function SignUpPage() {
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [teamName, setTeamName] = useState('')
+  const [sport, setSport] = useState('rowing')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabaseReady = isSupabaseConfigured()
@@ -42,17 +47,18 @@ export function SignUpPage() {
     }
   }, [navigate])
 
-  async function handleEmailSignUp(e: React.FormEvent) {
+  // Step 1 → just validates the account form and advances. The actual
+  // supabase.auth.signUp call happens at step 2 (handleTeamSubmit) so
+  // team_name + sport make it into user_metadata.
+  function handleAccountSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-
-    if (!supabase) {
-      // Demo build (no env vars) — preserve the legacy "go to step 2" flow.
+    const trimmed = email.trim()
+    if (!supabaseReady) {
+      // Demo build — preserve the legacy flow (no Supabase call).
       setStep('team')
       return
     }
-
-    const trimmed = email.trim()
     if (!trimmed || !password) {
       setError('Email and password required.')
       return
@@ -61,6 +67,21 @@ export function SignUpPage() {
       setError('Password must be at least 8 characters.')
       return
     }
+    setStep('team')
+  }
+
+  async function handleTeamSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    if (!supabase) {
+      // Demo build — just go to dashboard, nothing to persist.
+      navigate('/coach/dashboard')
+      return
+    }
+
+    const trimmed = email.trim()
+    const fullName = [firstName, lastName].map((s) => s.trim()).filter(Boolean).join(' ')
 
     setSubmitting(true)
     try {
@@ -72,8 +93,11 @@ export function SignUpPage() {
           data: {
             first_name: firstName.trim() || null,
             last_name: lastName.trim() || null,
-            full_name: [firstName, lastName].map((s) => s.trim()).filter(Boolean).join(' '),
-            role: 'coach',
+            full_name: fullName || null,
+            name: fullName || trimmed.split('@')[0],
+            role: 'head_coach',
+            team_name: teamName.trim() || null,
+            sport,
           },
         },
       })
@@ -81,10 +105,8 @@ export function SignUpPage() {
         setError(signUpError.message)
         return
       }
-      posthog.identify(trimmed, { email: trimmed, role: 'coach' })
-      posthog.capture('signed_up', { email: trimmed, role: 'coach', mode: 'supabase' })
-      // If a session came back, email confirmation is off → straight in.
-      // Otherwise show the "check your email" interstitial.
+      posthog.identify(trimmed, { email: trimmed, role: 'head_coach' })
+      posthog.capture('signed_up', { email: trimmed, role: 'head_coach', mode: 'supabase' })
       if (data.session) {
         navigate('/coach/dashboard', { replace: true })
       } else {
@@ -105,6 +127,11 @@ export function SignUpPage() {
     }
     setSubmitting(true)
     try {
+      // Google OAuth can't inject user_metadata before the redirect, so
+      // Google signups land with role='athlete' (the trigger's default).
+      // A follow-up will surface a team-setup screen when the dashboard
+      // detects no team_id. For now Google signups end up team-less and
+      // need to be promoted manually (next slice).
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -184,7 +211,7 @@ export function SignUpPage() {
               </>
             )}
 
-            <form className="flex flex-col gap-4" onSubmit={handleEmailSignUp}>
+            <form className="flex flex-col gap-4" onSubmit={handleAccountSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
                   <span
@@ -277,7 +304,7 @@ export function SignUpPage() {
                 className="mt-2 rounded-full py-3 text-[13px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.01] disabled:opacity-60"
                 style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
               >
-                {submitting ? 'Creating account…' : supabaseReady ? 'Create account' : 'Continue'}
+                Continue
               </button>
             </form>
           </>
@@ -347,13 +374,7 @@ export function SignUpPage() {
             <p className="mb-6 text-[14px]" style={{ color: THEME.textSecondary }}>
               Tell us about your program so we can configure your dashboard.
             </p>
-            <form
-              className="flex flex-col gap-4"
-              onSubmit={(e) => {
-                e.preventDefault()
-                navigate('/coach/dashboard')
-              }}
-            >
+            <form className="flex flex-col gap-4" onSubmit={handleTeamSubmit}>
               <label className="flex flex-col gap-1">
                 <span
                   className="text-[10px] uppercase tracking-[0.18em]"
@@ -364,6 +385,8 @@ export function SignUpPage() {
                 <input
                   type="text"
                   placeholder="Pacific Women's Rowing"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
                   className="rounded-lg border px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-emerald-600"
                   style={{ borderColor: THEME.border, color: THEME.textPrimary }}
                   autoFocus
@@ -377,13 +400,14 @@ export function SignUpPage() {
                   Sport
                 </span>
                 <select
+                  value={sport}
+                  onChange={(e) => setSport(e.target.value)}
                   className="rounded-lg border px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-emerald-600"
                   style={{
                     borderColor: THEME.border,
                     color: THEME.textPrimary,
                     background: THEME.white,
                   }}
-                  defaultValue="rowing"
                 >
                   <option value="rowing">Rowing</option>
                   <option value="track">Track & Field</option>
@@ -395,11 +419,28 @@ export function SignUpPage() {
                   <option value="other">Other</option>
                 </select>
               </label>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-lg border px-3 py-2 text-[12px]"
+                  style={{
+                    borderColor: THEME.red,
+                    background: `${THEME.red}10`,
+                    color: THEME.red,
+                    fontFamily: THEME.fontMono,
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+
               <div className="mt-1 flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setStep('account')}
-                  className="rounded-full border px-5 py-3 text-[12px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.01]"
+                  disabled={submitting}
+                  className="rounded-full border px-5 py-3 text-[12px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.01] disabled:opacity-60"
                   style={{
                     borderColor: THEME.border,
                     color: THEME.textSecondary,
@@ -410,10 +451,11 @@ export function SignUpPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded-full py-3 text-[13px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.01]"
+                  disabled={submitting}
+                  className="flex-1 rounded-full py-3 text-[13px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.01] disabled:opacity-60"
                   style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
                 >
-                  Go to dashboard
+                  {submitting ? 'Creating account…' : supabaseReady ? 'Create account & team' : 'Go to dashboard'}
                 </button>
               </div>
             </form>

@@ -28,6 +28,13 @@ import {
   SHEETS_CONNECT_PARAM,
   SHEETS_CONNECT_VALUE,
 } from '../../lib/ingest/sheetsClient'
+import {
+  disableHealthWebhook,
+  enableHealthWebhook,
+  getHealthConnector,
+  SAMPLE_SHORTCUT_BODY,
+  type HealthConnectorSummary,
+} from '../../lib/ingest/healthWebhookClient'
 import { IngestionPreviewPanel } from '../../features/coach/agent/IngestionPreviewPanel'
 
 type Tab = 'sources' | 'scans' | 'add'
@@ -506,9 +513,8 @@ function OfficialConnectorsFlow({
 
   async function onConnect(provider: ConnectorProvider) {
     if (isConnected(teamId, provider)) return
-    if (provider === 'google_sheets') {
-      // Real OAuth flow. The Sheets row owns the connect/paste flow below;
-      // the demo state machine doesn't apply.
+    if (provider === 'google_sheets' || provider === 'apple_health') {
+      // Real backed-by-Supabase flows. Each row owns its own connect UI.
       return
     }
     const r = await connectConnector(provider)
@@ -529,6 +535,15 @@ function OfficialConnectorsFlow({
                 key={c.provider}
                 detail={c.detail}
                 onUploaded={onUploaded}
+                disabled={!isRealTeam}
+              />
+            )
+          }
+          if (c.provider === 'apple_health') {
+            return (
+              <AppleHealthConnectorRow
+                key={c.provider}
+                detail={c.detail}
                 disabled={!isRealTeam}
               />
             )
@@ -757,6 +772,271 @@ function SheetsConnectorRow({
       )}
     </div>
   )
+}
+
+/**
+ * Apple Health connector row. Generates a per-team webhook secret and
+ * shows the URL the coach should paste into an Apple Shortcut. The
+ * webhook itself runs without JWT (see supabase/functions/health-webhook)
+ * — the secret is what authenticates a POST and resolves it to a team.
+ */
+function AppleHealthConnectorRow({
+  detail,
+  disabled,
+}: {
+  detail: string
+  disabled: boolean
+}) {
+  const teamId = useTeamStore((s) => s.activeTeam.id)
+  const isRealTeam = useTeamStore((s) => s.isRealTeam)
+  const [summary, setSummary] = useState<HealthConnectorSummary | null>(null)
+  const [busy, setBusy] = useState<false | 'loading' | 'enabling' | 'disabling' | 'rotating'>(
+    'loading',
+  )
+  const [revealed, setRevealed] = useState(false)
+  const [showSample, setShowSample] = useState(false)
+  const [copied, setCopied] = useState<'url' | 'sample' | null>(null)
+
+  // Load existing connector state on mount (or when team changes).
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      if (!isRealTeam) {
+        if (!cancelled) {
+          setBusy(false)
+          setSummary({ status: 'absent', secret: null, webhookUrl: null, lastSyncAt: null })
+        }
+        return
+      }
+      setBusy('loading')
+      try {
+        const s = await getHealthConnector(teamId)
+        if (!cancelled) setSummary(s)
+      } catch (err) {
+        if (!cancelled) toast(err instanceof Error ? err.message : String(err), 'error')
+      } finally {
+        if (!cancelled) setBusy(false)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [teamId, isRealTeam])
+
+  async function onEnable(rotate: boolean) {
+    setBusy(rotate ? 'rotating' : 'enabling')
+    try {
+      const s = await enableHealthWebhook(teamId)
+      setSummary(s)
+      setRevealed(true)
+      toast(rotate ? 'Webhook secret rotated' : 'Apple Health webhook enabled', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDisable() {
+    setBusy('disabling')
+    try {
+      await disableHealthWebhook(teamId)
+      setSummary({ status: 'revoked', secret: null, webhookUrl: null, lastSyncAt: null })
+      setRevealed(false)
+      toast('Apple Health webhook disabled', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copy(text: string, which: 'url' | 'sample') {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(which)
+      window.setTimeout(() => setCopied((c) => (c === which ? null : c)), 1400)
+    } catch {
+      toast('Clipboard copy failed', 'error')
+    }
+  }
+
+  const isActive = summary?.status === 'connected' && summary.webhookUrl
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-lg border p-4 md:col-span-2"
+      style={{ background: THEME.light, borderColor: THEME.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
+            Apple Health
+          </div>
+          <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+            {isActive
+              ? 'Webhook live — point an Apple Shortcut at the URL below.'
+              : detail}
+          </div>
+        </div>
+        {!isActive && (
+          <button
+            type="button"
+            disabled={disabled || busy !== false}
+            onClick={() => onEnable(false)}
+            className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+            style={{
+              border: `1px solid ${THEME.primary}`,
+              background: THEME.primary,
+              color: THEME.white,
+              fontFamily: THEME.fontMono,
+            }}
+          >
+            {busy === 'loading' ? '…' : busy === 'enabling' ? 'Enabling…' : 'Enable webhook'}
+          </button>
+        )}
+      </div>
+
+      {isActive && summary?.webhookUrl && (
+        <div className="flex flex-col gap-2">
+          {/* URL row */}
+          <div className="flex items-stretch gap-2">
+            <code
+              className="flex-1 truncate rounded-md border px-3 py-2 text-[11px]"
+              style={{
+                borderColor: THEME.border,
+                background: 'var(--bg-primary)',
+                color: revealed ? THEME.textPrimary : THEME.textMuted,
+                fontFamily: THEME.fontMono,
+                letterSpacing: revealed ? 0 : '0.1em',
+              }}
+              title={revealed ? summary.webhookUrl : 'Hidden — click reveal'}
+            >
+              {revealed ? summary.webhookUrl : maskUrl(summary.webhookUrl)}
+            </code>
+            <button
+              type="button"
+              onClick={() => setRevealed((r) => !r)}
+              className="shrink-0 rounded-md border px-3 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                borderColor: THEME.border,
+                color: THEME.textPrimary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {revealed ? 'Hide' : 'Reveal'}
+            </button>
+            <button
+              type="button"
+              onClick={() => copy(summary.webhookUrl!, 'url')}
+              className="shrink-0 rounded-md border px-3 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                borderColor: THEME.primary,
+                color: THEME.primary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {copied === 'url' ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSample((s) => !s)}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                borderColor: THEME.border,
+                color: THEME.textPrimary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {showSample ? 'Hide example payload' : 'Show example payload'}
+            </button>
+            <button
+              type="button"
+              disabled={busy !== false}
+              onClick={() => onEnable(true)}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+              style={{
+                borderColor: THEME.amber,
+                color: THEME.amber,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {busy === 'rotating' ? 'Rotating…' : 'Rotate secret'}
+            </button>
+            <button
+              type="button"
+              disabled={busy !== false}
+              onClick={onDisable}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+              style={{
+                borderColor: THEME.red,
+                color: THEME.red,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {busy === 'disabling' ? 'Disabling…' : 'Disable'}
+            </button>
+            {summary.lastSyncAt && (
+              <span
+                className="text-[10px]"
+                style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}
+              >
+                Last delivery {new Date(summary.lastSyncAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {showSample && (
+            <div className="relative">
+              <pre
+                className="overflow-x-auto rounded-md border p-3 text-[10px] leading-relaxed"
+                style={{
+                  borderColor: THEME.border,
+                  background: 'var(--bg-primary)',
+                  color: THEME.textPrimary,
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                {SAMPLE_SHORTCUT_BODY}
+              </pre>
+              <button
+                type="button"
+                onClick={() => copy(SAMPLE_SHORTCUT_BODY, 'sample')}
+                className="absolute right-2 top-2 rounded-md border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider"
+                style={{
+                  borderColor: THEME.primary,
+                  color: THEME.primary,
+                  background: 'var(--bg-primary)',
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                {copied === 'sample' ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {disabled && (
+        <div
+          className="text-[10px] italic"
+          style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}
+        >
+          Sign in with a real account to enable the Apple Health webhook.
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Reveal helper — replaces the secret query value with bullets. */
+function maskUrl(url: string): string {
+  return url.replace(/secret=[^&]+/, 'secret=••••••••••••••••')
 }
 
 function AiImportFlow({

@@ -19,8 +19,15 @@ import { useAthleteOnboardingStore } from '../store/useAthleteOnboardingStore'
 import { isSupabaseConfigured } from '../../lib/supabaseClient'
 import {
   classifyFile,
+  requestParse,
   uploadAndParse,
 } from '../../lib/ingest/uploadClient'
+import {
+  fetchSheetAsUpload,
+  initiateSheetsConnect,
+  SHEETS_CONNECT_PARAM,
+  SHEETS_CONNECT_VALUE,
+} from '../../lib/ingest/sheetsClient'
 import { IngestionPreviewPanel } from '../../features/coach/agent/IngestionPreviewPanel'
 
 type Tab = 'sources' | 'scans' | 'add'
@@ -469,7 +476,7 @@ function AddSourceTab({
         ))}
       </div>
 
-      {sub === 'official' && <OfficialConnectorsFlow />}
+      {sub === 'official' && <OfficialConnectorsFlow onUploaded={onUploaded} />}
       {sub === 'aiImport' && <AiImportFlow onUploaded={onUploaded} />}
       {sub === 'manual' && <ManualFlow onUploaded={onUploaded} />}
 
@@ -478,8 +485,13 @@ function AddSourceTab({
   )
 }
 
-function OfficialConnectorsFlow() {
+function OfficialConnectorsFlow({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const teamId = useTeamStore((s) => s.activeTeam.id)
+  const isRealTeam = useTeamStore((s) => s.isRealTeam)
   const isConnected = useConnectorConnectionsStore((s) => s.isConnected)
   const connect = useConnectorConnectionsStore((s) => s.connect)
   const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
@@ -494,6 +506,11 @@ function OfficialConnectorsFlow() {
 
   async function onConnect(provider: ConnectorProvider) {
     if (isConnected(teamId, provider)) return
+    if (provider === 'google_sheets') {
+      // Real OAuth flow. The Sheets row owns the connect/paste flow below;
+      // the demo state machine doesn't apply.
+      return
+    }
     const r = await connectConnector(provider)
     if (r.ok) {
       connect(teamId, provider)
@@ -506,6 +523,16 @@ function OfficialConnectorsFlow() {
     <div>
       <div className="grid gap-2 md:grid-cols-2">
         {catalog.map((c) => {
+          if (c.provider === 'google_sheets') {
+            return (
+              <SheetsConnectorRow
+                key={c.provider}
+                detail={c.detail}
+                onUploaded={onUploaded}
+                disabled={!isRealTeam}
+              />
+            )
+          }
           const connected = isConnected(teamId, c.provider)
           return (
             <div
@@ -539,6 +566,195 @@ function OfficialConnectorsFlow() {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Real Google Sheets connector row. Three visible states:
+ *   - Disconnected: a single "Connect" button kicks off OAuth.
+ *   - Connected, no sheet picked yet: a URL input + "Sync sheet" button.
+ *   - Syncing: spinner.
+ * The URL is parsed server-side, so any standard sheets URL works.
+ *
+ * Connection state is detected by reading a query param the OAuth
+ * redirect-back left behind (?connect=google_sheets). On first render
+ * after a redirect we capture the provider tokens out of the session and
+ * post them to sheets-sync, then strip the param from the URL.
+ */
+function SheetsConnectorRow({
+  detail,
+  onUploaded,
+  disabled,
+}: {
+  detail: string
+  onUploaded: (preview: IngestionPreview) => void
+  disabled: boolean
+}) {
+  const teamId = useTeamStore((s) => s.activeTeam.id)
+  const isConnectedLocally = useConnectorConnectionsStore((s) => s.isConnected)
+  const connectLocally = useConnectorConnectionsStore((s) => s.connect)
+  const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
+  const [busy, setBusy] = useState<false | 'connecting' | 'completing' | 'syncing'>(false)
+  const [sheetUrl, setSheetUrl] = useState('')
+  const [connectedEmail, setConnectedEmail] = useState<string | null>(null)
+  // We treat the local in-memory connection store as a hint: it persists
+  // across modal opens but not across full reloads. The authoritative
+  // state lives in connector_accounts on the server; for slice 1 we
+  // optimistically trust the local flag once the OAuth round-trip succeeds.
+  const isConnected = connectedEmail !== null || isConnectedLocally(teamId, 'google_sheets')
+
+  // Detect post-OAuth landing.
+  useEffect(() => {
+    let cancelled = false
+    async function maybeComplete() {
+      if (typeof window === 'undefined') return
+      const url = new URL(window.location.href)
+      if (url.searchParams.get(SHEETS_CONNECT_PARAM) !== SHEETS_CONNECT_VALUE) return
+      // Strip the param so a refresh doesn't try to re-complete.
+      url.searchParams.delete(SHEETS_CONNECT_PARAM)
+      const cleanHref = url.pathname + (url.search ? `?${url.searchParams}` : '') + url.hash
+      window.history.replaceState({}, '', cleanHref)
+      setBusy('completing')
+      try {
+        const { completeSheetsConnect } = await import('../../lib/ingest/sheetsClient')
+        const result = await completeSheetsConnect()
+        if (cancelled) return
+        if (result?.ok) {
+          connectLocally(teamId, 'google_sheets')
+          markCoachSourcesConnected(true)
+          setConnectedEmail(result.email)
+          toast(
+            result.email
+              ? `Google Sheets connected as ${result.email}`
+              : 'Google Sheets connected',
+            'success',
+          )
+        } else {
+          toast('OAuth round-trip incomplete — try Connect again', 'error')
+        }
+      } catch (err) {
+        toast(err instanceof Error ? err.message : String(err), 'error')
+      } finally {
+        if (!cancelled) setBusy(false)
+      }
+    }
+    void maybeComplete()
+    return () => {
+      cancelled = true
+    }
+  }, [teamId, connectLocally, markCoachSourcesConnected])
+
+  async function onClickConnect() {
+    setBusy('connecting')
+    try {
+      const back = window.location.origin + window.location.pathname +
+        `?${SHEETS_CONNECT_PARAM}=${SHEETS_CONNECT_VALUE}`
+      await initiateSheetsConnect({ redirectTo: back })
+      // Browser navigates away here.
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+      setBusy(false)
+    }
+  }
+
+  async function onSync() {
+    const url = sheetUrl.trim()
+    if (!url) {
+      toast('Paste a Google Sheets URL first', 'error')
+      return
+    }
+    setBusy('syncing')
+    try {
+      const fetched = await fetchSheetAsUpload(url)
+      const preview = await requestParse(fetched, teamId)
+      onUploaded(preview)
+      setSheetUrl('')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-lg border p-4 md:col-span-2"
+      style={{ background: THEME.light, borderColor: THEME.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
+            Google Sheets
+          </div>
+          <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+            {isConnected && connectedEmail
+              ? `Connected as ${connectedEmail}`
+              : detail}
+          </div>
+        </div>
+        {!isConnected && (
+          <button
+            type="button"
+            disabled={disabled || busy !== false}
+            onClick={onClickConnect}
+            className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+            style={{
+              border: `1px solid ${THEME.primary}`,
+              background: THEME.primary,
+              color: THEME.white,
+              fontFamily: THEME.fontMono,
+            }}
+          >
+            {busy === 'connecting' ? 'Opening…'
+              : busy === 'completing' ? 'Finishing…'
+              : 'Connect'}
+          </button>
+        )}
+      </div>
+
+      {isConnected && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="url"
+            placeholder="https://docs.google.com/spreadsheets/d/…"
+            value={sheetUrl}
+            onChange={(e) => setSheetUrl(e.target.value)}
+            disabled={busy !== false}
+            className="flex-1 rounded-lg border px-3 py-2 text-[12px]"
+            style={{
+              borderColor: THEME.border,
+              background: 'var(--bg-primary)',
+              color: THEME.textPrimary,
+              fontFamily: THEME.fontMono,
+            }}
+          />
+          <button
+            type="button"
+            disabled={busy !== false || sheetUrl.trim().length === 0}
+            onClick={onSync}
+            className="shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+            style={{
+              border: `1px solid ${THEME.primary}`,
+              background: THEME.primary,
+              color: THEME.white,
+              fontFamily: THEME.fontMono,
+            }}
+          >
+            {busy === 'syncing' ? 'Syncing…' : 'Sync sheet'}
+          </button>
+        </div>
+      )}
+
+      {disabled && (
+        <div
+          className="text-[10px] italic"
+          style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}
+        >
+          Sign in with a real account to connect Google Sheets. (Demo data
+          stays read-only.)
+        </div>
+      )}
     </div>
   )
 }

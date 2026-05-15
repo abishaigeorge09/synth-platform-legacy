@@ -151,7 +151,7 @@ export function DesktopAppIntercept({ onDismiss }: Props) {
             {index === 0 ? <WelcomeSlide onNext={() => goTo(1)} /> : null}
             {index === 1 ? <PhoneDemoSlide /> : null}
             {index === 2 ? <InstructionsSlide /> : null}
-            {index === 3 ? <WaitlistSlide onDismiss={onDismiss} /> : null}
+            {index === 3 ? <WaitlistSlide /> : null}
           </motion.div>
         </AnimatePresence>
       </div>

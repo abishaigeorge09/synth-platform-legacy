@@ -705,6 +705,16 @@ export function LandingPage() {
         >
           <a href="#how" className="hover:text-white transition-colors">How it works</a>
           <a href="#signup" className="hover:text-white transition-colors">Beta</a>
+          {/* Subtle entry into the gated /app surface. Clicking this
+              routes to /app, where the global AccessGate prompts for
+              the demo passcode and lets the visitor in on success. */}
+          <Link
+            to="/app"
+            className="hover:text-white transition-colors"
+            style={{ opacity: 0.7 }}
+          >
+            App access →
+          </Link>
           <Link to="/login" className="hover:text-white transition-colors">Sign in</Link>
           <Link
             to="/signup"
@@ -737,6 +747,13 @@ export function LandingPage() {
 
         {/* Mobile: sign-in + download */}
         <div className="flex sm:hidden items-center gap-3">
+          <Link
+            to="/app"
+            className="text-[11px] hover:text-white transition-colors"
+            style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.6)' }}
+          >
+            App →
+          </Link>
           <Link
             to="/login"
             className="text-[12px] hover:text-white transition-colors"

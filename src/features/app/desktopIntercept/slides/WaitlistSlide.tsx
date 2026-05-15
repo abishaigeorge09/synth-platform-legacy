@@ -6,11 +6,7 @@ import { posthog } from '../../../../shared/analytics/posthog'
 
 const STORAGE_KEY = 'synth-waitlist'
 
-type Props = {
-  onDismiss: () => void
-}
-
-export function WaitlistSlide({ onDismiss }: Props) {
+export function WaitlistSlide() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
@@ -36,15 +32,6 @@ export function WaitlistSlide({ onDismiss }: Props) {
 
     setSubmitted(true)
     setEmail('')
-  }
-
-  const onView = () => {
-    try {
-      posthog.capture('desktop_intercept_dismissed')
-    } catch {
-      // Ignore
-    }
-    onDismiss()
   }
 
   return (
@@ -156,29 +143,6 @@ export function WaitlistSlide({ onDismiss }: Props) {
           )}
         </motion.button>
       </motion.form>
-
-      <motion.button
-        type="button"
-        onClick={onView}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.55 }}
-        transition={{ duration: 0.4, delay: 0.6 }}
-        whileHover={{ opacity: 0.9 }}
-        style={{
-          marginTop: 64,
-          padding: '8px 14px',
-          background: 'transparent',
-          border: 'none',
-          color: SYNTH.inkOnBrandMuted,
-          fontFamily: SYNTH.font,
-          fontSize: 12,
-          cursor: 'pointer',
-          textDecoration: 'underline',
-          textUnderlineOffset: 4,
-        }}
-      >
-        View on this device anyway →
-      </motion.button>
     </div>
   )
 }

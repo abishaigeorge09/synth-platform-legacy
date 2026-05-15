@@ -340,9 +340,13 @@ async function getConnectedSources(
   supabase: any,
   team_id: string,
 ): Promise<string[]> {
+  // `connector_accounts.provider` is the canonical column. An older
+  // copy of this function queried `.source`, which doesn't exist — the
+  // call always errored and silently returned no connected sources, so
+  // every tool spec looked like its bindings were unmet.
   const { data, error } = await supabase
     .from("connector_accounts")
-    .select("source")
+    .select("provider")
     .eq("team_id", team_id)
     .eq("status", "connected")
   if (error) {
@@ -350,8 +354,8 @@ async function getConnectedSources(
     return []
   }
   const set = new Set<string>()
-  for (const row of (data ?? []) as Array<{ source?: string }>) {
-    if (row.source) set.add(row.source)
+  for (const row of (data ?? []) as Array<{ provider?: string }>) {
+    if (row.provider) set.add(row.provider)
   }
   return [...set]
 }

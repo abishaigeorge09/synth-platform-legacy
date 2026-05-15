@@ -229,156 +229,204 @@ function MockupWindow({ url, Mockup }: { url: string; Mockup: React.ComponentTyp
 
 /* ─── How it works section ────────────────────────────────────────────── */
 
+const STEP_DURATION_MS = 5500
+
 function HowItWorksSection() {
   const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
+  // If IntersectionObserver isn't available (very old browser / SSR), treat
+  // the section as always in-view so the loop still runs.
+  const [inView, setInView] = useState(
+    () => typeof IntersectionObserver === 'undefined',
+  )
+
+  /** Pause auto-advance when the section isn't in view — otherwise the
+   *  user scrolls back up to find it three steps further along. */
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.3 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  /** Loop: advance every STEP_DURATION_MS while in view + not paused.
+   *  `active` in the deps so a manual click resets the countdown — feels
+   *  more responsive than the user clicking and then watching the bar
+   *  rush to the end of its previous interval. */
+  useEffect(() => {
+    if (paused || !inView) return
+    const id = window.setTimeout(() => {
+      setActive((a) => (a + 1) % STEPS.length)
+    }, STEP_DURATION_MS)
+    return () => window.clearTimeout(id)
+  }, [active, paused, inView])
 
   return (
     <section
+      ref={sectionRef}
       id="how"
       className="relative overflow-hidden px-5 sm:px-10 py-20 sm:py-28"
       style={{ background: BG }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
       <DotGrid uid="how" />
       <Orbs />
 
-      <div className="relative z-10 mx-auto w-full max-w-[1160px] grid gap-12 lg:grid-cols-12 lg:items-start">
-
-        {/* LEFT — steps */}
-        <div className="lg:col-span-5">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.45 }}
+      <div className="relative z-10 mx-auto w-full max-w-[1220px]">
+        {/* Header — centered above the split */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.45 }}
+          className="mx-auto max-w-[720px] text-center"
+        >
+          <div
+            className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em]"
+            style={{ border: `1px solid rgba(16,185,129,0.3)`, background: G_DIM, color: GREEN, fontFamily: FONT_MONO }}
           >
-            {/* Section chip */}
-            <div
-              className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em]"
-              style={{ border: `1px solid rgba(16,185,129,0.3)`, background: G_DIM, color: GREEN, fontFamily: FONT_MONO }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
-              How it works
-            </div>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
+            How it works
+          </div>
 
-            <h2
-              className="text-[clamp(28px,3.8vw,44px)] font-semibold leading-[1.05] text-white"
-              style={{ fontFamily: FONT_SERIF }}
-            >
-              Built to handle your entire program.
-            </h2>
-            <p className="mt-3 text-[14px] leading-relaxed max-w-[400px]" style={{ color: T2 }}>
-              Five steps, under five minutes. Click each step to preview it live.
-            </p>
-          </motion.div>
+          <h2
+            className="text-[clamp(30px,4.2vw,48px)] font-semibold leading-[1.05] text-white"
+            style={{ fontFamily: FONT_SERIF }}
+          >
+            Built to handle your entire program.
+          </h2>
+          <p className="mx-auto mt-3 max-w-[500px] text-[14px] leading-relaxed" style={{ color: T2 }}>
+            Five steps, under five minutes. The preview cycles automatically — hover to pause, click any step to jump.
+          </p>
+        </motion.div>
 
-          {/* Accordion steps */}
-          <div className="mt-10">
-            {STEPS.map((step, i) => {
-              const isActive = active === i
-              return (
-                <motion.div
-                  key={step.num}
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.35, delay: i * 0.06 }}
-                >
-                  {/* Top rule */}
-                  <div
-                    className="h-px w-full transition-colors duration-300"
-                    style={{ background: isActive ? GREEN : BORDER_HI }}
-                  />
+        <div className="mt-12 grid gap-10 lg:grid-cols-12 lg:items-start">
+          {/* LEFT — vertical step timeline */}
+          <div className="lg:col-span-5">
+            <div className="relative">
+              {/* Spine — runs the full height of the timeline behind the badges */}
+              <div
+                className="absolute left-[11px] top-1.5 bottom-1.5 w-px"
+                style={{ background: BORDER }}
+              />
 
-                  <button
-                    type="button"
-                    onClick={() => setActive(i)}
-                    className="w-full text-left"
-                  >
-                    <div className="flex items-start gap-4 py-4">
-                      {/* Number badge */}
-                      <div
-                        className="shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-bold transition-all duration-300"
+              <ul className="flex flex-col gap-1">
+                {STEPS.map((step, i) => {
+                  const isActive = active === i
+                  const isDone = i < active
+                  return (
+                    <li key={step.num}>
+                      <motion.button
+                        type="button"
+                        onClick={() => setActive(i)}
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.35, delay: i * 0.05 }}
+                        className="group relative flex w-full items-start gap-4 rounded-xl px-3 py-3 text-left transition-colors duration-200"
                         style={{
-                          fontFamily: FONT_MONO,
-                          background: isActive ? GREEN : 'transparent',
-                          color: isActive ? '#050505' : T3,
-                          border: `1px solid ${isActive ? GREEN : BORDER_HI}`,
+                          background: isActive ? 'rgba(16,185,129,0.05)' : 'transparent',
                         }}
                       >
-                        {i + 1}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className="text-[15px] font-semibold leading-snug transition-colors duration-200"
-                          style={{ color: isActive ? T1 : T2 }}
+                        {/* Number badge */}
+                        <span
+                          className="relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300"
+                          style={{
+                            fontFamily: FONT_MONO,
+                            background: isActive ? GREEN : isDone ? G_DIM : '#0a0a0a',
+                            color: isActive ? '#050505' : isDone ? GREEN : T3,
+                            border: `1px solid ${isActive ? GREEN : isDone ? 'rgba(16,185,129,0.4)' : BORDER_HI}`,
+                            boxShadow: isActive ? `0 0 0 4px rgba(16,185,129,0.12)` : 'none',
+                          }}
                         >
-                          {step.label}
-                        </div>
+                          {i + 1}
+                        </span>
 
-                        <AnimatePresence initial={false}>
-                          {isActive && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
-                              className="overflow-hidden"
-                            >
-                              <p className="mt-2 text-[13px] leading-relaxed" style={{ color: T2 }}>
-                                {step.desc}
-                              </p>
-                              <Link
-                                to={`/${step.url.replace('synthsports.com/', '')}`}
-                                className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider transition-opacity hover:opacity-80"
-                                style={{ fontFamily: FONT_MONO, color: GREEN }}
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className="block text-[15px] font-semibold leading-snug transition-colors duration-200"
+                            style={{ color: isActive ? T1 : T2 }}
+                          >
+                            {step.label}
+                          </span>
+
+                          <AnimatePresence initial={false}>
+                            {isActive && (
+                              <motion.span
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                                className="block overflow-hidden"
                               >
+                                <span className="mt-2 block text-[13px] leading-relaxed" style={{ color: T2 }}>
+                                  {step.desc}
+                                </span>
+
+                                {/* Auto-advance progress bar — keyed on active so it restarts each step */}
                                 <span
-                                  className="h-1 w-1 rounded-full"
-                                  style={{ background: GREEN }}
-                                />
-                                Open in demo →
-                              </Link>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  </button>
-                </motion.div>
-              )
-            })}
-            {/* Final rule */}
-            <div className="h-px w-full" style={{ background: BORDER_HI }} />
+                                  className="relative mt-3 block h-[2px] w-full overflow-hidden rounded-full"
+                                  style={{ background: BORDER }}
+                                  aria-hidden
+                                >
+                                  <motion.span
+                                    key={`${active}-${paused}-${inView}`}
+                                    className="absolute inset-y-0 left-0 block rounded-full"
+                                    style={{ background: GREEN }}
+                                    initial={{ width: '0%' }}
+                                    animate={{ width: paused || !inView ? '0%' : '100%' }}
+                                    transition={{
+                                      duration: paused || !inView ? 0 : STEP_DURATION_MS / 1000,
+                                      ease: 'linear',
+                                    }}
+                                  />
+                                </span>
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </span>
+                      </motion.button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
           </div>
-        </div>
 
-        {/* RIGHT — sticky 3D mockup window */}
-        <div className="relative lg:col-span-7 lg:sticky lg:top-24">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <MockupWindow url={STEPS[active].url} Mockup={STEPS[active].Mockup} />
-          </motion.div>
+          {/* RIGHT — sticky 3D mockup window */}
+          <div className="relative lg:col-span-7 lg:sticky lg:top-24">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <MockupWindow url={STEPS[active].url} Mockup={STEPS[active].Mockup} />
+            </motion.div>
 
-          {/* Step dots */}
-          <div className="mt-5 flex justify-center gap-2">
-            {STEPS.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActive(i)}
-                className="rounded-full transition-all duration-300"
-                style={{
-                  width: active === i ? 22 : 7,
-                  height: 7,
-                  background: active === i ? GREEN : BORDER_HI,
-                }}
-              />
-            ))}
+            {/* Step dots */}
+            <div className="mt-5 flex justify-center gap-2">
+              {STEPS.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActive(i)}
+                  aria-label={`Go to step ${i + 1}`}
+                  className="rounded-full transition-all duration-300"
+                  style={{
+                    width: active === i ? 22 : 7,
+                    height: 7,
+                    background: active === i ? GREEN : BORDER_HI,
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

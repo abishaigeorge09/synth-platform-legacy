@@ -27,3 +27,9 @@ dist-ssr
 # Source folder — app serves copies from public/coach_tools_images
 /coach_tools_images
 .env
+
+# Submission/transcript artifacts
+*.raw.txt
+
+# Claude Code runtime artifacts
+.claude/scheduled_tasks.lock

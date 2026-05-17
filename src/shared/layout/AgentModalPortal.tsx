@@ -5,12 +5,37 @@ import { useUiStore } from '../store/useUiStore'
 import { THEME } from '../../lib/theme'
 import { useSources, useScanLogs, useAiImportJobs } from '../data/queries'
 import { connectConnector } from '../data/connectors/connectorService'
-import type { ConnectorProvider, Source, SourceType } from '../data/types'
+import type {
+  ConnectorProvider,
+  IngestionPreview,
+  Source,
+  SourceType,
+} from '../data/types'
 import { toast } from '../store/useToastStore'
 import { useTeamStore } from '../store/useTeamStore'
 import { useConnectorConnectionsStore } from '../store/useConnectorConnectionsStore'
 import { useCoachOnboardingStore } from '../store/useCoachOnboardingStore'
 import { useAthleteOnboardingStore } from '../store/useAthleteOnboardingStore'
+import { isSupabaseConfigured } from '../../lib/supabaseClient'
+import {
+  classifyFile,
+  requestParse,
+  uploadAndParse,
+} from '../../lib/ingest/uploadClient'
+import {
+  fetchSheetAsUpload,
+  initiateSheetsConnect,
+  SHEETS_CONNECT_PARAM,
+  SHEETS_CONNECT_VALUE,
+} from '../../lib/ingest/sheetsClient'
+import {
+  disableHealthWebhook,
+  enableHealthWebhook,
+  getHealthConnector,
+  SAMPLE_SHORTCUT_BODY,
+  type HealthConnectorSummary,
+} from '../../lib/ingest/healthWebhookClient'
+import { IngestionPreviewPanel } from '../../features/coach/agent/IngestionPreviewPanel'
 
 type Tab = 'sources' | 'scans' | 'add'
 
@@ -82,6 +107,12 @@ function AgentModalInner({ close }: { close: () => void }) {
 
   const tabs = useMemo(() => (hideHistory ? (['add'] as Tab[]) : (Object.keys(TAB_LABELS) as Tab[])), [hideHistory])
   const effectiveTab: Tab = hideHistory ? 'add' : tab
+
+  // Lifted ingestion preview state. When non-null, the modal body
+  // swaps the tab grid for the preview-and-confirm UI. Owned here
+  // (rather than inside AddSourceTab) so the user can close the modal
+  // mid-review and the preview disappears cleanly.
+  const [ingestionPreview, setIngestionPreview] = useState<IngestionPreview | null>(null)
 
   // Phase 19 — focus trap + focus restore. Captures the previously-focused
   // element on mount, auto-focuses the close button, and restores focus on
@@ -226,9 +257,21 @@ function AgentModalInner({ close }: { close: () => void }) {
             </nav>
 
             <div className="synth-scroll flex-1 overflow-y-auto px-6 py-5">
-              {effectiveTab === 'add' && <AddSourceTab />}
-              {!hideHistory && effectiveTab === 'sources' && <SourcesTab />}
-              {!hideHistory && effectiveTab === 'scans' && <ScansTab />}
+              {ingestionPreview ? (
+                <IngestionPreviewPanel
+                  preview={ingestionPreview}
+                  onDone={() => setIngestionPreview(null)}
+                  onCancel={() => setIngestionPreview(null)}
+                />
+              ) : (
+                <>
+                  {effectiveTab === 'add' && (
+                    <AddSourceTab onUploaded={setIngestionPreview} />
+                  )}
+                  {!hideHistory && effectiveTab === 'sources' && <SourcesTab />}
+                  {!hideHistory && effectiveTab === 'scans' && <ScansTab />}
+                </>
+              )}
             </div>
           </motion.div>
         </motion.div>
@@ -412,7 +455,11 @@ function ScansTab() {
   )
 }
 
-function AddSourceTab() {
+function AddSourceTab({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const [sub, setSub] = useState<'official' | 'aiImport' | 'manual'>('official')
 
   return (
@@ -436,17 +483,22 @@ function AddSourceTab() {
         ))}
       </div>
 
-      {sub === 'official' && <OfficialConnectorsFlow />}
-      {sub === 'aiImport' && <AiImportFlow />}
-      {sub === 'manual' && <ManualFlow />}
+      {sub === 'official' && <OfficialConnectorsFlow onUploaded={onUploaded} />}
+      {sub === 'aiImport' && <AiImportFlow onUploaded={onUploaded} />}
+      {sub === 'manual' && <ManualFlow onUploaded={onUploaded} />}
 
       <ExtensionWaitlistBanner />
     </div>
   )
 }
 
-function OfficialConnectorsFlow() {
+function OfficialConnectorsFlow({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const teamId = useTeamStore((s) => s.activeTeam.id)
+  const isRealTeam = useTeamStore((s) => s.isRealTeam)
   const isConnected = useConnectorConnectionsStore((s) => s.isConnected)
   const connect = useConnectorConnectionsStore((s) => s.connect)
   const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
@@ -461,6 +513,10 @@ function OfficialConnectorsFlow() {
 
   async function onConnect(provider: ConnectorProvider) {
     if (isConnected(teamId, provider)) return
+    if (provider === 'google_sheets' || provider === 'apple_health') {
+      // Real backed-by-Supabase flows. Each row owns its own connect UI.
+      return
+    }
     const r = await connectConnector(provider)
     if (r.ok) {
       connect(teamId, provider)
@@ -473,6 +529,25 @@ function OfficialConnectorsFlow() {
     <div>
       <div className="grid gap-2 md:grid-cols-2">
         {catalog.map((c) => {
+          if (c.provider === 'google_sheets') {
+            return (
+              <SheetsConnectorRow
+                key={c.provider}
+                detail={c.detail}
+                onUploaded={onUploaded}
+                disabled={!isRealTeam}
+              />
+            )
+          }
+          if (c.provider === 'apple_health') {
+            return (
+              <AppleHealthConnectorRow
+                key={c.provider}
+                detail={c.detail}
+                disabled={!isRealTeam}
+              />
+            )
+          }
           const connected = isConnected(teamId, c.provider)
           return (
             <div
@@ -510,13 +585,473 @@ function OfficialConnectorsFlow() {
   )
 }
 
-function AiImportFlow() {
+/**
+ * Real Google Sheets connector row. Three visible states:
+ *   - Disconnected: a single "Connect" button kicks off OAuth.
+ *   - Connected, no sheet picked yet: a URL input + "Sync sheet" button.
+ *   - Syncing: spinner.
+ * The URL is parsed server-side, so any standard sheets URL works.
+ *
+ * Connection state is detected by reading a query param the OAuth
+ * redirect-back left behind (?connect=google_sheets). On first render
+ * after a redirect we capture the provider tokens out of the session and
+ * post them to sheets-sync, then strip the param from the URL.
+ */
+function SheetsConnectorRow({
+  detail,
+  onUploaded,
+  disabled,
+}: {
+  detail: string
+  onUploaded: (preview: IngestionPreview) => void
+  disabled: boolean
+}) {
+  const teamId = useTeamStore((s) => s.activeTeam.id)
+  const isConnectedLocally = useConnectorConnectionsStore((s) => s.isConnected)
+  const connectLocally = useConnectorConnectionsStore((s) => s.connect)
+  const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
+  const [busy, setBusy] = useState<false | 'connecting' | 'completing' | 'syncing'>(false)
+  const [sheetUrl, setSheetUrl] = useState('')
+  const [connectedEmail, setConnectedEmail] = useState<string | null>(null)
+  // We treat the local in-memory connection store as a hint: it persists
+  // across modal opens but not across full reloads. The authoritative
+  // state lives in connector_accounts on the server; for slice 1 we
+  // optimistically trust the local flag once the OAuth round-trip succeeds.
+  const isConnected = connectedEmail !== null || isConnectedLocally(teamId, 'google_sheets')
+
+  // Detect post-OAuth landing.
+  useEffect(() => {
+    let cancelled = false
+    async function maybeComplete() {
+      if (typeof window === 'undefined') return
+      const url = new URL(window.location.href)
+      if (url.searchParams.get(SHEETS_CONNECT_PARAM) !== SHEETS_CONNECT_VALUE) return
+      // Strip the param so a refresh doesn't try to re-complete.
+      url.searchParams.delete(SHEETS_CONNECT_PARAM)
+      const cleanHref = url.pathname + (url.search ? `?${url.searchParams}` : '') + url.hash
+      window.history.replaceState({}, '', cleanHref)
+      setBusy('completing')
+      try {
+        const { completeSheetsConnect } = await import('../../lib/ingest/sheetsClient')
+        const result = await completeSheetsConnect()
+        if (cancelled) return
+        if (result?.ok) {
+          connectLocally(teamId, 'google_sheets')
+          markCoachSourcesConnected(true)
+          setConnectedEmail(result.email)
+          toast(
+            result.email
+              ? `Google Sheets connected as ${result.email}`
+              : 'Google Sheets connected',
+            'success',
+          )
+        } else {
+          toast('OAuth round-trip incomplete — try Connect again', 'error')
+        }
+      } catch (err) {
+        toast(err instanceof Error ? err.message : String(err), 'error')
+      } finally {
+        if (!cancelled) setBusy(false)
+      }
+    }
+    void maybeComplete()
+    return () => {
+      cancelled = true
+    }
+  }, [teamId, connectLocally, markCoachSourcesConnected])
+
+  async function onClickConnect() {
+    setBusy('connecting')
+    try {
+      const back = window.location.origin + window.location.pathname +
+        `?${SHEETS_CONNECT_PARAM}=${SHEETS_CONNECT_VALUE}`
+      await initiateSheetsConnect({ redirectTo: back })
+      // Browser navigates away here.
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+      setBusy(false)
+    }
+  }
+
+  async function onSync() {
+    const url = sheetUrl.trim()
+    if (!url) {
+      toast('Paste a Google Sheets URL first', 'error')
+      return
+    }
+    setBusy('syncing')
+    try {
+      const fetched = await fetchSheetAsUpload(url)
+      const preview = await requestParse(fetched, teamId)
+      onUploaded(preview)
+      setSheetUrl('')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-lg border p-4 md:col-span-2"
+      style={{ background: THEME.light, borderColor: THEME.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
+            Google Sheets
+          </div>
+          <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+            {isConnected && connectedEmail
+              ? `Connected as ${connectedEmail}`
+              : detail}
+          </div>
+        </div>
+        {!isConnected && (
+          <button
+            type="button"
+            disabled={disabled || busy !== false}
+            onClick={onClickConnect}
+            className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+            style={{
+              border: `1px solid ${THEME.primary}`,
+              background: THEME.primary,
+              color: THEME.white,
+              fontFamily: THEME.fontMono,
+            }}
+          >
+            {busy === 'connecting' ? 'Opening…'
+              : busy === 'completing' ? 'Finishing…'
+              : 'Connect'}
+          </button>
+        )}
+      </div>
+
+      {isConnected && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="url"
+            placeholder="https://docs.google.com/spreadsheets/d/…"
+            value={sheetUrl}
+            onChange={(e) => setSheetUrl(e.target.value)}
+            disabled={busy !== false}
+            className="flex-1 rounded-lg border px-3 py-2 text-[12px]"
+            style={{
+              borderColor: THEME.border,
+              background: 'var(--bg-primary)',
+              color: THEME.textPrimary,
+              fontFamily: THEME.fontMono,
+            }}
+          />
+          <button
+            type="button"
+            disabled={busy !== false || sheetUrl.trim().length === 0}
+            onClick={onSync}
+            className="shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+            style={{
+              border: `1px solid ${THEME.primary}`,
+              background: THEME.primary,
+              color: THEME.white,
+              fontFamily: THEME.fontMono,
+            }}
+          >
+            {busy === 'syncing' ? 'Syncing…' : 'Sync sheet'}
+          </button>
+        </div>
+      )}
+
+      {disabled && (
+        <div
+          className="text-[10px] italic"
+          style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}
+        >
+          Sign in with a real account to connect Google Sheets. (Demo data
+          stays read-only.)
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Apple Health connector row. Generates a per-team webhook secret and
+ * shows the URL the coach should paste into an Apple Shortcut. The
+ * webhook itself runs without JWT (see supabase/functions/health-webhook)
+ * — the secret is what authenticates a POST and resolves it to a team.
+ */
+function AppleHealthConnectorRow({
+  detail,
+  disabled,
+}: {
+  detail: string
+  disabled: boolean
+}) {
+  const teamId = useTeamStore((s) => s.activeTeam.id)
+  const isRealTeam = useTeamStore((s) => s.isRealTeam)
+  const [summary, setSummary] = useState<HealthConnectorSummary | null>(null)
+  const [busy, setBusy] = useState<false | 'loading' | 'enabling' | 'disabling' | 'rotating'>(
+    'loading',
+  )
+  const [revealed, setRevealed] = useState(false)
+  const [showSample, setShowSample] = useState(false)
+  const [copied, setCopied] = useState<'url' | 'sample' | null>(null)
+
+  // Load existing connector state on mount (or when team changes).
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      if (!isRealTeam) {
+        if (!cancelled) {
+          setBusy(false)
+          setSummary({ status: 'absent', secret: null, webhookUrl: null, lastSyncAt: null })
+        }
+        return
+      }
+      setBusy('loading')
+      try {
+        const s = await getHealthConnector(teamId)
+        if (!cancelled) setSummary(s)
+      } catch (err) {
+        if (!cancelled) toast(err instanceof Error ? err.message : String(err), 'error')
+      } finally {
+        if (!cancelled) setBusy(false)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [teamId, isRealTeam])
+
+  async function onEnable(rotate: boolean) {
+    setBusy(rotate ? 'rotating' : 'enabling')
+    try {
+      const s = await enableHealthWebhook(teamId)
+      setSummary(s)
+      setRevealed(true)
+      toast(rotate ? 'Webhook secret rotated' : 'Apple Health webhook enabled', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDisable() {
+    setBusy('disabling')
+    try {
+      await disableHealthWebhook(teamId)
+      setSummary({ status: 'revoked', secret: null, webhookUrl: null, lastSyncAt: null })
+      setRevealed(false)
+      toast('Apple Health webhook disabled', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copy(text: string, which: 'url' | 'sample') {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(which)
+      window.setTimeout(() => setCopied((c) => (c === which ? null : c)), 1400)
+    } catch {
+      toast('Clipboard copy failed', 'error')
+    }
+  }
+
+  const isActive = summary?.status === 'connected' && summary.webhookUrl
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-lg border p-4 md:col-span-2"
+      style={{ background: THEME.light, borderColor: THEME.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-semibold" style={{ color: THEME.textPrimary }}>
+            Apple Health
+          </div>
+          <div className="mt-0.5 text-[11px]" style={{ color: THEME.textSecondary }}>
+            {isActive
+              ? 'Webhook live — point an Apple Shortcut at the URL below.'
+              : detail}
+          </div>
+        </div>
+        {!isActive && (
+          <button
+            type="button"
+            disabled={disabled || busy !== false}
+            onClick={() => onEnable(false)}
+            className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+            style={{
+              border: `1px solid ${THEME.primary}`,
+              background: THEME.primary,
+              color: THEME.white,
+              fontFamily: THEME.fontMono,
+            }}
+          >
+            {busy === 'loading' ? '…' : busy === 'enabling' ? 'Enabling…' : 'Enable webhook'}
+          </button>
+        )}
+      </div>
+
+      {isActive && summary?.webhookUrl && (
+        <div className="flex flex-col gap-2">
+          {/* URL row */}
+          <div className="flex items-stretch gap-2">
+            <code
+              className="flex-1 truncate rounded-md border px-3 py-2 text-[11px]"
+              style={{
+                borderColor: THEME.border,
+                background: 'var(--bg-primary)',
+                color: revealed ? THEME.textPrimary : THEME.textMuted,
+                fontFamily: THEME.fontMono,
+                letterSpacing: revealed ? 0 : '0.1em',
+              }}
+              title={revealed ? summary.webhookUrl : 'Hidden — click reveal'}
+            >
+              {revealed ? summary.webhookUrl : maskUrl(summary.webhookUrl)}
+            </code>
+            <button
+              type="button"
+              onClick={() => setRevealed((r) => !r)}
+              className="shrink-0 rounded-md border px-3 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                borderColor: THEME.border,
+                color: THEME.textPrimary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {revealed ? 'Hide' : 'Reveal'}
+            </button>
+            <button
+              type="button"
+              onClick={() => copy(summary.webhookUrl!, 'url')}
+              className="shrink-0 rounded-md border px-3 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                borderColor: THEME.primary,
+                color: THEME.primary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {copied === 'url' ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSample((s) => !s)}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                borderColor: THEME.border,
+                color: THEME.textPrimary,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {showSample ? 'Hide example payload' : 'Show example payload'}
+            </button>
+            <button
+              type="button"
+              disabled={busy !== false}
+              onClick={() => onEnable(true)}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+              style={{
+                borderColor: THEME.amber,
+                color: THEME.amber,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {busy === 'rotating' ? 'Rotating…' : 'Rotate secret'}
+            </button>
+            <button
+              type="button"
+              disabled={busy !== false}
+              onClick={onDisable}
+              className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
+              style={{
+                borderColor: THEME.red,
+                color: THEME.red,
+                fontFamily: THEME.fontMono,
+              }}
+            >
+              {busy === 'disabling' ? 'Disabling…' : 'Disable'}
+            </button>
+            {summary.lastSyncAt && (
+              <span
+                className="text-[10px]"
+                style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}
+              >
+                Last delivery {new Date(summary.lastSyncAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {showSample && (
+            <div className="relative">
+              <pre
+                className="overflow-x-auto rounded-md border p-3 text-[10px] leading-relaxed"
+                style={{
+                  borderColor: THEME.border,
+                  background: 'var(--bg-primary)',
+                  color: THEME.textPrimary,
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                {SAMPLE_SHORTCUT_BODY}
+              </pre>
+              <button
+                type="button"
+                onClick={() => copy(SAMPLE_SHORTCUT_BODY, 'sample')}
+                className="absolute right-2 top-2 rounded-md border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider"
+                style={{
+                  borderColor: THEME.primary,
+                  color: THEME.primary,
+                  background: 'var(--bg-primary)',
+                  fontFamily: THEME.fontMono,
+                }}
+              >
+                {copied === 'sample' ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {disabled && (
+        <div
+          className="text-[10px] italic"
+          style={{ color: THEME.textMuted, fontFamily: THEME.fontMono }}
+        >
+          Sign in with a real account to enable the Apple Health webhook.
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Reveal helper — replaces the secret query value with bullets. */
+function maskUrl(url: string): string {
+  return url.replace(/secret=[^&]+/, 'secret=••••••••••••••••')
+}
+
+function AiImportFlow({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const { data: jobs } = useAiImportJobs()
+  const teamId = useTeamStore((s) => s.activeTeam.id)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [photoName, setPhotoName] = useState<string | null>(null)
   const [pasteText, setPasteText] = useState('')
   const [recording, setRecording] = useState(false)
   const [voiceInfo, setVoiceInfo] = useState<string | null>(null)
+  const [parsing, setParsing] = useState(false)
   const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
@@ -566,21 +1101,39 @@ function AiImportFlow() {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0]
               if (!file) return
               setPhotoName(file.name)
-              markCoachSourcesConnected(true)
-              toast(`Screenshot selected: ${file.name}`, 'success')
+              if (!isSupabaseConfigured()) {
+                toast(
+                  'Sign in to ingest — connect a Supabase project to enable real uploads.',
+                  'info',
+                )
+                return
+              }
+              setParsing(true)
+              try {
+                toast(`Parsing ${file.name}…`, 'info')
+                const preview = await uploadAndParse(file, teamId)
+                markCoachSourcesConnected(true)
+                onUploaded(preview)
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err)
+                toast(`Upload failed: ${msg}`, 'error')
+              } finally {
+                setParsing(false)
+              }
             }}
           />
           <button
             type="button"
+            disabled={parsing}
             onClick={() => fileRef.current?.click()}
-            className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
+            className="mt-3 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50 disabled:opacity-60"
             style={{ background: 'var(--bg-primary)', color: THEME.primary, border: `1px solid ${THEME.primary}`, fontFamily: THEME.fontMono }}
           >
-            Choose file
+            {parsing ? 'Parsing…' : 'Choose file'}
           </button>
           {photoName && (
             <div className="mt-2 text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>
@@ -704,20 +1257,45 @@ function ExtensionWaitlistBanner() {
   )
 }
 
-function ManualFlow() {
+function ManualFlow({
+  onUploaded,
+}: {
+  onUploaded: (preview: IngestionPreview) => void
+}) {
   const [dragOver, setDragOver] = useState(false)
-  const [uploaded, setUploaded] = useState<string | null>(null)
+  const [parsingName, setParsingName] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
+  const teamId = useTeamStore((s) => s.activeTeam.id)
   const markCoachSourcesConnected = useCoachOnboardingStore((s) => s.setSourcesConnected)
 
-  function simulateUpload(name: string) {
-    setUploaded(null)
-    toast(`Parsing ${name}…`, 'info')
-    window.setTimeout(() => {
-      setUploaded(name)
+  async function handleFile(file: File) {
+    if (!isSupabaseConfigured()) {
+      toast(
+        'Sign in to ingest — connect a Supabase project to enable real uploads.',
+        'info',
+      )
+      return
+    }
+    const kind = classifyFile(file)
+    if (!kind) {
+      toast(
+        `Unsupported file type: ${file.type || 'unknown'}. Try CSV, XLSX, PDF, or image.`,
+        'error',
+      )
+      return
+    }
+    setParsingName(file.name)
+    toast(`Parsing ${file.name}…`, 'info')
+    try {
+      const preview = await uploadAndParse(file, teamId)
       markCoachSourcesConnected(true)
-      toast(`${name} — preview ready`, 'success')
-    }, 1500)
+      onUploaded(preview)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      toast(`Upload failed: ${msg}`, 'error')
+    } finally {
+      setParsingName(null)
+    }
   }
 
   return (
@@ -734,22 +1312,28 @@ function ManualFlow() {
           e.preventDefault()
           setDragOver(false)
           const file = e.dataTransfer.files[0]
-          if (file) simulateUpload(file.name)
+          if (file) void handleFile(file)
         }}
       >
         <div
           className="text-[11px] font-semibold uppercase tracking-[0.18em]"
           style={{ fontFamily: THEME.fontMono, color: THEME.primary }}
         >
-          {dragOver ? 'Drop to upload' : 'Drag & drop'}
+          {parsingName
+            ? `Parsing ${parsingName}…`
+            : dragOver
+            ? 'Drop to upload'
+            : 'Drag & drop'}
         </div>
         <div className="mt-2 max-w-[380px] text-[13px]" style={{ color: THEME.textSecondary }}>
-          Drop CSVs, Excel workbooks, or screenshots here. synth. parses and previews before committing anything to the
-          roster.
+          Drop a CSV, XLSX, PDF, or screenshot. Claude reads the file, extracts
+          structured events, and matches each to an athlete — you review before
+          anything lands.
         </div>
         <button
           type="button"
-          className="mt-4 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50"
+          disabled={!!parsingName}
+          className="mt-4 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-emerald-50 disabled:opacity-60"
           style={{
             background: 'var(--bg-primary)',
             color: THEME.primary,
@@ -758,42 +1342,19 @@ function ManualFlow() {
           }}
           onClick={() => fileRef.current?.click()}
         >
-          Browse files
+          {parsingName ? 'Parsing…' : 'Browse files'}
         </button>
         <input
           ref={fileRef}
           type="file"
+          accept=".csv,.xlsx,.xls,.pdf,image/*"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
-            if (file) simulateUpload(file.name)
+            if (file) void handleFile(file)
           }}
         />
       </div>
-      {uploaded && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-3 flex items-center gap-2 rounded-lg border px-4 py-3"
-          style={{ borderColor: THEME.primary, background: `${THEME.primary}08` }}
-        >
-          <span className="h-2 w-2 rounded-full" style={{ background: THEME.primary }} />
-          <span className="text-[12px] font-semibold" style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}>
-            {uploaded}
-          </span>
-          <span className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}>
-            — preview ready · 0 conflicts
-          </span>
-          <button
-            type="button"
-            className="ml-auto rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
-            style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
-            onClick={() => { toast('Import committed to roster', 'success'); setUploaded(null) }}
-          >
-            Commit
-          </button>
-        </motion.div>
-      )}
     </div>
   )
 }

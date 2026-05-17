@@ -2,20 +2,22 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { PasscodeInput } from './PasscodeInput'
-import { useMediaQuery } from '../app/desktopIntercept/useMediaQuery'
 
 /**
  * Global access gate. Wraps the entire app (landing + /app/*).
  *
  * Behaviour:
- *   - On mount, reads localStorage for the unlock flag. If present,
- *     mounts children directly with no overlay.
- *   - Otherwise, renders children behind a backdrop-blur scrim with a
- *     centered passcode card. Children stay mounted (and animate in
- *     once unlocked) so the page doesn't refetch / re-init when the
- *     code lands.
- *   - Correct passcode → writes the unlock flag → fades + slides the
- *     overlay out → backdrop-blur clears.
+ *   - Every fresh page load that targets a protected route shows the
+ *     passcode overlay, regardless of viewport. Both the website
+ *     (desktop) and the installed app (mobile / PWA) gate identically.
+ *   - Children stay mounted behind a backdrop-blur scrim. Once the code
+ *     lands, the overlay fades out and the children re-receive pointer
+ *     events without remounting.
+ *   - Unlock state is intentionally **in-memory only**. We do NOT write
+ *     to localStorage / sessionStorage, so closing the tab and coming
+ *     back means re-entering the passcode. SPA navigation within a
+ *     protected surface (e.g. /coach/dashboard → /coach/athletes) does
+ *     not re-prompt because the unlocked state lives in this component.
  *
  * This is a SOFT gate. The passcode lives in the bundle; anyone with
  * DevTools can grep it. The point is to keep the live preview behind
@@ -23,7 +25,6 @@ import { useMediaQuery } from '../app/desktopIntercept/useMediaQuery'
  * inspection. Real auth still happens via Supabase downstream.
  */
 
-const STORAGE_KEY = 'synth:access-gate:unlocked'
 const PASSCODE = '98962005'
 
 /**
@@ -42,27 +43,14 @@ function isProtectedPath(pathname: string): boolean {
   )
 }
 
-function readUnlockFlag(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function writeUnlockFlag(): void {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(STORAGE_KEY, '1')
-  } catch {
-    /* private mode — gate stays closed but app still works in tab */
-  }
-}
-
 export function AccessGate({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
-  const [unlocked, setUnlocked] = useState<boolean>(() => readUnlockFlag())
+  // Always start locked. No persistence — closing the tab and coming
+  // back re-prompts. The state lives only as long as this component
+  // is mounted, which means SPA navigation between protected routes
+  // doesn't re-prompt (component stays mounted), but a hard reload or
+  // a fresh visit does.
+  const [unlocked, setUnlocked] = useState<boolean>(false)
   const [hasError, setHasError] = useState(false)
   const [verifying, setVerifying] = useState(false)
   // Each wrong attempt bumps this. The PasscodeInput receives it as
@@ -72,22 +60,15 @@ export function AccessGate({ children }: { children: ReactNode }) {
   // the cells reset.
   const [attemptId, setAttemptId] = useState(0)
   const reducedMotion = useReducedMotion()
-  // Viewport check — same 1024px breakpoint the rest of the app uses
-  // for the desktop intercept (AppShell.tsx). Below 1024 = "mobile
-  // view" → gate is in effect on protected routes. At/above 1024 =
-  // "website view" → no gate, full pass-through, even on /coach,
-  // /athlete, /app. Resizing the window flips the gate live because
-  // useMediaQuery subscribes to the media-query change event.
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
-  // Gate fires when ALL of these are true:
-  //   - The user hasn't unlocked yet for this browser.
+  // Gate fires when:
+  //   - The user hasn't unlocked yet this session.
   //   - The current path is one of the demo product surfaces
   //     (/coach, /athlete, /app — not the marketing landing).
-  //   - The viewport is in mobile mode. Desktop "website view"
-  //     pass-through is what AG asked for: hitting these routes from
-  //     a wide window stays open without ever surfacing the gate.
-  const gateActive = !unlocked && !isDesktop && isProtectedPath(pathname)
+  // Desktop and mobile gate identically. There used to be a viewport
+  // pass-through that disabled the gate at ≥1024px; that's been
+  // removed so the website and the app both ask for the passcode.
+  const gateActive = !unlocked && isProtectedPath(pathname)
 
   // Lock body scroll only while the overlay is actually showing so a
   // long landing page can still pull-to-refresh on the public surfaces.
@@ -107,7 +88,6 @@ export function AccessGate({ children }: { children: ReactNode }) {
       // overlay fades out. Feels intentional vs jarring.
       setVerifying(true)
       window.setTimeout(() => {
-        writeUnlockFlag()
         setUnlocked(true)
       }, 280)
       return

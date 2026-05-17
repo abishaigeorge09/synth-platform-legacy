@@ -359,3 +359,79 @@ export type WritebackIntent = {
   payloadSummary: string
   confirmed: boolean
 }
+
+// ─── File ingestion (slice 1) ─────────────────────────────────────────────
+// Mirrors supabase/migrations/20260507_ingestion.sql. SourceUpload =
+// the file the coach dropped. IngestionEvent = a single structured
+// row Claude extracted from that file. status='preview' lives only
+// long enough for the coach to confirm tags; status='confirmed' is
+// what dashboards, athlete profiles, and AI chat read from.
+
+export type SourceUploadKind = 'csv' | 'xlsx' | 'pdf' | 'image' | 'paste'
+
+export type SourceUploadStatus =
+  | 'pending'
+  | 'parsing'
+  | 'preview'
+  | 'confirmed'
+  | 'failed'
+  | 'cancelled'
+
+export type SourceUpload = {
+  id: UUID
+  teamId: UUID
+  uploadedBy: UUID
+  storagePath: string
+  filename: string
+  mimeType: string
+  sizeBytes: number
+  kind: SourceUploadKind
+  status: SourceUploadStatus
+  parseError?: string
+  eventsExtracted: number
+  eventsConfirmed: number
+  createdAt: ISODateTime
+  updatedAt: ISODateTime
+}
+
+export type IngestionEventCategory =
+  | 'erg'
+  | 'gym'
+  | 'wellness'
+  | 'session_note'
+  | 'water'
+  | 'cross_training'
+  | 'sleep'
+  | 'hrv'
+  | 'other'
+
+export type IngestionEventStatus = 'preview' | 'confirmed' | 'rejected'
+
+export type IngestionEvent = {
+  id: UUID
+  teamId: UUID
+  athleteId: UUID | null
+  sourceUploadId: UUID
+  occurredAt: ISODateTime
+  category: IngestionEventCategory
+  metric: string
+  value?: number
+  valueText?: string
+  unit?: string
+  athleteNameRaw?: string
+  extractionConfidence?: number
+  matchConfidence?: number
+  raw?: Record<string, unknown>
+  status: IngestionEventStatus
+  createdAt: ISODateTime
+}
+
+// What the parse Edge Function returns to the client for the
+// preview panel. Includes the candidate matches per row so the
+// dropdown can show the top suggestions, and the original upload
+// metadata so the panel header can describe the file.
+export type IngestionPreview = {
+  upload: SourceUpload
+  events: IngestionEvent[]
+  candidates: Record<UUID, Array<{ athleteId: UUID; name: string; score: number }>>
+}

@@ -4,6 +4,8 @@ import { THEME } from '../../../lib/theme'
 import { streamClaudeMessages, selectModel } from '../../../lib/ai/claude'
 import { isClaudeConfigured } from '../../../lib/ai/env'
 import { coachPromptFromSeeds } from '../../../lib/ai/prompts'
+import { buildIngestionContext } from '../../../lib/ai/ingestionContext'
+import { useAthletes } from '../../../shared/data/queries'
 import { SynthAiIllustration } from '../../../shared/illustrations/sidebarIllustrations'
 import { useChatStore, threadKey, type ChatMsg, type ArchivedThread } from '../../../shared/store/useChatStore'
 import { useTeamStore } from '../../../shared/store/useTeamStore'
@@ -33,6 +35,7 @@ export function ChatView({
   const key = useMemo(() => threadKey(scope, scopedAthleteId), [scope, scopedAthleteId])
   const activeTeam = useTeamStore((s) => s.activeTeam)
   const activeTeamId = activeTeam.id
+  const { data: rosterAthletes } = useAthletes()
   const threads = useChatStore((s) => s.threads)
   const messages = threads[key] ?? EMPTY_THREAD
   const append = useChatStore((s) => s.append)
@@ -94,11 +97,26 @@ export function ChatView({
       return
     }
 
-    const system = coachPromptFromSeeds(
+    let system = coachPromptFromSeeds(
       activeTeamId,
       activeTeam.name,
       scope === 'athlete' ? scopedAthleteId : undefined,
     )
+    // Inject the coach's actually-ingested events as context. This is
+    // what makes the file-upload pipeline visible from chat: ask
+    // "what was Maria's 2k last Friday?" and Claude cites the CSV.
+    const targetAthleteName =
+      scope === 'athlete' && scopedAthleteId
+        ? rosterAthletes.find((a) => a.id === scopedAthleteId)?.name
+        : undefined
+    const ingestionBlock = await buildIngestionContext({
+      athleteId: scope === 'athlete' ? scopedAthleteId : undefined,
+      teamId: activeTeamId,
+      athleteName: targetAthleteName,
+    })
+    if (ingestionBlock) {
+      system = `${system}\n\n${ingestionBlock}`
+    }
     const model = selectModel(trimmed, system)
     const asstId = `a-${Date.now() + 1}`
     append(key, {

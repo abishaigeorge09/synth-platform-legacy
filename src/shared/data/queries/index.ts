@@ -77,3 +77,11 @@ export {
   useDemoTeam,
   useDemoCoach,
 } from './useDemoAthleteQueries'
+
+// Ingestion (file uploads → confirmed events). Empty in demo mode;
+// populated when the coach is signed in to a real Supabase project.
+export {
+  useSourceUploads,
+  useIngestedEventsForAthlete,
+  useIngestedEventsForTeam,
+} from './useIngestionQueries'

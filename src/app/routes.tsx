@@ -193,7 +193,12 @@ function withSuspense(node: React.ReactNode, label?: string) {
 }
 
 export const routes: RouteObject[] = [
-  { path: '/', element: withSuspense(<LandingPage />, 'Landing') },
+  // Landing intentionally has no PageTitle label so document.title stays
+  // at the full marketing line ("synth. — Every data signal. One platform.")
+  // — Google's SERP snapshot uses document.title from the rendered DOM, so
+  // labelling this "Landing" was producing the unhelpful "Landing — synth."
+  // search result.
+  { path: '/', element: withSuspense(<LandingPage />) },
   { path: '/product-demo', element: withSuspense(<ProductDemoPage />, 'Product demo') },
   { path: '/login', element: withSuspense(<LoginPage />, 'Sign in') },
   { path: '/signup', element: withSuspense(<SignUpPage />, 'Sign up') },

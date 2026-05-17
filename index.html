@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
     <meta name="theme-color" content="#059669" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#065F46" media="(prefers-color-scheme: dark)" />
-    <meta name="description" content="synth. — every data signal, one platform. A unified data surface for coaches and athletes." />
+
+    <!-- SEO. The description is ~155 chars (Google's SERP cut-off) and
+         names concrete connectors so the snippet wins on relevance vs.
+         body text Google would otherwise pull. Brand line stays in the
+         og:title for share previews; here we lead with what the product
+         does. -->
+    <meta name="description" content="synth. unifies every data signal your team produces — Concept2, Strava, WHOOP, Apple Health, Google Sheets — into one dashboard for coaches and athletes." />
+    <link rel="canonical" href="https://synthsports.co/" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <meta name="author" content="synth." />
 
     <!-- Open Graph link preview. og:image is a 1200x630 card with
          the synth icon centered + small on a cobalt canvas, so
@@ -14,20 +23,23 @@
          produce. Width + height meta let renderers reserve layout
          without re-fetching the file. -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://synthsports.co/" />
     <meta property="og:title" content="synth. — Every data signal. One platform." />
-    <meta property="og:description" content="A unified data surface for coaches and athletes. Connect every tool your program uses, synthesize the data, and see one clear picture." />
-    <meta property="og:image" content="/logos/og-card.png" />
+    <meta property="og:description" content="One platform for college sports teams. Connect Concept2, Strava, WHOOP, Apple Health, and Google Sheets — synth. synthesizes everything into one coach dashboard and one athlete view." />
+    <meta property="og:image" content="https://synthsports.co/logos/og-card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="synth. — Every data signal. One platform." />
     <meta property="og:site_name" content="synth." />
 
-    <!-- Twitter Card. summary_large_image picks up the new landscape
+    <!-- Twitter Card. summary_large_image picks up the landscape
          OG card. iMessage / Slack ignore this hint and use the og:*
          tags above regardless. -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="synth. — Every data signal. One platform." />
-    <meta name="twitter:description" content="A unified data surface for coaches and athletes. Connect every tool your program uses, synthesize the data, and see one clear picture." />
-    <meta name="twitter:image" content="/logos/og-card.png" />
+    <meta name="twitter:description" content="One platform for college sports teams. Connect Concept2, Strava, WHOOP, Apple Health, and Google Sheets — synth. synthesizes everything into one coach dashboard and one athlete view." />
+    <meta name="twitter:image" content="https://synthsports.co/logos/og-card.png" />
+    <meta name="twitter:image:alt" content="synth. — Every data signal. One platform." />
 
     <!-- Favicons (web) -->
     <link rel="icon" type="image/svg+xml" href="/logos/synth-icon-green.svg" />
@@ -45,6 +57,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800&display=swap" />
     <title>synth. — Every data signal. One platform.</title>
+
+    <!-- Structured data: tells Google this is a software product so the
+         SERP can render a sitelinks search box, brand chip, and (in
+         time) review/rating snippets. URL must match the canonical. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "synth.",
+      "description": "synth. unifies every data signal your team produces — Concept2, Strava, WHOOP, Apple Health, Google Sheets — into one dashboard for coaches and athletes.",
+      "url": "https://synthsports.co/",
+      "applicationCategory": "SportsApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "image": "https://synthsports.co/logos/og-card.png",
+      "sameAs": []
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

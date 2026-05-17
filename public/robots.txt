@@ -1,2 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /coach/
+Disallow: /athlete/
+Disallow: /app/
+Disallow: /join/
+Disallow: /signup
+Disallow: /login
+
+Sitemap: https://synthsports.co/sitemap.xml

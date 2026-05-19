@@ -39,8 +39,8 @@ export function SportsHubPage() {
         <Hairlines />
         <div className="relative z-10 mx-auto w-full max-w-[1280px] text-center">
           <h2
-            className="leading-[1.0] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(32px, 5vw, 64px)', textTransform: 'uppercase' }}
+            className="tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(32px, 5vw, 64px)', textTransform: 'uppercase', lineHeight: 1.1 }}
           >
             Unify your <KO>data</KO>, your <KO>tools</KO>, your <KO>training</KO>.
           </h2>
@@ -104,8 +104,8 @@ function SportRow({
           // {sport.slug}
         </div>
         <h3
-          className="mt-4 leading-[0.92] tracking-[-0.015em]"
-          style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 5.5vw, 80px)', textTransform: 'uppercase', color: FG }}
+          className="mt-4 tracking-[-0.015em]"
+          style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 5.5vw, 80px)', textTransform: 'uppercase', color: FG, lineHeight: 1.02 }}
         >
           {sport.name}<span style={{ color: GREEN }}>.</span>
         </h3>

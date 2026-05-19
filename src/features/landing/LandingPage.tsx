@@ -1,97 +1,71 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useInstallPrompt } from './useInstallPrompt'
 import {
   PageShell, KO, Hairlines, Crosshairs, SectionLabel, Chevron, PlaceholderMedia,
-  ClosingCta, IntegrationsStrip,
+  ClosingCta, IntegrationsStrip, PrimaryButton, OutlineButton,
 } from './shell/primitives'
 import {
   BG, ELEVATED, FG, MUTED, DIM, HAIR, FAINT,
   GREEN, GREEN_2, G_GLOW, G_DIM, DRUK, MONO, BODY,
 } from './shell/tokens'
 
-/* ─── Hero — cleaner composition, no text overlap ─────────────────────── */
+/* ─── Hero — GMV-style 2-column: trimmed copy + live dashboard mock ────── */
 
 function Hero({ onStart }: { onStart: () => void }) {
   return (
     <section
-      className="relative isolate overflow-hidden px-5 sm:px-10 pt-32 sm:pt-40"
-      style={{ background: BG, color: FG, minHeight: '92vh' }}
+      className="relative isolate overflow-hidden px-5 sm:px-10 pt-28 pb-16 sm:pt-32 sm:pb-20"
+      style={{ background: BG, color: FG, minHeight: '88vh' }}
     >
-      {/* Backdrop layer — strictly behind the headline, never overlaps it */}
       <CinematicBackdrop />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col">
-        {/* Eyebrow row */}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
-          <span>// synth — for athletes who train serious</span>
-          <span className="hidden sm:inline">v 0.1 · alpha</span>
+      <div className="relative z-10 mx-auto grid w-full max-w-[1320px] gap-12 lg:grid-cols-[1fr_1.15fr] lg:items-center">
+        {/* LEFT — trimmed copy */}
+        <div className="flex flex-col">
+          <div className="text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
+            // for athletes who train serious
+          </div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+            className="mt-6 tracking-[-0.02em]"
+            style={{
+              fontFamily: DRUK,
+              fontSize: 'clamp(56px, 9vw, 132px)',
+              textTransform: 'uppercase',
+              lineHeight: 1.02,
+            }}
+          >
+            <span className="block">Every signal.</span>
+            <span className="block mt-2"><KO>One screen.</KO></span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="mt-7 max-w-[420px] text-[16px] leading-relaxed"
+            style={{ fontFamily: BODY, color: MUTED }}
+          >
+            Your training, synthesized every morning.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
+            className="mt-8 flex flex-wrap items-center gap-3"
+          >
+            <PrimaryButton onClick={onStart}>start free →</PrimaryButton>
+            <OutlineButton to="/coach/dashboard">watch demo ▶</OutlineButton>
+          </motion.div>
         </div>
 
-        {/* Headline — single block, fixed cap so it doesn't crash bottom row */}
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
-          className="mt-12 sm:mt-16 leading-[0.86] tracking-[-0.02em]"
-          style={{
-            fontFamily: DRUK,
-            fontSize: 'clamp(56px, 11vw, 160px)',
-            textTransform: 'uppercase',
-          }}
-        >
-          <span className="block">Every signal.</span>
-          <span className="block"><KO>One screen.</KO></span>
-        </motion.h1>
-
-        {/* Subhead + CTAs row — pushed below headline with deliberate spacing */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="mt-12 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-end"
-        >
-          <div style={{ fontFamily: BODY }}>
-            <p className="text-[17px] sm:text-[19px] leading-snug" style={{ color: FG }}>
-              Your training, your sleep, your plan — synthesized every morning. <span style={{ color: MUTED }}>One screen tells you what's working, what's slipping, and what to do next.</span>
-            </p>
-            <p className="mt-4 text-[11px] uppercase tracking-[0.28em]" style={{ fontFamily: MONO, color: DIM }}>
-              no spreadsheet stitching · no rip-and-replace · works on the phone you already have
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-            <button
-              type="button"
-              onClick={onStart}
-              className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-              style={{
-                background: GREEN,
-                color: '#000',
-                fontFamily: MONO,
-                boxShadow: `0 0 36px ${G_GLOW}`,
-              }}
-            >
-              start free →
-            </button>
-            <Link
-              to="/coach/dashboard"
-              className="border px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
-              style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
-            >
-              watch demo ▶
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Bottom mono row — way below CTAs, doesn't fight headline */}
-        <div className="mt-16 mb-12 flex flex-wrap items-center gap-4 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
-          <span>scroll ↓</span>
-          <span className="h-px w-12" style={{ background: HAIR }} />
-          <span>built by world championship rowers</span>
-          <span className="h-px w-12" style={{ background: HAIR }} />
-          <span>backed by berkeley skydeck</span>
-        </div>
+        {/* RIGHT — live synthesis dashboard */}
+        <HeroDashboard />
       </div>
     </section>
   )
@@ -100,28 +74,242 @@ function Hero({ onStart }: { onStart: () => void }) {
 function CinematicBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
-      {/* Slow drifting green halo — kept low-left, never under the headline center */}
       <motion.div
         className="absolute"
         style={{
-          left: '-10%',
-          bottom: '-15%',
+          left: '-15%',
+          bottom: '-20%',
           width: '70vw',
           height: '70vw',
           maxWidth: 1100,
           maxHeight: 1100,
           background: `radial-gradient(circle, ${G_GLOW} 0%, transparent 60%)`,
-          filter: 'blur(24px)',
+          filter: 'blur(28px)',
         }}
-        animate={{ x: ['0%', '15%', '0%'], y: ['0%', '-8%', '0%'] }}
-        transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ x: ['0%', '12%', '0%'], y: ['0%', '-6%', '0%'] }}
+        transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
       />
       <Hairlines />
-      {/* Top vignette so the eyebrow row is always legible */}
-      <div className="absolute inset-x-0 top-0 h-[40vh]" style={{ background: `linear-gradient(180deg, ${BG} 0%, transparent 100%)` }} />
-      {/* Bottom vignette so the next section feels continuous */}
+      <div className="absolute inset-x-0 top-0 h-[30vh]" style={{ background: `linear-gradient(180deg, ${BG} 0%, transparent 100%)` }} />
       <div className="absolute inset-x-0 bottom-0 h-[20vh]" style={{ background: `linear-gradient(0deg, ${BG} 0%, transparent 100%)` }} />
     </div>
+  )
+}
+
+/* ─── HeroDashboard — live synthesis mock (right side of the hero) ────── */
+
+function HeroDashboard() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.85, delay: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+      className="relative w-full"
+      style={{ perspective: 1400 }}
+    >
+      <div
+        className="relative overflow-hidden"
+        style={{
+          background: ELEVATED,
+          border: `1px solid ${HAIR}`,
+          boxShadow: `0 60px 140px rgba(0,0,0,0.7), 0 0 80px ${G_DIM}, inset 0 0 80px rgba(16,185,129,0.04)`,
+        }}
+      >
+        {/* Browser chrome */}
+        <div className="flex items-center gap-2 border-b px-4 py-2.5" style={{ borderColor: HAIR, background: BG }}>
+          <span className="h-2 w-2 rounded-full" style={{ background: '#EF4444' }} />
+          <span className="h-2 w-2 rounded-full" style={{ background: '#F59E0B' }} />
+          <span className="h-2 w-2 rounded-full" style={{ background: GREEN }} />
+          <span className="ml-3 text-[10px]" style={{ fontFamily: MONO, color: DIM }}>synth.app/today</span>
+          <span className="ml-auto flex items-center gap-1.5 text-[9px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: GREEN }}>
+            <motion.span
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: GREEN, boxShadow: `0 0 8px ${GREEN}` }}
+            />
+            live
+          </span>
+        </div>
+
+        {/* SOURCES row — incoming signals with pulsing dots */}
+        <div className="border-b px-5 py-4" style={{ borderColor: HAIR }}>
+          <div className="mb-3 flex items-center gap-3 text-[9px] uppercase tracking-[0.28em]" style={{ fontFamily: MONO, color: DIM }}>
+            <span>// syncing 16 sources</span>
+            <span className="h-px flex-1" style={{ background: HAIR }} />
+            <span style={{ color: GREEN }}>auto</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { name: 'whoop',  value: 'HRV 58',     unit: 'ms'  },
+              { name: 'strava', value: '8.4',       unit: 'mi'  },
+              { name: 'oura',   value: '7h 32',     unit: 'sleep' },
+              { name: 'garmin', value: '142',       unit: 'bpm' },
+            ].map((s, i) => (
+              <motion.div
+                key={s.name}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5 + i * 0.08 }}
+                className="flex flex-col gap-1.5 border px-2.5 py-2"
+                style={{ borderColor: FAINT, background: BG, fontFamily: MONO }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <motion.span
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
+                    className="inline-block h-1.5 w-1.5 rounded-full"
+                    style={{ background: GREEN, boxShadow: `0 0 6px ${GREEN}` }}
+                  />
+                  <span className="text-[8px] uppercase tracking-[0.22em]" style={{ color: MUTED }}>{s.name}</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[14px] leading-none" style={{ color: FG }}>{s.value}</span>
+                  <span className="text-[9px]" style={{ color: DIM }}>{s.unit}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Synthesis arrows — visual "data flowing into the center" */}
+        <div className="relative h-6 border-b" style={{ borderColor: HAIR, background: BG }}>
+          <svg viewBox="0 0 400 24" className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+            {[50, 150, 250, 350].map((x, i) => (
+              <motion.line
+                key={x}
+                x1={x} y1="0" x2="200" y2="24"
+                stroke={GREEN}
+                strokeWidth="0.7"
+                strokeOpacity="0.4"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: [0, 1, 1, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: i * 0.4 }}
+              />
+            ))}
+            <circle cx="200" cy="22" r="2.5" fill={GREEN} />
+          </svg>
+        </div>
+
+        {/* SYNTHESIS row — readiness + load */}
+        <div className="grid grid-cols-2 gap-px border-b" style={{ borderColor: HAIR, background: HAIR }}>
+          {/* Readiness gauge */}
+          <div className="flex flex-col justify-between px-5 py-5" style={{ background: BG }}>
+            <div className="text-[9px] uppercase tracking-[0.28em]" style={{ fontFamily: MONO, color: GREEN }}>
+              readiness
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 1.0 }}
+                style={{ fontFamily: DRUK, fontSize: 68, lineHeight: 0.9, color: GREEN, textShadow: `0 0 24px ${G_GLOW}` }}
+              >
+                84
+              </motion.span>
+              <span className="text-[11px]" style={{ fontFamily: MONO, color: DIM }}>/ 100</span>
+            </div>
+            <div className="mt-2 text-[10px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: GREEN }}>
+              ready · go hard
+            </div>
+            {/* Mini ring */}
+            <svg viewBox="0 0 80 8" className="mt-3 h-2 w-full">
+              <rect x="0" y="3" width="80" height="2" fill={HAIR} />
+              <motion.rect
+                y="3" height="2" fill={GREEN}
+                initial={{ width: 0 }}
+                animate={{ width: 67 }}
+                transition={{ duration: 1.2, delay: 1.0, ease: 'easeOut' }}
+              />
+            </svg>
+          </div>
+
+          {/* Training load */}
+          <div className="flex flex-col justify-between px-5 py-5" style={{ background: BG }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] uppercase tracking-[0.28em]" style={{ fontFamily: MONO, color: DIM }}>
+                training load
+              </span>
+              <span className="text-[9px]" style={{ fontFamily: MONO, color: GREEN }}>↑ 12%</span>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span style={{ fontFamily: DRUK, fontSize: 44, lineHeight: 0.9, color: FG }}>7.2</span>
+              <span className="text-[11px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: MUTED }}>moderate</span>
+            </div>
+            <svg viewBox="0 0 100 24" className="mt-2 h-7 w-full">
+              <motion.polyline
+                fill="none"
+                stroke={GREEN}
+                strokeWidth="1.4"
+                points="0,18 10,16 20,14 30,18 40,12 50,14 60,10 70,8 80,12 90,6 100,4"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.4, delay: 1.0, ease: 'easeInOut' }}
+              />
+              <motion.circle
+                cx="100" cy="4" r="2.5" fill={GREEN}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1] }}
+                transition={{ duration: 0.3, delay: 2.3 }}
+                style={{ filter: `drop-shadow(0 0 4px ${GREEN})` }}
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* PATTERN DETECTED — the "wow" moment */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 1.5 }}
+          className="px-5 py-5"
+          style={{ background: `linear-gradient(180deg, ${BG} 0%, rgba(16,185,129,0.06) 100%)` }}
+        >
+          <div className="flex items-center gap-2">
+            <motion.span
+              animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.15, 1] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: GREEN, boxShadow: `0 0 8px ${GREEN}` }}
+            />
+            <span className="text-[9px] uppercase tracking-[0.28em]" style={{ fontFamily: MONO, color: GREEN }}>
+              pattern detected — across 184 days
+            </span>
+          </div>
+          <div className="mt-3 text-[13px] leading-snug" style={{ fontFamily: BODY, color: FG }}>
+            Your last <span style={{ color: GREEN, fontWeight: 600 }}>4 PR weeks</span> all share:
+            HRV <span style={{ color: GREEN, fontWeight: 600 }}>≥55ms</span>,
+            sleep <span style={{ color: GREEN, fontWeight: 600 }}>≥7h</span>,
+            <span style={{ color: GREEN, fontWeight: 600 }}> low-RPE day prior</span>.
+          </div>
+          <div className="mt-2 flex items-center gap-3 text-[9px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: DIM }}>
+            <span>confidence 94%</span>
+            <span className="h-px flex-1" style={{ background: HAIR }} />
+            <span style={{ color: GREEN }}>view source rows ›</span>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Floating "synthesizing" badge — bottom-right */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 1.8 }}
+        className="absolute -bottom-4 -right-2 hidden sm:block"
+        style={{
+          background: GREEN,
+          color: '#000',
+          padding: '8px 14px',
+          fontFamily: MONO,
+          fontSize: 10,
+          letterSpacing: '0.28em',
+          textTransform: 'uppercase',
+          boxShadow: `0 0 40px ${G_GLOW}`,
+        }}
+      >
+        synthesized · 6:04 am
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -239,11 +427,12 @@ function BillboardPillar({ pillar, flip }: { pillar: Pillar; flip: boolean }) {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: 0.55 }}
-            className="mt-5 leading-[0.86] tracking-[-0.02em]"
+            className="mt-5 tracking-[-0.02em]"
             style={{
               fontFamily: DRUK,
               fontSize: 'clamp(56px, 10vw, 140px)',
               textTransform: 'uppercase',
+              lineHeight: 0.95,
             }}
           >
             {pillar.word}<span style={{ color: GREEN }}>.</span>
@@ -412,11 +601,12 @@ function ToolWall() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
-          className="leading-[0.92] tracking-[-0.015em]"
+          className="tracking-[-0.015em]"
           style={{
             fontFamily: DRUK,
             fontSize: 'clamp(44px, 7vw, 112px)',
             textTransform: 'uppercase',
+            lineHeight: 1.05,
           }}
         >
           Connect <KO>anything</KO>.
@@ -492,11 +682,12 @@ function TeamSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
-          className="leading-[0.92] tracking-[-0.015em]"
+          className="tracking-[-0.015em]"
           style={{
             fontFamily: DRUK,
             fontSize: 'clamp(44px, 7vw, 112px)',
             textTransform: 'uppercase',
+            lineHeight: 1.05,
           }}
         >
           Built by <KO>champions</KO>.
@@ -554,8 +745,8 @@ function Pricing({ onStart }: { onStart: () => void }) {
 
       <div className="relative z-10 mx-auto mt-12 w-full max-w-[1280px]">
         <h2
-          className="leading-[0.92] tracking-[-0.015em]"
-          style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase' }}
+          className="tracking-[-0.015em]"
+          style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase', lineHeight: 1.05 }}
         >
           Start <KO>free</KO>. Pick your tier when you're ready.
         </h2>
@@ -602,21 +793,8 @@ function Pricing({ onStart }: { onStart: () => void }) {
         </div>
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={onStart}
-            className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-            style={{ background: GREEN, color: '#000', fontFamily: MONO, boxShadow: `0 0 36px ${G_GLOW}` }}
-          >
-            get the app →
-          </button>
-          <Link
-            to="/sports/teams"
-            className="border px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
-            style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
-          >
-            talk to us about teams
-          </Link>
+          <PrimaryButton onClick={onStart}>get the app →</PrimaryButton>
+          <OutlineButton to="/sports/teams">talk to us about teams</OutlineButton>
           <span className="text-[11px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: DIM }}>
             no credit card
           </span>

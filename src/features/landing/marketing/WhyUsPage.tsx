@@ -45,8 +45,8 @@ export function WhyUsPage() {
         <SectionLabel align="center">// our manifesto</SectionLabel>
         <div className="relative z-10 mx-auto mt-12 max-w-[920px] text-center">
           <h2
-            className="leading-[1.0] tracking-[-0.01em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 6vw, 88px)', textTransform: 'uppercase' }}
+            className="tracking-[-0.01em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 6vw, 88px)', textTransform: 'uppercase', lineHeight: 1.08 }}
           >
             Your training shouldn't live in <KO>six apps</KO>.<br />
             <span style={{ color: MUTED }}>Your story shouldn't either.</span>
@@ -68,8 +68,8 @@ export function WhyUsPage() {
         <SectionLabel>// the path</SectionLabel>
         <div className="relative z-10 mx-auto mt-12 w-full max-w-[1080px]">
           <h2
-            className="leading-[0.92] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 80px)', textTransform: 'uppercase' }}
+            className="tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 80px)', textTransform: 'uppercase', lineHeight: 1.05 }}
           >
             From the <KO>boat</KO> to the <KO>build</KO>.
           </h2>
@@ -116,8 +116,8 @@ export function WhyUsPage() {
         <SectionLabel>// the team</SectionLabel>
         <div className="relative z-10 mx-auto mt-12 w-full max-w-[1280px]">
           <h2
-            className="leading-[0.92] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase' }}
+            className="tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase', lineHeight: 1.05 }}
           >
             Built by <KO>champions</KO>.
           </h2>

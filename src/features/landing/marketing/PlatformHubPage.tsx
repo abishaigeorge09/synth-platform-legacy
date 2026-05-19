@@ -65,8 +65,8 @@ export function PlatformHubPage() {
 
         <div className="relative z-10 mx-auto mt-12 w-full max-w-[1280px]">
           <h2
-            className="leading-[0.92] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase' }}
+            className="tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase', lineHeight: 1.05 }}
           >
             Transform how your <KO>training operates</KO>.
           </h2>
@@ -124,8 +124,8 @@ export function PlatformHubPage() {
 
         <div className="relative z-10 mx-auto mt-12 w-full max-w-[1280px]">
           <h2
-            className="leading-[0.92] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 5vw, 72px)', textTransform: 'uppercase' }}
+            className="tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 5vw, 72px)', textTransform: 'uppercase', lineHeight: 1.05 }}
           >
             Support every <KO>athlete</KO>, every <KO>team</KO>.
           </h2>

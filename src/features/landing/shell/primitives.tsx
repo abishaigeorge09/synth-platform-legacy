@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -6,7 +7,12 @@ import {
   DRUK, MONO,
 } from './tokens'
 
-/* ─── KO — green knockout highlight on a key noun ────────────────────── */
+/* ─── KO — green knockout highlight on a key noun ─────────────────────────
+ *  Critical: an inline-block with its own line-height so the box can't
+ *  bleed up into the line above when the parent heading uses a tight
+ *  (sub-1.0) line-height. vertical-align: baseline keeps it sitting on
+ *  the type baseline. padding: '0.04em 0.16em' adds a hair of breathing
+ *  room without making the box overflow the line. */
 
 export function KO({ children }: { children: React.ReactNode }) {
   return (
@@ -14,14 +20,99 @@ export function KO({ children }: { children: React.ReactNode }) {
       style={{
         background: GREEN,
         color: '#000',
-        padding: '0 0.16em',
+        padding: '0.04em 0.16em',
         marginRight: '0.04em',
-        boxDecorationBreak: 'clone',
-        WebkitBoxDecorationBreak: 'clone',
+        display: 'inline-block',
+        lineHeight: '0.92',
+        verticalAlign: 'baseline',
       }}
     >
       {children}
     </span>
+  )
+}
+
+/* ─── Buttons — state-based hover so inline styles don't clobber it ─── */
+
+export function PrimaryButton({
+  to, onClick, children, external,
+}: {
+  to?: string
+  onClick?: () => void
+  children: React.ReactNode
+  external?: boolean
+}) {
+  const [hover, setHover] = useState(false)
+  const style: React.CSSProperties = {
+    background: hover ? '#fff' : GREEN,
+    color: '#000',
+    fontFamily: MONO,
+    boxShadow: hover ? `0 0 60px ${G_GLOW}` : `0 0 32px ${G_GLOW}`,
+    transition: 'background 0.18s ease, box-shadow 0.18s ease',
+  }
+  const className = 'inline-flex items-center gap-2 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]'
+  const enter = () => setHover(true)
+  const leave = () => setHover(false)
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+        {children}
+      </button>
+    )
+  }
+  if (external && to) {
+    return (
+      <a href={to} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+        {children}
+      </a>
+    )
+  }
+  return (
+    <Link to={to ?? '#'} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+      {children}
+    </Link>
+  )
+}
+
+export function OutlineButton({
+  to, onClick, children, external,
+}: {
+  to?: string
+  onClick?: () => void
+  children: React.ReactNode
+  external?: boolean
+}) {
+  const [hover, setHover] = useState(false)
+  const style: React.CSSProperties = {
+    background: hover ? '#fff' : 'transparent',
+    color: hover ? '#000' : FG,
+    fontFamily: MONO,
+    border: `1px solid ${hover ? '#fff' : FAINT}`,
+    transition: 'background 0.18s ease, color 0.18s ease, border-color 0.18s ease',
+  }
+  const className = 'inline-flex items-center gap-2 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]'
+  const enter = () => setHover(true)
+  const leave = () => setHover(false)
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+        {children}
+      </button>
+    )
+  }
+  if (external && to) {
+    return (
+      <a href={to} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+        {children}
+      </a>
+    )
+  }
+  return (
+    <Link to={to ?? '#'} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+      {children}
+    </Link>
   )
 }
 
@@ -406,6 +497,7 @@ export function StandardHero({
   secondaryCta,
   media,
 }: StandardHeroProps) {
+  const isExternal = (t?: string) => !!t && /^(mailto:|https?:|tel:)/.test(t)
   return (
     <section
       className="relative overflow-hidden px-5 sm:px-10 pt-32 pb-20 sm:pt-40 sm:pb-24"
@@ -423,11 +515,12 @@ export function StandardHero({
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
-            className="mt-5 leading-[0.88] tracking-[-0.015em]"
+            className="mt-5 tracking-[-0.015em]"
             style={{
               fontFamily: DRUK,
               fontSize: 'clamp(48px, 7.5vw, 112px)',
               textTransform: 'uppercase',
+              lineHeight: 1.02,
             }}
           >
             {headline}
@@ -438,33 +531,18 @@ export function StandardHero({
           {(primaryCta || secondaryCta) && (
             <div className="mt-8 flex flex-wrap items-center gap-3">
               {primaryCta && (
-                primaryCta.onClick ? (
-                  <button
-                    type="button"
-                    onClick={primaryCta.onClick}
-                    className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-                    style={{ background: GREEN, color: '#000', fontFamily: MONO, boxShadow: `0 0 32px ${G_GLOW}` }}
-                  >
-                    {primaryCta.label} →
-                  </button>
-                ) : (
-                  <Link
-                    to={primaryCta.to}
-                    className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-                    style={{ background: GREEN, color: '#000', fontFamily: MONO, boxShadow: `0 0 32px ${G_GLOW}` }}
-                  >
-                    {primaryCta.label} →
-                  </Link>
-                )
+                <PrimaryButton
+                  to={primaryCta.to}
+                  onClick={primaryCta.onClick}
+                  external={isExternal(primaryCta.to)}
+                >
+                  {primaryCta.label} →
+                </PrimaryButton>
               )}
               {secondaryCta && (
-                <Link
-                  to={secondaryCta.to}
-                  className="border px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
-                  style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
-                >
+                <OutlineButton to={secondaryCta.to} external={isExternal(secondaryCta.to)}>
                   {secondaryCta.label}
-                </Link>
+                </OutlineButton>
               )}
             </div>
           )}
@@ -508,8 +586,8 @@ export function ValueBridge({
             // {eyebrow}
           </div>
           <h2
-            className="mt-5 leading-[0.92] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase' }}
+            className="mt-5 tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase', lineHeight: 1.05 }}
           >
             {headline}
           </h2>
@@ -565,8 +643,8 @@ export function CapabilityList({
         )}
         {title && (
           <h2
-            className="mt-4 leading-[0.92] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 5vw, 72px)', textTransform: 'uppercase' }}
+            className="mt-4 tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(36px, 5vw, 72px)', textTransform: 'uppercase', lineHeight: 1.05 }}
           >
             {title}
           </h2>
@@ -714,6 +792,7 @@ export function ClosingCta({
   primary: { label: string; to: string; onClick?: () => void }
   secondary?: { label: string; to: string }
 }) {
+  const isExternal = (t?: string) => !!t && /^(mailto:|https?:|tel:)/.test(t)
   return (
     <section
       className="relative flex min-h-[70vh] items-center overflow-hidden border-t px-5 sm:px-10 py-24"
@@ -733,8 +812,8 @@ export function ClosingCta({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
-          className="leading-[0.88] tracking-[-0.02em]"
-          style={{ fontFamily: DRUK, fontSize: 'clamp(56px, 10vw, 160px)', textTransform: 'uppercase' }}
+          className="tracking-[-0.02em]"
+          style={{ fontFamily: DRUK, fontSize: 'clamp(48px, 8vw, 128px)', textTransform: 'uppercase', lineHeight: 1.02 }}
         >
           {headline}
         </motion.h2>
@@ -744,32 +823,17 @@ export function ClosingCta({
           </p>
         )}
         <div className="mt-10 flex flex-wrap items-center gap-3">
-          {primary.onClick ? (
-            <button
-              type="button"
-              onClick={primary.onClick}
-              className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-              style={{ background: GREEN, color: '#000', fontFamily: MONO, boxShadow: `0 0 36px ${G_GLOW}` }}
-            >
-              {primary.label} →
-            </button>
-          ) : (
-            <Link
-              to={primary.to}
-              className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-              style={{ background: GREEN, color: '#000', fontFamily: MONO, boxShadow: `0 0 36px ${G_GLOW}` }}
-            >
-              {primary.label} →
-            </Link>
-          )}
+          <PrimaryButton
+            to={primary.to}
+            onClick={primary.onClick}
+            external={isExternal(primary.to)}
+          >
+            {primary.label} →
+          </PrimaryButton>
           {secondary && (
-            <Link
-              to={secondary.to}
-              className="border px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
-              style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
-            >
+            <OutlineButton to={secondary.to} external={isExternal(secondary.to)}>
               {secondary.label}
-            </Link>
+            </OutlineButton>
           )}
         </div>
       </div>

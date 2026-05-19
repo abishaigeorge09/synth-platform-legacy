@@ -34,8 +34,8 @@ export function ResourcesPage() {
             // resources
           </div>
           <h1
-            className="mt-5 leading-[0.92] tracking-[-0.015em]"
-            style={{ fontFamily: DRUK, fontSize: 'clamp(56px, 9vw, 144px)', textTransform: 'uppercase' }}
+            className="mt-5 tracking-[-0.015em]"
+            style={{ fontFamily: DRUK, fontSize: 'clamp(56px, 9vw, 144px)', textTransform: 'uppercase', lineHeight: 1.02 }}
           >
             How synth <KO>thinks</KO>.
           </h1>

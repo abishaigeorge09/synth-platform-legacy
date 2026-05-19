@@ -1,637 +1,623 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 import { THEME } from '../../lib/theme'
 import { useInstallPrompt } from './useInstallPrompt'
-import { Hero3D } from './Hero3D'
-import { MockConnect, MockSynthesize, MockDashboard, MockAthleteView, MockAI } from './StepMockups'
 
-/* ─── Dark-section constants ──────────────────────────────────────────── */
+/* ─── Palette ─────────────────────────────────────────────────────────── */
 
-const BG        = '#000000'
-const SURFACE   = '#0a0a0a'
-const CARD      = '#0f0f10'
-const BORDER    = 'rgba(255,255,255,0.07)'
-const BORDER_HI = 'rgba(255,255,255,0.13)'
-const T1        = '#ffffff'
-const T2        = 'rgba(255,255,255,0.50)'
-const T3        = 'rgba(255,255,255,0.25)'
-const GREEN     = '#10B981'
-const G_DIM     = 'rgba(16,185,129,0.10)'
-const G_GLOW    = 'rgba(16,185,129,0.22)'
-const FONT_MONO = THEME.fontMono
-const FONT_SERIF = THEME.fontSerif
+const BG     = '#000000'
+const FG     = '#ffffff'
+const DIM    = 'rgba(255,255,255,0.42)'
+const FAINT  = 'rgba(255,255,255,0.16)'
+const HAIR   = 'rgba(255,255,255,0.10)'
+const NEON   = '#22ee99'
+const RED    = '#ff3b30'
+const MONO   = THEME.fontMono
 
-const SPORTS = ['Rowing', 'Track & Field', 'Swimming', 'Baseball / Softball', 'Basketball', 'Soccer', 'Other']
+/* ─── Top nav ─────────────────────────────────────────────────────────── */
 
-type Step = {
-  num: string
-  label: string
-  desc: string
-  url: string
-  Mockup: React.ComponentType
-}
-
-const STEPS: Step[] = [
-  {
-    num: '01',
-    label: 'Connect your sources',
-    desc: 'Link Google Sheets, TeamWorks, Whoop, Strava, and Apple Health in 60 seconds. OAuth handshake — no rip-and-replace.',
-    url: 'synthsports.com/coach/sources',
-    Mockup: MockConnect,
-  },
-  {
-    num: '02',
-    label: 'synth. synthesizes',
-    desc: 'Scheduled scans pull fresh data. The engine normalises athletes, computes training load, recovery readiness, and risk flags.',
-    url: 'synthsports.com/coach/sources/data-view',
-    Mockup: MockSynthesize,
-  },
-  {
-    num: '03',
-    label: 'Coach from one surface',
-    desc: 'Every athlete, every signal in one dashboard. Sort by 2K, wellness, compliance. Build lineups with drag-and-drop.',
-    url: 'synthsports.com/coach/dashboard',
-    Mockup: MockDashboard,
-  },
-  {
-    num: '04',
-    label: 'Athletes see their view',
-    desc: 'Athletes join via invite code. They see their schedule, stats, lineups, coach feedback — nothing else unless you share it.',
-    url: 'synthsports.com/athlete/today',
-    Mockup: MockAthleteView,
-  },
-  {
-    num: '05',
-    label: 'Ask synth. AI',
-    desc: 'Team-wide or athlete-scoped. Every answer carries the exact source rows it drew from — full provenance, no black box.',
-    url: 'synthsports.com/coach/ai',
-    Mockup: MockAI,
-  },
-]
-
-/* ─── Background decorations shared across dark sections ──────────────── */
-
-/** Floating translucent green orbs for depth */
-function Orbs() {
+function Nav({ onDownload, downloadLabel, installed }: {
+  onDownload: () => void
+  downloadLabel: string
+  installed: boolean
+}) {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      {/* Large top-left orb */}
-      <div
-        className="absolute"
-        style={{
-          width: 600,
-          height: 600,
-          borderRadius: '50%',
-          top: -200,
-          left: -180,
-          background: 'radial-gradient(circle, rgba(16,185,129,0.09) 0%, transparent 70%)',
-          filter: 'blur(2px)',
-        }}
-      />
-      {/* Mid-right orb */}
-      <div
-        className="absolute"
-        style={{
-          width: 480,
-          height: 480,
-          borderRadius: '50%',
-          top: '35%',
-          right: -120,
-          background: 'radial-gradient(circle, rgba(5,150,105,0.08) 0%, transparent 70%)',
-        }}
-      />
-      {/* Bottom-center orb */}
-      <div
-        className="absolute"
-        style={{
-          width: 700,
-          height: 300,
-          borderRadius: '50%',
-          bottom: -120,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 70%)',
-        }}
-      />
-    </div>
-  )
-}
-
-/** Dot-grid background pattern. `uid` must be unique per instance to avoid SVG ID collisions. */
-function DotGrid({ uid }: { uid: string }) {
-  const pid = `dg-pat-${uid}`
-  const gid = `dg-grad-${uid}`
-  const mid = `dg-mask-${uid}`
-  return (
-    <svg
-      aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      xmlns="http://www.w3.org/2000/svg"
+    <header
+      className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-5 sm:px-10 py-5"
+      style={{
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${HAIR}`,
+      }}
     >
-      <defs>
-        <pattern id={pid} width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="0.8" fill="rgba(255,255,255,0.06)" />
-        </pattern>
-        <radialGradient id={gid} cx="50%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="white" stopOpacity="1" />
-          <stop offset="100%" stopColor="white" stopOpacity="0" />
-        </radialGradient>
-        <mask id={mid}>
-          <rect width="100%" height="100%" fill={`url(#${gid})`} />
-        </mask>
-      </defs>
-      <rect width="100%" height="100%" fill={`url(#${pid})`} mask={`url(#${mid})`} />
-    </svg>
-  )
-}
-
-
-/* ─── 3D browser-chrome mockup window ────────────────────────────────── */
-
-function MockupWindow({ url, Mockup }: { url: string; Mockup: React.ComponentType }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const mx  = useMotionValue(0)
-  const my  = useMotionValue(0)
-  const sx  = useSpring(mx, { stiffness: 110, damping: 22, mass: 0.5 })
-  const sy  = useSpring(my, { stiffness: 110, damping: 22, mass: 0.5 })
-  const rotY = useTransform(sx, [-1, 1], [7, -7])
-  const rotX = useTransform(sy, [-1, 1], [-4, 4])
-
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    const r = ref.current?.getBoundingClientRect()
-    if (!r) return
-    mx.set(((e.clientX - r.left) / r.width  - 0.5) * 2)
-    my.set(((e.clientY - r.top)  / r.height - 0.5) * 2)
-  }
-  function onLeave() { mx.set(0); my.set(0) }
-
-  return (
-    <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} style={{ perspective: '1200px' }}>
-      {/* Green glow halo */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ boxShadow: `0 0 80px 0 ${G_GLOW}`, borderRadius: 18, zIndex: 0 }}
-      />
-      <motion.div
-        style={{
-          rotateX: rotX,
-          rotateY: rotY,
-          transformStyle: 'preserve-3d',
-          borderRadius: 14,
-          overflow: 'hidden',
-          position: 'relative',
-          zIndex: 1,
-          border: `1px solid ${BORDER_HI}`,
-          boxShadow: [
-            '0 0 0 1px rgba(255,255,255,0.04)',
-            '0 24px 60px rgba(0,0,0,0.88)',
-            '0 60px 120px rgba(0,0,0,0.55)',
-            `0 0 60px 0 ${G_DIM}`,
-          ].join(', '),
-        }}
-      >
-        {/* Browser chrome bar */}
-        <div
-          className="flex items-center gap-2 px-4 py-2.5"
-          style={{ background: '#0a0a0b', borderBottom: `1px solid ${BORDER}` }}
+      <span className="text-[20px] font-semibold leading-none" style={{ fontFamily: MONO, color: FG }}>
+        synth<span style={{ color: NEON }}>.</span>
+      </span>
+      <nav className="flex items-center gap-3 sm:gap-5 text-[11px]" style={{ fontFamily: MONO, color: DIM }}>
+        <a href="#numbers" className="hidden sm:inline transition-colors hover:text-white">the numbers</a>
+        <a href="#proof" className="hidden sm:inline transition-colors hover:text-white">the proof</a>
+        <Link to="/login" className="transition-colors hover:text-white">sign in</Link>
+        <button
+          type="button"
+          onClick={onDownload}
+          disabled={installed}
+          className="rounded-none px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] disabled:opacity-50"
+          style={{
+            background: NEON,
+            color: '#000',
+            fontFamily: MONO,
+            boxShadow: `0 0 24px rgba(34,238,153,0.45)`,
+          }}
         >
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#EF4444' }} />
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#F59E0B' }} />
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#22C55E' }} />
-          <div
-            className="ml-3 flex-1 rounded px-3 py-1 text-[11px] truncate"
-            style={{ background: '#161618', color: T3, fontFamily: FONT_MONO }}
-          >
-            {url}
-          </div>
-        </div>
-
-        {/* React mockup — fixed height so it doesn't collapse */}
-        <div style={{ height: 440, overflow: 'hidden' }}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={url}
-              className="h-full w-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              <Mockup />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </div>
+          {installed ? 'installed' : downloadLabel}
+        </button>
+      </nav>
+    </header>
   )
 }
 
-/* ─── How it works section ────────────────────────────────────────────── */
+/* ─── Hero — manifesto ────────────────────────────────────────────────── */
 
-const STEP_DURATION_MS = 5500
-
-function HowItWorksSection() {
-  const [active, setActive] = useState(0)
-  const [paused, setPaused] = useState(false)
-  const sectionRef = useRef<HTMLElement>(null)
-  // If IntersectionObserver isn't available (very old browser / SSR), treat
-  // the section as always in-view so the loop still runs.
-  const [inView, setInView] = useState(
-    () => typeof IntersectionObserver === 'undefined',
-  )
-
-  /** Pause auto-advance when the section isn't in view — otherwise the
-   *  user scrolls back up to find it three steps further along. */
-  useEffect(() => {
-    const el = sectionRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.3 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-
-  /** Loop: advance every STEP_DURATION_MS while in view + not paused.
-   *  `active` in the deps so a manual click resets the countdown — feels
-   *  more responsive than the user clicking and then watching the bar
-   *  rush to the end of its previous interval. */
-  useEffect(() => {
-    if (paused || !inView) return
-    const id = window.setTimeout(() => {
-      setActive((a) => (a + 1) % STEPS.length)
-    }, STEP_DURATION_MS)
-    return () => window.clearTimeout(id)
-  }, [active, paused, inView])
-
+function ManifestoHero() {
   return (
     <section
-      ref={sectionRef}
-      id="how"
-      className="relative overflow-hidden px-5 sm:px-10 py-20 sm:py-28"
-      style={{ background: BG }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      className="relative flex min-h-dvh flex-col justify-between overflow-hidden px-5 sm:px-10 pt-32 pb-12"
+      style={{ background: BG, color: FG }}
     >
-      <DotGrid uid="how" />
-      <Orbs />
+      {/* hairline grid in background */}
+      <Hairlines />
 
-      <div className="relative z-10 mx-auto w-full max-w-[1220px]">
-        {/* Header — centered above the split */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.45 }}
-          className="mx-auto max-w-[720px] text-center"
+      {/* tiny mono eyebrow — top-left */}
+      <div className="relative z-10 flex items-start justify-between">
+        <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
+          synth. / coach data, unified
+        </div>
+        <div className="hidden sm:block text-[10px] uppercase tracking-[0.3em] text-right" style={{ fontFamily: MONO, color: DIM }}>
+          v 0.1 · beta<br />
+          built for programs
+        </div>
+      </div>
+
+      {/* manifesto type — broken across the grid */}
+      <div className="relative z-10 mt-12 sm:mt-0">
+        <motion.h1
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+          className="select-none font-semibold leading-[0.82] tracking-[-0.045em]"
+          style={{
+            fontFamily: MONO,
+            fontSize: 'clamp(56px, 14vw, 200px)',
+          }}
         >
-          <div
-            className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em]"
-            style={{ border: `1px solid rgba(16,185,129,0.3)`, background: G_DIM, color: GREEN, fontFamily: FONT_MONO }}
+          <span className="block" style={{ color: FG }}>STITCHING</span>
+          <span className="block pl-[8vw]" style={{ color: DIM }}>
+            <span style={{ color: RED, textDecoration: 'line-through', textDecorationColor: RED }}>DATA</span>
+          </span>
+          <span className="block pl-[20vw]" style={{ color: FG }}>IS NOT</span>
+          <span className="block">
+            COACHING<span style={{ color: NEON }}>.</span>
+          </span>
+        </motion.h1>
+      </div>
+
+      {/* bottom row — one-liner + CTAs */}
+      <div className="relative z-10 mt-16 sm:mt-20 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-[480px] text-[13px] leading-snug" style={{ fontFamily: MONO, color: DIM }}>
+          we built synth. so you never have to open another tab.<br />
+          <span style={{ color: FG }}>5 sources. 1 surface. 0 rip-and-replace.</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/coach/dashboard"
+            className="rounded-none px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.22em]"
+            style={{
+              background: NEON,
+              color: '#000',
+              fontFamily: MONO,
+              boxShadow: `0 0 30px rgba(34,238,153,0.5)`,
+            }}
           >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
-            How it works
-          </div>
-
-          <h2
-            className="text-[clamp(30px,4.2vw,48px)] font-semibold leading-[1.05] text-white"
-            style={{ fontFamily: FONT_SERIF }}
+            see what we mean →
+          </Link>
+          <a
+            href="#numbers"
+            className="rounded-none border px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
+            style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
           >
-            Built to handle your entire program.
-          </h2>
-          <p className="mx-auto mt-3 max-w-[500px] text-[14px] leading-relaxed" style={{ color: T2 }}>
-            Five steps, under five minutes. The preview cycles automatically — hover to pause, click any step to jump.
-          </p>
-        </motion.div>
-
-        <div className="mt-12 grid gap-10 lg:grid-cols-12 lg:items-start">
-          {/* LEFT — vertical step timeline */}
-          <div className="lg:col-span-5">
-            <div className="relative">
-              {/* Spine — runs the full height of the timeline behind the badges */}
-              <div
-                className="absolute left-[11px] top-1.5 bottom-1.5 w-px"
-                style={{ background: BORDER }}
-              />
-
-              <ul className="flex flex-col gap-1">
-                {STEPS.map((step, i) => {
-                  const isActive = active === i
-                  const isDone = i < active
-                  return (
-                    <li key={step.num}>
-                      <motion.button
-                        type="button"
-                        onClick={() => setActive(i)}
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.35, delay: i * 0.05 }}
-                        className="group relative flex w-full items-start gap-4 rounded-xl px-3 py-3 text-left transition-colors duration-200"
-                        style={{
-                          background: isActive ? 'rgba(16,185,129,0.05)' : 'transparent',
-                        }}
-                      >
-                        {/* Number badge */}
-                        <span
-                          className="relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300"
-                          style={{
-                            fontFamily: FONT_MONO,
-                            background: isActive ? GREEN : isDone ? G_DIM : '#0a0a0a',
-                            color: isActive ? '#050505' : isDone ? GREEN : T3,
-                            border: `1px solid ${isActive ? GREEN : isDone ? 'rgba(16,185,129,0.4)' : BORDER_HI}`,
-                            boxShadow: isActive ? `0 0 0 4px rgba(16,185,129,0.12)` : 'none',
-                          }}
-                        >
-                          {i + 1}
-                        </span>
-
-                        <span className="min-w-0 flex-1">
-                          <span
-                            className="block text-[15px] font-semibold leading-snug transition-colors duration-200"
-                            style={{ color: isActive ? T1 : T2 }}
-                          >
-                            {step.label}
-                          </span>
-
-                          <AnimatePresence initial={false}>
-                            {isActive && (
-                              <motion.span
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
-                                className="block overflow-hidden"
-                              >
-                                <span className="mt-2 block text-[13px] leading-relaxed" style={{ color: T2 }}>
-                                  {step.desc}
-                                </span>
-
-                                {/* Auto-advance progress bar — keyed on active so it restarts each step */}
-                                <span
-                                  className="relative mt-3 block h-[2px] w-full overflow-hidden rounded-full"
-                                  style={{ background: BORDER }}
-                                  aria-hidden
-                                >
-                                  <motion.span
-                                    key={`${active}-${paused}-${inView}`}
-                                    className="absolute inset-y-0 left-0 block rounded-full"
-                                    style={{ background: GREEN }}
-                                    initial={{ width: '0%' }}
-                                    animate={{ width: paused || !inView ? '0%' : '100%' }}
-                                    transition={{
-                                      duration: paused || !inView ? 0 : STEP_DURATION_MS / 1000,
-                                      ease: 'linear',
-                                    }}
-                                  />
-                                </span>
-                              </motion.span>
-                            )}
-                          </AnimatePresence>
-                        </span>
-                      </motion.button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          </div>
-
-          {/* RIGHT — sticky 3D mockup window */}
-          <div className="relative lg:col-span-7 lg:sticky lg:top-24">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <MockupWindow url={STEPS[active].url} Mockup={STEPS[active].Mockup} />
-            </motion.div>
-
-            {/* Step dots */}
-            <div className="mt-5 flex justify-center gap-2">
-              {STEPS.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setActive(i)}
-                  aria-label={`Go to step ${i + 1}`}
-                  className="rounded-full transition-all duration-300"
-                  style={{
-                    width: active === i ? 22 : 7,
-                    height: 7,
-                    background: active === i ? GREEN : BORDER_HI,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+            scroll ↓
+          </a>
         </div>
       </div>
     </section>
   )
 }
 
-/* ─── Signup section ──────────────────────────────────────────────────── */
+/* ─── Background — thin grid lines ────────────────────────────────────── */
+
+function Hairlines() {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      {/* vertical lines */}
+      {[20, 40, 60, 80].map(p => (
+        <div key={`v-${p}`} className="absolute inset-y-0" style={{ left: `${p}%`, width: 1, background: HAIR }} />
+      ))}
+      {/* one accent line */}
+      <div className="absolute inset-y-0" style={{ left: '60%', width: 1, background: 'rgba(34,238,153,0.12)' }} />
+    </div>
+  )
+}
+
+/* ─── Big numbers — three slabs ───────────────────────────────────────── */
+
+type Slab = { from: string; to: string; label: string; tag: string }
+
+const SLABS: Slab[] = [
+  { tag: '01', from: '45 min', to: '5 min', label: 'weekly roster review' },
+  { tag: '02', from: '5 tools', to: '1 surface', label: 'no rip-and-replace' },
+  { tag: '03', from: 'after', to: '2 weeks before', label: 'you spot the injury' },
+]
+
+function NumbersSection() {
+  return (
+    <section id="numbers" className="relative" style={{ background: BG, color: FG }}>
+      <SectionLabel>// the numbers</SectionLabel>
+      {SLABS.map((s, i) => (
+        <BigSlab key={s.tag} slab={s} index={i} />
+      ))}
+    </section>
+  )
+}
+
+function BigSlab({ slab, index }: { slab: Slab; index: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  })
+  const leftDrift = useTransform(scrollYProgress, [0, 1], [0, -200])
+  const rightDrift = useTransform(scrollYProgress, [0, 1], [0, 200])
+  const x = index % 2 === 0 ? leftDrift : rightDrift
+
+  return (
+    <div
+      ref={ref}
+      className="relative flex min-h-dvh flex-col justify-center overflow-hidden border-t px-5 sm:px-10 py-20"
+      style={{ borderColor: HAIR }}
+    >
+      <Hairlines />
+
+      <div className="relative z-10 mx-auto w-full max-w-[1280px]">
+        <div className="flex items-center gap-4 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
+          <span>{slab.tag}</span>
+          <span className="h-px flex-1" style={{ background: HAIR }} />
+          <span>{slab.label}</span>
+        </div>
+
+        <motion.div
+          style={{ x }}
+          className="mt-8 sm:mt-12 flex flex-wrap items-baseline gap-x-6 sm:gap-x-10"
+        >
+          <span
+            className="font-semibold leading-[0.85] tracking-[-0.045em]"
+            style={{
+              fontFamily: MONO,
+              color: RED,
+              fontSize: 'clamp(64px, 12vw, 180px)',
+              textDecoration: 'line-through',
+              textDecorationThickness: '6px',
+              textDecorationColor: 'rgba(255,59,48,0.7)',
+            }}
+          >
+            {slab.from}
+          </span>
+          <span
+            className="font-semibold leading-[0.85] tracking-[-0.045em]"
+            style={{
+              fontFamily: MONO,
+              color: DIM,
+              fontSize: 'clamp(40px, 6vw, 80px)',
+            }}
+          >
+            →
+          </span>
+          <span
+            className="font-semibold leading-[0.85] tracking-[-0.045em]"
+            style={{
+              fontFamily: MONO,
+              color: NEON,
+              fontSize: 'clamp(64px, 16vw, 240px)',
+              textShadow: `0 0 60px rgba(34,238,153,0.35)`,
+            }}
+          >
+            {slab.to}
+          </span>
+        </motion.div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Sources collapse — 5 → 1 ────────────────────────────────────────── */
+
+const SOURCES = ['WHOOP', 'STRAVA', 'TEAMWORKS', 'SHEETS', 'VIDEO']
+
+function SourcesSection() {
+  return (
+    <section className="relative overflow-hidden border-t px-5 sm:px-10 py-24 sm:py-32" style={{ background: BG, color: FG, borderColor: HAIR }}>
+      <Hairlines />
+      <SectionLabel>// every tool you already use</SectionLabel>
+
+      <div className="relative z-10 mx-auto mt-16 w-full max-w-[1280px]">
+        <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto_1fr]">
+          {/* left — 5 sources stacked */}
+          <div className="flex flex-col gap-3">
+            {SOURCES.map((s, i) => (
+              <motion.div
+                key={s}
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                className="flex items-center justify-between border px-5 py-4"
+                style={{ borderColor: FAINT, fontFamily: MONO }}
+              >
+                <span className="text-[18px] sm:text-[22px] font-semibold tracking-tight" style={{ color: FG }}>
+                  {s}
+                </span>
+                <span
+                  className="inline-flex h-2 w-2 rounded-full"
+                  style={{ background: NEON, boxShadow: `0 0 10px ${NEON}` }}
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* middle — giant arrow */}
+          <div className="flex items-center justify-center py-8 lg:py-0">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.6 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="text-[120px] sm:text-[180px] leading-none"
+              style={{ fontFamily: MONO, color: NEON, textShadow: `0 0 40px rgba(34,238,153,0.5)` }}
+            >
+              →
+            </motion.div>
+          </div>
+
+          {/* right — synth surface */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.55, delay: 0.55 }}
+            className="border p-8 sm:p-10"
+            style={{
+              borderColor: NEON,
+              background: 'rgba(34,238,153,0.04)',
+              boxShadow: `0 0 80px rgba(34,238,153,0.18), inset 0 0 60px rgba(34,238,153,0.05)`,
+              fontFamily: MONO,
+            }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.3em]" style={{ color: NEON }}>
+              one surface
+            </div>
+            <div className="mt-3 text-[40px] sm:text-[64px] font-semibold leading-[0.9]" style={{ color: FG }}>
+              synth<span style={{ color: NEON }}>.</span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-[11px]" style={{ color: DIM }}>
+              <div>· every athlete</div>
+              <div>· every signal</div>
+              <div>· every morning</div>
+              <div>· no migration</div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* tagline below */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+          className="mt-16 text-center"
+        >
+          <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
+            keep what works. plug it in. walk away.
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── Proof — Pacific Women's Rowing ──────────────────────────────────── */
+
+function ProofSection() {
+  return (
+    <section
+      id="proof"
+      className="relative overflow-hidden border-t px-5 sm:px-10 py-24 sm:py-32"
+      style={{ background: BG, color: FG, borderColor: HAIR }}
+    >
+      <Hairlines />
+      <SectionLabel>// real team, real numbers</SectionLabel>
+
+      <div className="relative z-10 mx-auto mt-16 w-full max-w-[1280px]">
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.55 }}
+          className="font-semibold leading-[0.88] tracking-[-0.04em]"
+          style={{
+            fontFamily: MONO,
+            fontSize: 'clamp(40px, 7vw, 96px)',
+          }}
+        >
+          PACIFIC WOMEN'S ROWING.
+          <br />
+          <span style={{ color: DIM }}>46 ATHLETES.</span>
+          <br />
+          <span>ONE SCREEN<span style={{ color: NEON }}>.</span></span>
+        </motion.h2>
+
+        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { k: '46', v: 'athletes synced' },
+            { k: '5', v: 'sources connected' },
+            { k: '2', v: 'flags caught early' },
+            { k: '45→5', v: 'min review/week' },
+          ].map(m => (
+            <motion.div
+              key={m.v}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.45 }}
+              className="border p-6"
+              style={{ borderColor: FAINT, fontFamily: MONO }}
+            >
+              <div className="text-[44px] sm:text-[56px] font-semibold leading-none tracking-tight" style={{ color: NEON }}>
+                {m.k}
+              </div>
+              <div className="mt-3 text-[10px] uppercase tracking-[0.22em]" style={{ color: DIM }}>
+                {m.v}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mt-16 max-w-[820px] border-l-2 pl-6"
+          style={{ borderColor: NEON }}
+        >
+          <p className="text-[20px] sm:text-[28px] leading-snug" style={{ fontFamily: MONO, color: FG }}>
+            "synth. flagged Star's HRV drop a week before she would have.
+            we pulled back load that tuesday — race weekend was still on."
+          </p>
+          <div className="mt-4 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
+            — head coach · pacific women's rowing
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── Big CTA slab ────────────────────────────────────────────────────── */
+
+function BigCtaSection({ onDownload, downloadLabel, installed }: {
+  onDownload: () => void
+  downloadLabel: string
+  installed: boolean
+}) {
+  return (
+    <section
+      className="relative flex min-h-dvh items-center overflow-hidden border-t px-5 sm:px-10 py-24"
+      style={{ background: BG, color: FG, borderColor: HAIR }}
+    >
+      {/* gigantic green wash */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          width: '120vw',
+          height: '60vh',
+          background: 'radial-gradient(ellipse, rgba(34,238,153,0.18) 0%, transparent 65%)',
+        }}
+      />
+      <Hairlines />
+
+      <div className="relative z-10 mx-auto w-full max-w-[1280px]">
+        <motion.h2
+          initial={{ opacity: 0, scale: 0.96 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.6 }}
+          className="font-semibold leading-[0.85] tracking-[-0.045em]"
+          style={{ fontFamily: MONO, fontSize: 'clamp(64px, 14vw, 220px)' }}
+        >
+          TYPE LESS<span style={{ color: NEON }}>.</span>
+          <br />
+          <span style={{ color: NEON }}>KNOW MORE.</span>
+        </motion.h2>
+
+        <div className="mt-12 flex flex-wrap items-center gap-4">
+          <Link
+            to="/coach/dashboard"
+            className="rounded-none px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.22em]"
+            style={{
+              background: NEON,
+              color: '#000',
+              fontFamily: MONO,
+              boxShadow: `0 0 40px rgba(34,238,153,0.55)`,
+            }}
+          >
+            open the demo →
+          </Link>
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={installed}
+            className="rounded-none border px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.22em] disabled:opacity-50 transition-colors hover:bg-white hover:text-black"
+            style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
+          >
+            {installed ? 'installed' : downloadLabel}
+          </button>
+          <a
+            href="#signup"
+            className="text-[11px] uppercase tracking-[0.22em] underline-offset-4 hover:underline"
+            style={{ fontFamily: MONO, color: DIM }}
+          >
+            or join the beta →
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── Cold FAQ — minimal mono cards ───────────────────────────────────── */
+
+const FAQS = [
+  { q: 'rip out my current tools?', a: 'no. synth. reads from what you already use.' },
+  { q: 'do athletes install anything?', a: 'one tap PWA on their phone. no app store.' },
+  { q: 'what sports?', a: 'rowing now. track, swim, basketball next.' },
+  { q: 'where does the data live?', a: 'your tenant. athletes see only what you allow.' },
+  { q: 'cost?', a: 'free for the first 3 programs in beta.' },
+]
+
+function ColdFaq() {
+  return (
+    <section className="relative border-t px-5 sm:px-10 py-20 sm:py-28" style={{ background: BG, color: FG, borderColor: HAIR }}>
+      <SectionLabel>// fast answers</SectionLabel>
+
+      <div className="relative z-10 mx-auto mt-12 grid w-full max-w-[1280px] gap-px sm:grid-cols-2 lg:grid-cols-3" style={{ background: HAIR }}>
+        {FAQS.map((f, i) => (
+          <motion.div
+            key={f.q}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.3, delay: i * 0.04 }}
+            className="flex flex-col gap-3 p-6"
+            style={{ background: BG, fontFamily: MONO }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.3em]" style={{ color: NEON }}>
+              q.0{i + 1}
+            </div>
+            <div className="text-[15px] leading-snug" style={{ color: FG }}>
+              {f.q}
+            </div>
+            <div className="text-[13px] leading-relaxed" style={{ color: DIM }}>
+              → {f.a}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ─── Signup — tight, mono ────────────────────────────────────────────── */
 
 function SignupSection() {
-  const [role, setRole] = useState<'Coach' | 'Athlete' | 'AD' | null>(null)
   const [done, setDone] = useState(false)
 
   return (
     <section
       id="signup"
-      className="relative overflow-hidden px-5 sm:px-10 py-24 sm:py-32"
-      style={{ background: BG }}
+      className="relative overflow-hidden border-t px-5 sm:px-10 py-24 sm:py-32"
+      style={{ background: BG, color: FG, borderColor: HAIR }}
     >
-      <DotGrid uid="signup" />
-      <Orbs />
+      <Hairlines />
 
-      {/* Central green bloom */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{
-          width: 800,
-          height: 400,
-          background: `radial-gradient(ellipse, rgba(16,185,129,0.10) 0%, transparent 70%)`,
-          borderRadius: '50%',
-        }}
-      />
-
-      {/* No hard divider — flows from the how-it-works section */}
-
-      <div className="relative z-10 mx-auto max-w-[620px]">
-        {/* Label */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.4 }}
+      <div className="relative z-10 mx-auto w-full max-w-[680px]">
+        <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: NEON }}>
+          // beta access
+        </div>
+        <h2
+          className="mt-4 font-semibold leading-[0.9] tracking-[-0.04em]"
+          style={{ fontFamily: MONO, fontSize: 'clamp(40px, 6vw, 80px)' }}
         >
-          <div
-            className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em]"
-            style={{ border: `1px solid rgba(16,185,129,0.3)`, background: G_DIM, color: GREEN, fontFamily: FONT_MONO }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
-            Early access
-          </div>
+          WALK INTO MONDAY<br />
+          ALREADY KNOWING<span style={{ color: NEON }}>.</span>
+        </h2>
+        <div className="mt-5 text-[12px] uppercase tracking-[0.18em]" style={{ fontFamily: MONO, color: DIM }}>
+          250+ coaches & athletes in. free for the first 3 programs.
+        </div>
 
-          <h2
-            className="text-[clamp(34px,5vw,56px)] font-semibold leading-[1.03] text-white"
-            style={{ fontFamily: FONT_SERIF }}
-          >
-            Join the Beta.
-          </h2>
-          <p className="mt-3 text-[15px] leading-relaxed" style={{ color: T2 }}>
-            250+ coaches and athletes already signed up. Free for the first 3 programs — no credit card required.
-          </p>
-        </motion.div>
-
-        {/* Form / success */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.08 }}
-        >
-          {done ? (
-            <div
-              className="mt-10 rounded-2xl border p-10 text-center"
-              style={{ background: CARD, borderColor: BORDER_HI }}
-            >
-              {/* Green check ring */}
-              <div
-                className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
-                style={{ background: G_DIM, border: `1px solid rgba(16,185,129,0.3)` }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              </div>
-              <div className="text-[22px] font-bold text-white mb-2" style={{ fontFamily: FONT_SERIF }}>
-                You're on the list.
-              </div>
-              <div className="text-[14px]" style={{ color: T2 }}>
-                We'll reach out with early access details within a week.
-              </div>
+        {done ? (
+          <div className="mt-10 border p-8" style={{ borderColor: NEON, background: 'rgba(34,238,153,0.04)' }}>
+            <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: NEON }}>
+              you're in.
             </div>
-          ) : (
-            <form
-              className="mt-10 rounded-2xl border p-6 sm:p-8 flex flex-col gap-5"
+            <div className="mt-3 text-[18px]" style={{ fontFamily: MONO, color: FG }}>
+              expect a note this week.
+            </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={e => { e.preventDefault(); setDone(true) }}
+            className="mt-10 flex flex-col gap-3"
+          >
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
+              <MonoInput required type="text" placeholder="your name" />
+              <MonoInput required type="email" placeholder="coach@school.edu" />
+            </div>
+            <MonoInput type="text" placeholder="school / org" />
+            <button
+              type="submit"
+              className="mt-2 px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.3em]"
               style={{
-                background: CARD,
-                borderColor: BORDER_HI,
-                boxShadow: `0 0 0 1px ${BORDER}, 0 40px 80px rgba(0,0,0,0.6), 0 0 60px ${G_DIM}`,
+                background: NEON,
+                color: '#000',
+                fontFamily: MONO,
+                boxShadow: `0 0 40px rgba(34,238,153,0.5)`,
               }}
-              onSubmit={(e) => { e.preventDefault(); setDone(true) }}
             >
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  { label: 'Name', placeholder: 'Alex Martinez', type: 'text', req: true, span: false },
-                  { label: 'Email', placeholder: 'coach@university.edu', type: 'email', req: true, span: false },
-                  { label: 'School / Org', placeholder: 'UC Berkeley Athletics', type: 'text', req: false, span: true },
-                ].map(f => (
-                  <label
-                    key={f.label}
-                    className={`flex flex-col gap-1.5 ${f.span ? 'sm:col-span-2' : ''}`}
-                  >
-                    <span
-                      className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-                      style={{ fontFamily: FONT_MONO, color: T3 }}
-                    >
-                      {f.label}
-                    </span>
-                    <input
-                      type={f.type}
-                      required={f.req}
-                      placeholder={f.placeholder}
-                      className="rounded-xl px-3.5 py-2.5 text-[14px] text-white outline-none transition-all"
-                      style={{
-                        background: SURFACE,
-                        border: `1px solid ${BORDER_HI}`,
-                        fontFamily: FONT_MONO,
-                        caretColor: GREEN,
-                      }}
-                      onFocus={e => (e.currentTarget.style.borderColor = GREEN)}
-                      onBlur={e => (e.currentTarget.style.borderColor = BORDER_HI)}
-                    />
-                  </label>
-                ))}
-
-                <label className="flex flex-col gap-1.5">
-                  <span
-                    className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-                    style={{ fontFamily: FONT_MONO, color: T3 }}
-                  >
-                    Sport
-                  </span>
-                  <select
-                    className="rounded-xl px-3.5 py-2.5 text-[14px] text-white outline-none"
-                    style={{ background: SURFACE, border: `1px solid ${BORDER_HI}`, fontFamily: FONT_MONO }}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Select sport</option>
-                    {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </label>
-              </div>
-
-              {/* Role pills */}
-              <div>
-                <div
-                  className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
-                  style={{ fontFamily: FONT_MONO, color: T3 }}
-                >
-                  I am a
-                </div>
-                <div className="flex gap-2">
-                  {(['Coach', 'Athlete', 'AD'] as const).map(r => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRole(r)}
-                      className="rounded-full px-4 py-2 text-[12px] font-semibold uppercase tracking-wider transition-all duration-200"
-                      style={{
-                        fontFamily: FONT_MONO,
-                        border: `1px solid ${role === r ? GREEN : BORDER_HI}`,
-                        background: role === r ? G_DIM : 'transparent',
-                        color: role === r ? GREEN : T2,
-                        boxShadow: role === r ? `0 0 12px ${G_DIM}` : 'none',
-                      }}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                className="w-full rounded-full py-3.5 text-[13px] font-semibold uppercase tracking-wider transition-all hover:scale-[1.01]"
-                style={{
-                  background: GREEN,
-                  color: '#050505',
-                  fontFamily: FONT_MONO,
-                  boxShadow: `0 0 40px ${G_GLOW}, 0 4px 20px rgba(0,0,0,0.4)`,
-                }}
-              >
-                Join →
-              </button>
-
-              <div className="text-center text-[11px]" style={{ fontFamily: FONT_MONO, color: T3 }}>
-                Already have access?{' '}
-                <Link to="/login" className="transition-colors hover:text-white" style={{ color: T2 }}>
-                  Sign in →
-                </Link>
-              </div>
-            </form>
-          )}
-        </motion.div>
+              get in →
+            </button>
+          </form>
+        )}
       </div>
     </section>
+  )
+}
+
+function MonoInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className="bg-transparent px-4 py-3.5 text-[14px] outline-none"
+      style={{
+        border: `1px solid ${FAINT}`,
+        color: FG,
+        fontFamily: MONO,
+        caretColor: NEON,
+      }}
+      onFocus={e => { e.currentTarget.style.borderColor = NEON; props.onFocus?.(e) }}
+      onBlur={e => { e.currentTarget.style.borderColor = FAINT; props.onBlur?.(e) }}
+    />
+  )
+}
+
+/* ─── Section label — tiny mono row ───────────────────────────────────── */
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative z-10 mx-auto flex w-full max-w-[1280px] items-center gap-4 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
+      <span>{children}</span>
+      <span className="h-px flex-1" style={{ background: HAIR }} />
+    </div>
   )
 }
 
@@ -639,28 +625,18 @@ function SignupSection() {
 
 function Footer() {
   return (
-    <footer
-      className="relative px-5 sm:px-10 py-8"
-      style={{ background: '#000000', borderTop: 'none' }}
-    >
-      <div className="mx-auto max-w-[1160px] flex flex-col sm:flex-row items-center justify-between gap-5 text-[11px]" style={{ fontFamily: FONT_MONO, color: T3 }}>
+    <footer className="border-t px-5 sm:px-10 py-10" style={{ background: BG, borderColor: HAIR }}>
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
         <div className="flex items-center gap-3">
-          <span className="text-[17px] font-semibold" style={{ fontFamily: FONT_MONO, color: T1 }}>
-            synth<span style={{ color: GREEN }}>.</span>
-          </span>
-          <span>Every data signal. One platform.</span>
+          <span style={{ color: FG }}>synth<span style={{ color: NEON }}>.</span></span>
+          <span>every data signal. one platform.</span>
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-5">
-          <a href="mailto:supportsynth@gmail.com" className="hover:text-white transition-colors">
-            supportsynth@gmail.com
-          </a>
-          <Link to="/login" className="hover:text-white transition-colors">Sign in</Link>
-          <Link to="/signup" className="hover:text-white transition-colors">Sign up</Link>
-          <Link to="/join/demo" className="hover:text-white transition-colors">Join as athlete</Link>
-          {/* Subtle entry into the gated /app surface — the AccessGate
-              prompts for the demo passcode and lets the visitor in. */}
-          <Link to="/app" className="hover:text-white transition-colors">App access →</Link>
-          <span>© 2026 synth.</span>
+        <div className="flex flex-wrap items-center gap-4">
+          <a href="mailto:supportsynth@gmail.com" className="hover:text-white transition-colors">supportsynth@gmail.com</a>
+          <Link to="/login" className="hover:text-white transition-colors">sign in</Link>
+          <Link to="/signup" className="hover:text-white transition-colors">sign up</Link>
+          <Link to="/app" className="hover:text-white transition-colors">app access →</Link>
+          <span>© 2026</span>
         </div>
       </div>
     </footer>
@@ -674,7 +650,7 @@ export function LandingPage() {
   const [showIosTip, setShowIosTip] = useState(false)
 
   useEffect(() => {
-    document.body.setAttribute('data-app-canvas', 'green')
+    document.body.setAttribute('data-app-canvas', 'black')
     return () => document.body.removeAttribute('data-app-canvas')
   }, [])
 
@@ -684,96 +660,23 @@ export function LandingPage() {
     setShowIosTip(true)
   }
 
+  const downloadLabel = installed ? 'installed' : 'install'
+
   return (
-    <div className="flex min-h-dvh w-full flex-col" style={{ background: '#000000' }}>
-
-      {/* ── Floating nav (over the green hero) ── */}
-      <header
-        className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 sm:px-10 py-5"
-        style={{ color: THEME.white }}
-      >
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[22px] font-semibold leading-none"
-            style={{ fontFamily: THEME.fontMono, color: THEME.white }}
-          >
-            synth<span style={{ color: THEME.accent }}>.</span>
-          </span>
-        </div>
-
-        {/* Desktop nav links */}
-        <nav
-          className="hidden sm:flex items-center gap-6 text-[12px]"
-          style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.82)' }}
-        >
-          <a href="#how" className="hover:text-white transition-colors">How it works</a>
-          <a href="#signup" className="hover:text-white transition-colors">Beta</a>
-          <Link to="/login" className="hover:text-white transition-colors">Sign in</Link>
-          <Link
-            to="/signup"
-            className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02]"
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              color: THEME.white,
-              fontFamily: THEME.fontMono,
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            Sign up
-          </Link>
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={installed}
-            className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.02] disabled:opacity-60"
-            style={{
-              background: THEME.white,
-              color: THEME.primaryDarker,
-              fontFamily: THEME.fontMono,
-              boxShadow: '0 12px 28px -14px rgba(4,120,87,0.6)',
-            }}
-          >
-            {installed ? 'Installed' : 'Download'}
-          </button>
-        </nav>
-
-        {/* Mobile: sign-in + download */}
-        <div className="flex sm:hidden items-center gap-3">
-          <Link
-            to="/login"
-            className="text-[12px] hover:text-white transition-colors"
-            style={{ fontFamily: THEME.fontMono, color: 'rgba(255,255,255,0.85)' }}
-          >
-            Sign in
-          </Link>
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={installed}
-            className="rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-60"
-            style={{ background: THEME.white, color: THEME.primaryDarker, fontFamily: THEME.fontMono }}
-          >
-            {installed ? 'Installed' : 'Download'}
-          </button>
-        </div>
-      </header>
+    <div className="flex min-h-dvh w-full flex-col" style={{ background: BG }}>
+      <Nav onDownload={handleDownload} downloadLabel={downloadLabel} installed={installed} />
 
       <main className="flex flex-col">
-        {/* ── Hero — fully green, no dark overlay ── */}
-        <Hero3D onDownload={handleDownload} downloadLabel={installed ? 'Installed' : 'Download app'} />
-
-        {/* ── How it works + live demo ── */}
-        <HowItWorksSection />
-
-        {/* ── Signup / Beta ── */}
+        <ManifestoHero />
+        <NumbersSection />
+        <SourcesSection />
+        <ProofSection />
+        <BigCtaSection onDownload={handleDownload} downloadLabel={downloadLabel} installed={installed} />
+        <ColdFaq />
         <SignupSection />
-
-        {/* ── Footer ── */}
         <Footer />
       </main>
 
-      {/* ── iOS install modal ── */}
       <AnimatePresence>
         {showIosTip && (
           <motion.div
@@ -783,35 +686,31 @@ export function LandingPage() {
             exit={{ opacity: 0 }}
             onClick={() => setShowIosTip(false)}
           >
-            <div
-              className="absolute inset-0"
-              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
-            />
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }} />
             <motion.div
-              className="relative w-full max-w-sm rounded-2xl border p-6"
-              style={{ background: CARD, borderColor: BORDER_HI }}
+              className="relative w-full max-w-sm border p-6"
+              style={{ background: BG, borderColor: NEON, fontFamily: MONO }}
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
-              <div
-                className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em]"
-                style={{ fontFamily: THEME.fontMono, color: GREEN }}
-              >
-                Install synth.
+              <div className="text-[10px] uppercase tracking-[0.3em]" style={{ color: NEON }}>
+                install synth.
               </div>
-              <p className="text-[14px] leading-relaxed text-white mb-1">
-                Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> in Safari to install synth. as an app.
+              <p className="mt-3 text-[14px] leading-relaxed" style={{ color: FG }}>
+                tap <strong style={{ color: NEON }}>share</strong> then <strong style={{ color: NEON }}>add to home screen</strong> in safari.
               </p>
-              <p className="text-[12px]" style={{ color: T2 }}>Works on iPhone, iPad, and Mac.</p>
+              <p className="mt-2 text-[11px]" style={{ color: DIM }}>
+                works on iphone, ipad, mac.
+              </p>
               <button
                 type="button"
                 onClick={() => setShowIosTip(false)}
-                className="mt-5 w-full rounded-full py-2.5 text-[12px] font-semibold uppercase tracking-wider"
-                style={{ background: GREEN, color: '#050505', fontFamily: THEME.fontMono }}
+                className="mt-5 w-full px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.3em]"
+                style={{ background: NEON, color: '#000', fontFamily: MONO }}
               >
-                Got it
+                got it →
               </button>
             </motion.div>
           </motion.div>

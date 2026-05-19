@@ -22,6 +22,16 @@ We're restructuring the app away from coach-team-roster as the primary axis and 
 - The current demo seed of "Pacific Women's Rowing + 46 athletes" stops being the anchor. We need a single-player onboarding flow.
 - The coach surface (`/coach/*`) can stay running but isn't the target — `/athlete/*` and `/app/athlete/*` become the focus.
 
+### Product purpose — cross-source insight, not just a data viewer
+
+The point of the app is to **derive meaningful signals by combining data across sources**, not just to display them side-by-side. Examples:
+
+- Connect Apple Health heart rate / HRV / sleep on a given day to the Strava workout from that same day.
+- Detect patterns that predict or prevent injury — e.g., elevated resting HR + reduced HRV + high training load over several days = overtraining risk.
+- Surface "why am I sore / slow today" answers by stitching the sheet's manual notes to the wearable's recovery score and the previous day's session intensity.
+
+This means the schema and UI both need to be built around **per-athlete, per-day, multi-source correlation** as the core unit — not around raw activity lists.
+
 ### Out of scope for this pass
 
 - Coach dashboard, team analytics, lineups, session timer, AI chat with team scope.

@@ -2,297 +2,139 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useInstallPrompt } from './useInstallPrompt'
+import {
+  PageShell, KO, Hairlines, Crosshairs, SectionLabel, Chevron, PlaceholderMedia,
+  ClosingCta, IntegrationsStrip,
+} from './shell/primitives'
+import {
+  BG, ELEVATED, FG, MUTED, DIM, HAIR, FAINT,
+  GREEN, GREEN_2, G_GLOW, G_DIM, DRUK, MONO, BODY,
+} from './shell/tokens'
 
-/* ─── Palette + type tokens ───────────────────────────────────────────── */
-
-const BG       = '#050505'
-const ELEVATED = '#0f0f10'
-const FG       = '#fafafa'
-const MUTED    = '#a1a1aa'
-const DIM      = '#71717a'
-const HAIR     = '#27272a'
-const FAINT    = 'rgba(255,255,255,0.07)'
-const GREEN    = '#10B981'
-const GREEN_2  = '#059669'
-const G_GLOW   = 'rgba(16,185,129,0.22)'
-const G_DIM    = 'rgba(16,185,129,0.08)'
-
-const DRUK = '"Anton", "Bebas Neue", "Impact", sans-serif'
-const MONO = '"JetBrains Mono", ui-monospace, monospace'
-const BODY = '"Geist", "Inter", system-ui, -apple-system, sans-serif'
-
-/* ─── Re-usable primitives ────────────────────────────────────────────── */
-
-/** Knockout-box highlight on a key noun. The Kitman move — adapted to green. */
-function KO({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        background: GREEN,
-        color: '#000',
-        padding: '0 0.16em',
-        marginRight: '0.04em',
-        boxDecorationBreak: 'clone',
-        WebkitBoxDecorationBreak: 'clone',
-      }}
-    >
-      {children}
-    </span>
-  )
-}
-
-/** Thin top-and-bottom hairlines with a faint center axis. Background texture. */
-function Hairlines() {
-  return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden>
-      {[20, 40, 60, 80].map(p => (
-        <div key={`v-${p}`} className="absolute inset-y-0" style={{ left: `${p}%`, width: 1, background: FAINT }} />
-      ))}
-      <div className="absolute inset-y-0" style={{ left: '60%', width: 1, background: G_DIM }} />
-    </div>
-  )
-}
-
-/** Scattered "+" crosshair decorations — small, green-tinted. */
-function Crosshairs({ count = 5, opacity = 0.5 }: { count?: number; opacity?: number }) {
-  const positions = [
-    { top: '8%',  left: '6%'  }, { top: '12%', left: '88%' },
-    { top: '42%', left: '4%'  }, { top: '78%', left: '93%' },
-    { top: '88%', left: '12%' }, { top: '22%', left: '50%' },
-    { top: '65%', left: '70%' }, { top: '34%', left: '30%' },
-  ].slice(0, count)
-  return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden style={{ opacity }}>
-      {positions.map((p, i) => (
-        <svg key={i} width="14" height="14" viewBox="0 0 14 14" className="absolute" style={{ ...p, color: GREEN }}>
-          <line x1="7" y1="0" x2="7" y2="14" stroke="currentColor" strokeWidth="1" />
-          <line x1="0" y1="7" x2="14" y2="7" stroke="currentColor" strokeWidth="1" />
-        </svg>
-      ))}
-    </div>
-  )
-}
-
-/** Mono section eyebrow — "// some label". */
-function SectionLabel({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'center' }) {
-  return (
-    <div
-      className={`relative z-10 mx-auto flex w-full max-w-[1280px] items-center gap-4 text-[10px] uppercase tracking-[0.3em] ${align === 'center' ? 'justify-center' : ''}`}
-      style={{ fontFamily: MONO, color: DIM }}
-    >
-      {align === 'center' && <span className="h-px w-12" style={{ background: HAIR }} />}
-      <span>{children}</span>
-      <span className="h-px flex-1" style={{ background: HAIR }} />
-    </div>
-  )
-}
-
-/** Chevron CTA — Kitman's tertiary mechanic, recolored green. */
-function Chevron({ to, children }: { to: string; children: React.ReactNode }) {
-  return (
-    <Link
-      to={to}
-      className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-opacity hover:opacity-80"
-      style={{ fontFamily: MONO, color: GREEN }}
-    >
-      {children} <span aria-hidden>›</span>
-    </Link>
-  )
-}
-
-/* ─── Top nav ─────────────────────────────────────────────────────────── */
-
-function Nav({ onStart, ctaLabel }: { onStart: () => void; ctaLabel: string }) {
-  return (
-    <header
-      className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-5 sm:px-10 py-4"
-      style={{
-        background: 'rgba(5,5,5,0.7)',
-        backdropFilter: 'blur(14px)',
-        borderBottom: `1px solid ${HAIR}`,
-      }}
-    >
-      <Link to="/" className="text-[20px] font-semibold leading-none" style={{ fontFamily: MONO, color: FG }}>
-        synth<span style={{ color: GREEN }}>.</span>
-      </Link>
-      <nav className="flex items-center gap-3 sm:gap-6 text-[11px]" style={{ fontFamily: MONO, color: MUTED }}>
-        <a href="#pillars" className="hidden sm:inline transition-colors hover:text-white">product</a>
-        <a href="#teams" className="hidden sm:inline transition-colors hover:text-white">for teams</a>
-        <a href="#pricing" className="hidden sm:inline transition-colors hover:text-white">pricing</a>
-        <Link to="/login" className="transition-colors hover:text-white">sign in</Link>
-        <button
-          type="button"
-          onClick={onStart}
-          className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
-          style={{
-            background: GREEN,
-            color: '#000',
-            fontFamily: MONO,
-            boxShadow: `0 0 24px ${G_GLOW}`,
-          }}
-        >
-          {ctaLabel}
-        </button>
-      </nav>
-    </header>
-  )
-}
-
-/* ─── Hero — cinematic, full-bleed ────────────────────────────────────── */
+/* ─── Hero — cleaner composition, no text overlap ─────────────────────── */
 
 function Hero({ onStart }: { onStart: () => void }) {
   return (
     <section
-      className="relative flex min-h-dvh flex-col justify-between overflow-hidden px-5 sm:px-10 pt-32 pb-12"
-      style={{ background: BG, color: FG }}
+      className="relative isolate overflow-hidden px-5 sm:px-10 pt-32 sm:pt-40"
+      style={{ background: BG, color: FG, minHeight: '92vh' }}
     >
-      {/* Cinematic background — black with a slow radial sweep + grain.
-          This is the video slot; replace this div with a <video> tag once
-          amateur-athlete footage exists. The motion below keeps the slot
-          alive even with no asset. */}
+      {/* Backdrop layer — strictly behind the headline, never overlaps it */}
       <CinematicBackdrop />
-      <Crosshairs count={6} opacity={0.6} />
 
-      {/* Top eyebrow row */}
-      <div className="relative z-10 flex items-start justify-between">
-        <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
-          // synth — for athletes who train serious
+      <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col">
+        {/* Eyebrow row */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
+          <span>// synth — for athletes who train serious</span>
+          <span className="hidden sm:inline">v 0.1 · alpha</span>
         </div>
-        <div className="hidden sm:block text-right text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
-          v 0.1 · alpha<br />
-          built for athletes
-        </div>
-      </div>
 
-      {/* Hero headline */}
-      <div className="relative z-10 mt-12 sm:mt-0">
+        {/* Headline — single block, fixed cap so it doesn't crash bottom row */}
         <motion.h1
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
-          className="select-none leading-[0.84] tracking-[-0.02em]"
+          className="mt-12 sm:mt-16 leading-[0.86] tracking-[-0.02em]"
           style={{
             fontFamily: DRUK,
-            fontSize: 'clamp(64px, 13vw, 200px)',
-            color: FG,
+            fontSize: 'clamp(56px, 11vw, 160px)',
             textTransform: 'uppercase',
           }}
         >
           <span className="block">Every signal.</span>
           <span className="block"><KO>One screen.</KO></span>
         </motion.h1>
-      </div>
 
-      {/* Bottom row — subhead + CTAs */}
-      <div className="relative z-10 mt-12 sm:mt-16 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-[560px]" style={{ fontFamily: BODY }}>
-          <p className="text-[15px] sm:text-[17px] leading-snug" style={{ color: FG }}>
-            Your training, your sleep, your plan — synthesized every morning.
-            One screen tells you what's working, what's slipping, and what to do next.
-          </p>
-          <p className="mt-3 text-[11px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: DIM }}>
-            no spreadsheet stitching. no second app to install on your wrist.
-          </p>
+        {/* Subhead + CTAs row — pushed below headline with deliberate spacing */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="mt-12 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-end"
+        >
+          <div style={{ fontFamily: BODY }}>
+            <p className="text-[17px] sm:text-[19px] leading-snug" style={{ color: FG }}>
+              Your training, your sleep, your plan — synthesized every morning. <span style={{ color: MUTED }}>One screen tells you what's working, what's slipping, and what to do next.</span>
+            </p>
+            <p className="mt-4 text-[11px] uppercase tracking-[0.28em]" style={{ fontFamily: MONO, color: DIM }}>
+              no spreadsheet stitching · no rip-and-replace · works on the phone you already have
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+            <button
+              type="button"
+              onClick={onStart}
+              className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
+              style={{
+                background: GREEN,
+                color: '#000',
+                fontFamily: MONO,
+                boxShadow: `0 0 36px ${G_GLOW}`,
+              }}
+            >
+              start free →
+            </button>
+            <Link
+              to="/coach/dashboard"
+              className="border px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
+              style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
+            >
+              watch demo ▶
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Bottom mono row — way below CTAs, doesn't fight headline */}
+        <div className="mt-16 mb-12 flex flex-wrap items-center gap-4 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
+          <span>scroll ↓</span>
+          <span className="h-px w-12" style={{ background: HAIR }} />
+          <span>built by world championship rowers</span>
+          <span className="h-px w-12" style={{ background: HAIR }} />
+          <span>backed by berkeley skydeck</span>
         </div>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <button
-            type="button"
-            onClick={onStart}
-            className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
-            style={{
-              background: GREEN,
-              color: '#000',
-              fontFamily: MONO,
-              boxShadow: `0 0 36px ${G_GLOW}`,
-            }}
-          >
-            start free →
-          </button>
-          <Link
-            to="/coach/dashboard"
-            className="border px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
-            style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
-          >
-            watch demo ▶
-          </Link>
-        </div>
-      </div>
-
-      {/* Scroll cue */}
-      <div className="relative z-10 mt-12 sm:mt-16 flex items-center gap-3 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
-        <span>scroll</span>
-        <motion.span
-          animate={{ y: [0, 6, 0], opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-          className="h-3 w-px"
-          style={{ background: FG }}
-        />
       </div>
     </section>
   )
 }
 
-/** Cinematic backdrop — slow radial gradient sweep + film grain.
- *  Stands in for athlete-training footage until real video lands. */
 function CinematicBackdrop() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      {/* Slow drifting green halo */}
+    <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+      {/* Slow drifting green halo — kept low-left, never under the headline center */}
       <motion.div
         className="absolute"
         style={{
+          left: '-10%',
+          bottom: '-15%',
           width: '70vw',
           height: '70vw',
           maxWidth: 1100,
           maxHeight: 1100,
-          background: `radial-gradient(circle, ${G_GLOW} 0%, transparent 65%)`,
-          filter: 'blur(20px)',
+          background: `radial-gradient(circle, ${G_GLOW} 0%, transparent 60%)`,
+          filter: 'blur(24px)',
         }}
-        animate={{ x: ['-20%', '10%', '-20%'], y: ['-10%', '15%', '-10%'] }}
-        transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ x: ['0%', '15%', '0%'], y: ['0%', '-8%', '0%'] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
       />
-      {/* Hairline grid */}
       <Hairlines />
-      {/* Bottom-up vignette */}
-      <div
-        className="absolute inset-0"
-        style={{ background: `linear-gradient(180deg, transparent 30%, ${BG} 95%)` }}
-      />
+      {/* Top vignette so the eyebrow row is always legible */}
+      <div className="absolute inset-x-0 top-0 h-[40vh]" style={{ background: `linear-gradient(180deg, ${BG} 0%, transparent 100%)` }} />
+      {/* Bottom vignette so the next section feels continuous */}
+      <div className="absolute inset-x-0 bottom-0 h-[20vh]" style={{ background: `linear-gradient(0deg, ${BG} 0%, transparent 100%)` }} />
     </div>
   )
 }
 
-/* ─── Trust strip ─────────────────────────────────────────────────────── */
-
-function TrustStrip() {
-  return (
-    <section
-      className="relative overflow-hidden border-t border-b px-5 sm:px-10 py-5"
-      style={{ background: BG, borderColor: HAIR }}
-    >
-      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-4 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: MUTED }}>
-        <span><span style={{ color: GREEN }}>●</span> built by world championship rowers</span>
-        <span className="hidden sm:inline" style={{ color: HAIR }}>·</span>
-        <span><span style={{ color: GREEN }}>●</span> backed by berkeley skydeck</span>
-        <span className="hidden sm:inline" style={{ color: HAIR }}>·</span>
-        <span><span style={{ color: GREEN }}>●</span> 250+ athletes on the alpha</span>
-      </div>
-    </section>
-  )
-}
-
-/* ─── Manifesto block with knockout highlights ───────────────────────── */
+/* ─── Manifesto — clean spacing, knockout highlights ──────────────────── */
 
 function Manifesto() {
   return (
     <section
-      className="relative overflow-hidden px-5 sm:px-10 py-28 sm:py-40"
-      style={{ background: BG, color: FG }}
+      className="relative overflow-hidden border-t px-5 sm:px-10 py-28 sm:py-40"
+      style={{ background: BG, color: FG, borderColor: HAIR }}
     >
       <Hairlines />
-      <Crosshairs count={4} opacity={0.4} />
-
+      <Crosshairs count={3} opacity={0.35} />
       <SectionLabel align="center">// the problem</SectionLabel>
 
       <div className="relative z-10 mx-auto mt-12 max-w-[1100px] text-center">
@@ -300,36 +142,29 @@ function Manifesto() {
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.6 }}
-          className="leading-[0.95] tracking-[-0.01em]"
+          transition={{ duration: 0.55 }}
+          className="leading-[1.05] tracking-[-0.01em]"
           style={{
             fontFamily: DRUK,
-            fontSize: 'clamp(36px, 6.4vw, 96px)',
+            fontSize: 'clamp(30px, 5.4vw, 80px)',
             textTransform: 'uppercase',
           }}
         >
           Your training lives in <KO>Strava</KO>.<br />
           Your sleep lives in <KO>Apple Health</KO>.<br />
           Your plan lives in <KO>a notes app</KO>.<br />
-          Nothing sees <KO>the whole picture</KO>.
+          <span className="block mt-3">Nothing sees <KO>the whole picture</KO>.</span>
         </motion.h2>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, amount: 0.5 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="mt-10 text-[12px] uppercase tracking-[0.3em]"
-          style={{ fontFamily: MONO, color: DIM }}
-        >
+        <p className="mt-10 text-[12px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
           until synth ↓
-        </motion.p>
+        </p>
       </div>
     </section>
   )
 }
 
-/* ─── Three billboard pillars: CONNECT · SYNTHESIZE · ACT ────────────── */
+/* ─── Pillars: CONNECT · SYNTHESIZE · ACT ─────────────────────────────── */
 
 type Pillar = {
   num: string
@@ -338,32 +173,36 @@ type Pillar = {
   body: string
   detail: string[]
   cta: { label: string; to: string }
+  motif: 'connect' | 'synthesize' | 'act'
 }
 
 const PILLARS: Pillar[] = [
   {
     num: '01',
     word: 'Connect',
-    sub: 'Every tool you already use',
+    sub: 'every tool you already use',
     body: 'Whoop, Strava, Oura, Garmin, Apple Health, your coach\'s spreadsheet, your training plan. If it has an API, synth connects. If it doesn\'t, our AI Import reads photos, voice notes, and pasted text.',
-    detail: ['16+ direct integrations live', 'AI Import — any photo, voice, or text', 'OAuth or one paste, never a migration'],
-    cta: { label: 'see every connector', to: '/coach/sources' },
+    detail: ['16+ direct integrations live', 'AI Import — any photo, voice, or text', 'OAuth in 60 seconds — no migration'],
+    cta: { label: 'see every connector', to: '/platform/integrations' },
+    motif: 'connect',
   },
   {
     num: '02',
     word: 'Synthesize',
-    sub: 'While you sleep',
+    sub: 'while you sleep',
     body: 'Every morning, synth normalizes your signals, computes training load and recovery readiness, and writes the pattern back to whatever tool you live in. You wake up to one screen — not five.',
     detail: ['Training load · recovery readiness · trend', 'Patterns you can\'t see yourself', 'Two-way sync — keep your tools, keep your workflow'],
     cta: { label: 'see the dashboard', to: '/coach/dashboard' },
+    motif: 'synthesize',
   },
   {
     num: '03',
     word: 'Act',
-    sub: 'Ask anything. know now',
+    sub: 'ask anything. know now',
     body: 'Ask "am I overtrained?" Ask "what was my best week last quarter?" Get a sourced answer in seconds — every claim cites the row it came from. No black box. No hallucination.',
-    detail: ['Athlete-scoped or team-wide', 'Sourced answers with row-level citations', 'No generic AI — just your data, read carefully'],
+    detail: ['Athlete-scoped or team-wide', 'Sourced answers with row citations', 'No generic AI — just your data, read carefully'],
     cta: { label: 'try the demo', to: '/coach/ai' },
+    motif: 'act',
   },
 ]
 
@@ -385,12 +224,12 @@ function BillboardPillar({ pillar, flip }: { pillar: Pillar; flip: boolean }) {
       style={{ borderColor: HAIR }}
     >
       <Hairlines />
-      <Crosshairs count={3} opacity={0.5} />
+      <Crosshairs count={3} opacity={0.4} />
 
       <div className={`relative z-10 mx-auto grid w-full max-w-[1280px] gap-12 lg:grid-cols-2 lg:items-center ${flip ? 'lg:[&>*:first-child]:order-2' : ''}`}>
-        {/* Left — type column */}
+        {/* Type column */}
         <div>
-          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: GREEN }}>
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: GREEN }}>
             <span>// pillar {pillar.num}</span>
             <span className="h-px w-12" style={{ background: GREEN_2 }} />
           </div>
@@ -400,17 +239,17 @@ function BillboardPillar({ pillar, flip }: { pillar: Pillar; flip: boolean }) {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: 0.55 }}
-            className="mt-5 leading-[0.85] tracking-[-0.02em]"
+            className="mt-5 leading-[0.86] tracking-[-0.02em]"
             style={{
               fontFamily: DRUK,
-              fontSize: 'clamp(72px, 12vw, 180px)',
+              fontSize: 'clamp(56px, 10vw, 140px)',
               textTransform: 'uppercase',
             }}
           >
             {pillar.word}<span style={{ color: GREEN }}>.</span>
           </motion.h3>
 
-          <div className="mt-6 text-[12px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: MUTED }}>
+          <div className="mt-5 text-[12px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: MUTED }}>
             {pillar.sub}
           </div>
 
@@ -432,21 +271,20 @@ function BillboardPillar({ pillar, flip }: { pillar: Pillar; flip: boolean }) {
           </div>
         </div>
 
-        {/* Right — paired visual placeholder */}
-        <PillarVisual pillar={pillar} />
+        {/* Visual column */}
+        <PillarVisual motif={pillar.motif} />
       </div>
     </div>
   )
 }
 
-function PillarVisual({ pillar }: { pillar: Pillar }) {
-  // Stylized product-screenshot stand-in. Each pillar gets a different motif.
+function PillarVisual({ motif }: { motif: 'connect' | 'synthesize' | 'act' }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.6, delay: 0.1 }}
+      transition={{ duration: 0.55, delay: 0.1 }}
       className="relative aspect-[5/4] w-full overflow-hidden"
       style={{
         background: ELEVATED,
@@ -460,22 +298,21 @@ function PillarVisual({ pillar }: { pillar: Pillar }) {
         <span className="h-2 w-2 rounded-full" style={{ background: '#F59E0B' }} />
         <span className="h-2 w-2 rounded-full" style={{ background: GREEN }} />
         <span className="ml-3 text-[10px]" style={{ fontFamily: MONO, color: DIM }}>
-          synth.app/{pillar.word.toLowerCase()}
+          synth.app/{motif}
         </span>
       </div>
 
-      {/* Visual content per pillar */}
       <div className="relative h-full p-6">
-        {pillar.num === '01' && <ConnectMotif />}
-        {pillar.num === '02' && <SynthesizeMotif />}
-        {pillar.num === '03' && <ActMotif />}
+        {motif === 'connect' && <ConnectMotif />}
+        {motif === 'synthesize' && <SynthesizeMotif />}
+        {motif === 'act' && <ActMotif />}
       </div>
     </motion.div>
   )
 }
 
 function ConnectMotif() {
-  const SOURCES = ['Whoop', 'Strava', 'Oura', 'Garmin', 'Apple Health', 'Google Sheets']
+  const SOURCES = ['Whoop', 'Strava', 'Oura', 'Garmin', 'Apple Health', 'Sheets']
   return (
     <div className="grid h-full grid-cols-3 gap-2" style={{ fontFamily: MONO }}>
       {SOURCES.map(s => (
@@ -513,7 +350,6 @@ function SynthesizeMotif() {
           </div>
         ))}
       </div>
-      {/* Sparkline */}
       <div className="relative h-20 border p-3" style={{ borderColor: FAINT, background: BG }}>
         <div className="text-[9px] uppercase tracking-[0.25em]" style={{ color: DIM }}>14-day load</div>
         <svg viewBox="0 0 200 40" className="mt-1 h-12 w-full">
@@ -576,10 +412,10 @@ function ToolWall() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
-          className="leading-[0.9] tracking-[-0.015em]"
+          className="leading-[0.92] tracking-[-0.015em]"
           style={{
             fontFamily: DRUK,
-            fontSize: 'clamp(48px, 8vw, 128px)',
+            fontSize: 'clamp(44px, 7vw, 112px)',
             textTransform: 'uppercase',
           }}
         >
@@ -587,11 +423,9 @@ function ToolWall() {
         </motion.h2>
 
         <p className="mt-6 max-w-[640px] text-[15px] leading-relaxed" style={{ fontFamily: BODY, color: MUTED }}>
-          Every tool you already use. And if it doesn't have an API,
-          our AI Import reads photos, voice notes, and pasted text.
+          Every tool you already use. And if it doesn't have an API, our AI Import reads photos, voice notes, and pasted text.
         </p>
 
-        {/* 4×4 grid */}
         <div className="mt-12 grid gap-px sm:grid-cols-3 lg:grid-cols-4" style={{ background: HAIR }}>
           {TOOLS.map((t, i) => (
             <motion.div
@@ -609,7 +443,6 @@ function ToolWall() {
           ))}
         </div>
 
-        {/* AI Import closer */}
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -619,7 +452,7 @@ function ToolWall() {
           style={{ borderColor: GREEN, background: G_DIM }}
         >
           <div>
-            <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: GREEN }}>
+            <div className="text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: GREEN }}>
               // ai import
             </div>
             <div className="mt-2 text-[16px] leading-snug" style={{ fontFamily: BODY, color: FG }}>
@@ -627,22 +460,20 @@ function ToolWall() {
               <span style={{ color: GREEN }}> our AI Import still reads it.</span>
             </div>
           </div>
-          <Chevron to="/coach/sources">how AI Import works</Chevron>
+          <Chevron to="/platform/integrations">how AI Import works</Chevron>
         </motion.div>
       </div>
     </section>
   )
 }
 
-/* ─── Built by champions — team credibility ──────────────────────────── */
+/* ─── Built by champions ──────────────────────────────────────────────── */
 
-type Member = { name: string; role: string; cred: string[] }
-
-const TEAM: Member[] = [
-  { name: 'Abishai Gosula', role: 'CEO · founder', cred: ['CS · UC Berkeley', 'built the platform'] },
-  { name: 'Matthew Waddell', role: 'advisor', cred: ['2025 U23 Worlds silver · NZ rowing', 'Cal Men\'s Rowing · admitted Cambridge'] },
-  { name: 'Star Miller', role: 'athlete advisor', cred: ['Cal Women\'s Rowing', 'AUS · U23 Worlds'] },
-  { name: 'Lily Pember', role: 'athlete advisor', cred: ['Cal Women\'s Rowing', 'USA · Junior World gold'] },
+const TEAM = [
+  { name: 'Abishai Gosula',  role: 'CEO · founder',     cred: ['CS · UC Berkeley', 'built the platform'] },
+  { name: 'Matthew Waddell', role: 'advisor',           cred: ['2025 U23 Worlds silver · NZ rowing', 'Cal Rowing · admitted Cambridge'] },
+  { name: 'Star Miller',     role: 'athlete advisor',   cred: ['Cal Women\'s Rowing', 'AUS · U23 Worlds'] },
+  { name: 'Lily Pember',     role: 'athlete advisor',   cred: ['Cal Women\'s Rowing', 'USA · Junior World gold'] },
 ]
 
 function TeamSection() {
@@ -652,7 +483,7 @@ function TeamSection() {
       style={{ background: BG, color: FG, borderColor: HAIR }}
     >
       <Hairlines />
-      <Crosshairs count={3} opacity={0.4} />
+      <Crosshairs count={3} opacity={0.35} />
       <SectionLabel>// the team</SectionLabel>
 
       <div className="relative z-10 mx-auto mt-12 w-full max-w-[1280px]">
@@ -661,7 +492,7 @@ function TeamSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
-          className="leading-[0.9] tracking-[-0.015em]"
+          className="leading-[0.92] tracking-[-0.015em]"
           style={{
             fontFamily: DRUK,
             fontSize: 'clamp(44px, 7vw, 112px)',
@@ -672,8 +503,7 @@ function TeamSection() {
         </motion.h2>
 
         <p className="mt-6 max-w-[640px] text-[15px] leading-relaxed" style={{ fontFamily: BODY, color: MUTED }}>
-          We lived this problem before we built the thing.
-          synth is shaped by athletes who compete at the level the product serves.
+          We lived this problem before we built the thing. synth is shaped by athletes who compete at the level the product serves.
         </p>
 
         <div className="mt-12 grid gap-px sm:grid-cols-2 lg:grid-cols-4" style={{ background: HAIR }}>
@@ -687,13 +517,14 @@ function TeamSection() {
               className="flex flex-col gap-3 p-6"
               style={{ background: BG }}
             >
-              <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: GREEN }}>
+              <PlaceholderMedia kind="photo" label={`${m.name} — portrait`} ratio="1/1" />
+              <div className="mt-2 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: GREEN }}>
                 {m.role}
               </div>
-              <div className="leading-[0.95] tracking-[-0.01em]" style={{ fontFamily: DRUK, fontSize: 28, textTransform: 'uppercase', color: FG }}>
+              <div className="leading-[0.95] tracking-[-0.01em]" style={{ fontFamily: DRUK, fontSize: 26, textTransform: 'uppercase', color: FG }}>
                 {m.name}
               </div>
-              <ul className="mt-1 space-y-1.5" style={{ fontFamily: MONO }}>
+              <ul className="space-y-1.5" style={{ fontFamily: MONO }}>
                 {m.cred.map(c => (
                   <li key={c} className="flex items-start gap-2 text-[11px]" style={{ color: MUTED }}>
                     <span className="mt-2 inline-block h-px w-2 shrink-0" style={{ background: GREEN }} />
@@ -704,97 +535,49 @@ function TeamSection() {
             </motion.div>
           ))}
         </div>
-
-        <div className="mt-8 text-[11px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: DIM }}>
-          + backed by berkeley skydeck · pad-13 batch 22
-        </div>
       </div>
     </section>
   )
 }
 
-/* ─── For Teams switcher ─────────────────────────────────────────────── */
+/* ─── Pricing ────────────────────────────────────────────────────────── */
 
-function TeamsSwitcher() {
-  return (
-    <section
-      id="teams"
-      className="relative overflow-hidden border-t px-5 sm:px-10 py-20"
-      style={{ background: ELEVATED, color: FG, borderColor: HAIR }}
-    >
-      <Hairlines />
-      <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: GREEN }}>
-            // coaching a team?
-          </div>
-          <div className="mt-3 leading-[0.95] tracking-[-0.01em]" style={{ fontFamily: DRUK, fontSize: 'clamp(28px, 4vw, 48px)', textTransform: 'uppercase' }}>
-            synth scales with you<span style={{ color: GREEN }}>.</span>
-          </div>
-          <p className="mt-3 max-w-[520px] text-[14px]" style={{ fontFamily: BODY, color: MUTED }}>
-            Team plans start at $199/mo. Two-way sync writes your synth lineups, splits, and check-ins back into your existing tools.
-          </p>
-        </div>
-        <Chevron to="/coach/dashboard">see for teams</Chevron>
-      </div>
-    </section>
-  )
-}
-
-/* ─── Pricing + closing CTA fused ────────────────────────────────────── */
-
-function PricingCta({ onStart }: { onStart: () => void }) {
+function Pricing({ onStart }: { onStart: () => void }) {
   return (
     <section
       id="pricing"
-      className="relative flex min-h-[80vh] items-center overflow-hidden border-t px-5 sm:px-10 py-24"
+      className="relative overflow-hidden border-t px-5 sm:px-10 py-24 sm:py-32"
       style={{ background: BG, color: FG, borderColor: HAIR }}
     >
-      {/* Wash */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{
-          width: '120vw',
-          height: '70vh',
-          background: `radial-gradient(ellipse, ${G_GLOW} 0%, transparent 65%)`,
-        }}
-      />
       <Hairlines />
-      <Crosshairs count={5} opacity={0.5} />
+      <SectionLabel>// pricing</SectionLabel>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1280px]">
-        <motion.h2
-          initial={{ opacity: 0, scale: 0.96 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.55 }}
-          className="leading-[0.85] tracking-[-0.02em]"
-          style={{ fontFamily: DRUK, fontSize: 'clamp(72px, 14vw, 220px)', textTransform: 'uppercase' }}
+      <div className="relative z-10 mx-auto mt-12 w-full max-w-[1280px]">
+        <h2
+          className="leading-[0.92] tracking-[-0.015em]"
+          style={{ fontFamily: DRUK, fontSize: 'clamp(40px, 6vw, 88px)', textTransform: 'uppercase' }}
         >
-          Start <KO>free</KO>.
-        </motion.h2>
-
-        <p className="mt-8 max-w-[640px] text-[16px] leading-relaxed" style={{ fontFamily: BODY, color: FG }}>
-          Free during the alpha. Connect your first source in 60 seconds.
-          Cancel any time — your data exports back to wherever you came from.
+          Start <KO>free</KO>. Pick your tier when you're ready.
+        </h2>
+        <p className="mt-6 max-w-[640px] text-[15px] leading-relaxed" style={{ color: MUTED }}>
+          Free during the alpha. No credit card. Your data is yours — export back to the tool you came from at any time.
         </p>
 
-        {/* Pricing tiers */}
         <div className="mt-12 grid gap-px sm:grid-cols-3" style={{ background: HAIR }}>
           {[
-            { tier: 'Athlete', price: '$9', unit: '/mo', detail: 'individual training' },
-            { tier: 'Athlete Pro', price: '$19', unit: '/mo', detail: '+ unlimited AI · trend engine' },
-            { tier: 'Team', price: '$199+', unit: '/mo', detail: 'club & program tiers' },
+            { tier: 'Athlete', price: '$9', unit: '/mo', detail: 'individual training', feats: ['16+ integrations', 'recovery + training + progress', 'synth AI · 100 q/mo'] },
+            { tier: 'Athlete Pro', price: '$19', unit: '/mo', detail: '+ unlimited AI · API · trends', feats: ['everything in Athlete', 'unlimited synth AI', 'API access · custom export'] },
+            { tier: 'Team', price: '$199+', unit: '/mo', detail: 'clubs · schools · programs', feats: ['lineup builder · 2-way sync', '$199 ≤30 · $499 ≤100', 'collegiate from $15K/yr'] },
           ].map((t, i) => (
             <div
               key={t.tier}
-              className="flex flex-col gap-3 p-6"
+              className="flex flex-col gap-4 p-7"
               style={{
                 background: BG,
-                borderTop: i === 1 ? `1px solid ${GREEN}` : 'none',
+                borderTop: i === 1 ? `2px solid ${GREEN}` : 'none',
               }}
             >
-              <div className="text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: i === 1 ? GREEN : DIM }}>
+              <div className="text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: i === 1 ? GREEN : DIM }}>
                 {t.tier}
               </div>
               <div className="flex items-baseline gap-2">
@@ -803,31 +586,36 @@ function PricingCta({ onStart }: { onStart: () => void }) {
                 </span>
                 <span className="text-[12px]" style={{ fontFamily: MONO, color: MUTED }}>{t.unit}</span>
               </div>
-              <div className="text-[12px]" style={{ fontFamily: MONO, color: MUTED }}>{t.detail}</div>
+              <div className="text-[12px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: MUTED }}>
+                {t.detail}
+              </div>
+              <ul className="mt-2 space-y-1.5" style={{ fontFamily: MONO }}>
+                {t.feats.map(f => (
+                  <li key={f} className="flex items-start gap-2 text-[12px]" style={{ color: FG }}>
+                    <span className="mt-2 inline-block h-px w-2 shrink-0" style={{ background: GREEN }} />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
         </div>
 
-        <div className="mt-12 flex flex-wrap items-center gap-4">
+        <div className="mt-10 flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={onStart}
-            className="px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.22em]"
-            style={{
-              background: GREEN,
-              color: '#000',
-              fontFamily: MONO,
-              boxShadow: `0 0 50px ${G_GLOW}`,
-            }}
+            className="px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em]"
+            style={{ background: GREEN, color: '#000', fontFamily: MONO, boxShadow: `0 0 36px ${G_GLOW}` }}
           >
             get the app →
           </button>
           <Link
-            to="/signup"
-            className="border px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
+            to="/sports/teams"
+            className="border px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors hover:bg-white hover:text-black"
             style={{ borderColor: FAINT, color: FG, fontFamily: MONO }}
           >
-            join the waitlist
+            talk to us about teams
           </Link>
           <span className="text-[11px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: DIM }}>
             no credit card
@@ -838,7 +626,7 @@ function PricingCta({ onStart }: { onStart: () => void }) {
   )
 }
 
-/* ─── Cold FAQ — athlete-focused ──────────────────────────────────────── */
+/* ─── Cold FAQ ────────────────────────────────────────────────────────── */
 
 const FAQS = [
   { q: 'which tools does synth connect to?', a: 'every tool you already use — Whoop, Strava, Oura, Garmin, Apple Health, TrainingPeaks, Concept2, your coach\'s spreadsheet. if it doesn\'t have an API, our AI Import reads photos, voice notes, and pasted text.' },
@@ -849,7 +637,10 @@ const FAQS = [
 
 function FaqSection() {
   return (
-    <section className="relative border-t px-5 sm:px-10 py-20 sm:py-28" style={{ background: BG, color: FG, borderColor: HAIR }}>
+    <section
+      className="relative border-t px-5 sm:px-10 py-20 sm:py-28"
+      style={{ background: BG, color: FG, borderColor: HAIR }}
+    >
       <SectionLabel>// fast answers</SectionLabel>
 
       <div className="relative z-10 mx-auto mt-12 grid w-full max-w-[1280px] gap-px sm:grid-cols-2" style={{ background: HAIR }}>
@@ -863,7 +654,7 @@ function FaqSection() {
             className="flex flex-col gap-3 p-6"
             style={{ background: BG, fontFamily: MONO }}
           >
-            <div className="text-[10px] uppercase tracking-[0.3em]" style={{ color: GREEN }}>
+            <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: GREEN }}>
               q.0{i + 1}
             </div>
             <div className="text-[15px] leading-snug" style={{ color: FG }}>
@@ -876,28 +667,6 @@ function FaqSection() {
         ))}
       </div>
     </section>
-  )
-}
-
-/* ─── Footer ──────────────────────────────────────────────────────────── */
-
-function Footer() {
-  return (
-    <footer className="border-t px-5 sm:px-10 py-10" style={{ background: BG, borderColor: HAIR }}>
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-4 text-[10px] uppercase tracking-[0.3em] sm:flex-row sm:items-center sm:justify-between" style={{ fontFamily: MONO, color: DIM }}>
-        <div className="flex items-center gap-3">
-          <span style={{ color: FG }}>synth<span style={{ color: GREEN }}>.</span></span>
-          <span>the data layer for sports</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <a href="mailto:supportsynth@gmail.com" className="transition-colors hover:text-white">supportsynth@gmail.com</a>
-          <Link to="/login" className="transition-colors hover:text-white">sign in</Link>
-          <Link to="/signup" className="transition-colors hover:text-white">sign up</Link>
-          <Link to="/app" className="transition-colors hover:text-white">app access →</Link>
-          <span>© 2026</span>
-        </div>
-      </div>
-    </footer>
   )
 }
 
@@ -921,21 +690,21 @@ export function LandingPage() {
   const ctaLabel = installed ? 'installed' : 'start free'
 
   return (
-    <div className="flex min-h-dvh w-full flex-col" style={{ background: BG, fontFamily: BODY, color: FG }}>
-      <Nav onStart={handleStart} ctaLabel={ctaLabel} />
-
-      <main className="flex flex-col">
-        <Hero onStart={handleStart} />
-        <TrustStrip />
-        <Manifesto />
-        <PillarsSection />
-        <ToolWall />
-        <TeamSection />
-        <TeamsSwitcher />
-        <PricingCta onStart={handleStart} />
-        <FaqSection />
-        <Footer />
-      </main>
+    <PageShell active="home" onStart={handleStart} ctaLabel={ctaLabel}>
+      <Hero onStart={handleStart} />
+      <IntegrationsStrip />
+      <Manifesto />
+      <PillarsSection />
+      <ToolWall />
+      <TeamSection />
+      <Pricing onStart={handleStart} />
+      <FaqSection />
+      <ClosingCta
+        headline={<>Start <KO>free</KO>.</>}
+        body="Connect your first source in 60 seconds. Cancel any time — your data exports back to wherever you came from."
+        primary={{ label: 'get the app', to: '/signup', onClick: handleStart }}
+        secondary={{ label: 'see the platform', to: '/platform' }}
+      />
 
       <AnimatePresence>
         {showIosTip && (
@@ -955,7 +724,7 @@ export function LandingPage() {
               exit={{ y: 20, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="text-[10px] uppercase tracking-[0.3em]" style={{ color: GREEN }}>install synth</div>
+              <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: GREEN }}>install synth</div>
               <p className="mt-3 text-[14px] leading-relaxed" style={{ color: FG }}>
                 tap <strong style={{ color: GREEN }}>share</strong> then <strong style={{ color: GREEN }}>add to home screen</strong> in safari.
               </p>
@@ -963,7 +732,7 @@ export function LandingPage() {
               <button
                 type="button"
                 onClick={() => setShowIosTip(false)}
-                className="mt-5 w-full px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.3em]"
+                className="mt-5 w-full px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.32em]"
                 style={{ background: GREEN, color: '#000', fontFamily: MONO }}
               >
                 got it →
@@ -972,6 +741,6 @@ export function LandingPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </PageShell>
   )
 }

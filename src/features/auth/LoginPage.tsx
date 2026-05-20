@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { THEME } from '../../lib/theme'
 import { posthog } from '../../shared/analytics/posthog'
 import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient'
+import { AuthLayout } from './AuthLayout'
+import {
+  AuthHeader, FieldLabel, TextInput,
+  PrimaryAuthButton, GhostAuthButton,
+} from './authShared'
+import { AUTH_TOKENS } from './authTokens'
+
+const { GREEN, MONO, MUTED, DIM, HAIR, FAINT, FG } = AUTH_TOKENS
 
 // Real auth path. When Supabase is configured this page does:
 //   - "Continue with Google" → supabase.auth.signInWithOAuth (redirect)
@@ -16,12 +23,12 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabaseReady = isSupabaseConfigured()
 
-  // If a Supabase session already exists (e.g. user hit /login while
-  // signed in), bounce straight to the dashboard.
+  // If a Supabase session already exists, bounce straight to the dashboard.
   useEffect(() => {
     if (!supabase) return
     let cancelled = false
@@ -31,16 +38,14 @@ export function LoginPage() {
         navigate('/coach/dashboard', { replace: true })
       }
     })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [navigate])
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     if (!supabase) {
-      // Demo build (no env vars) — fall back to the legacy email shortcut.
+      // Demo build (no env vars) — legacy email shortcut.
       const role = email.trim() === 'star@synth.app' ? 'athlete' : 'coach'
       posthog.identify(email.trim(), { email: email.trim(), role })
       posthog.capture('signed_in', { email: email.trim(), role, mode: 'demo' })
@@ -58,14 +63,8 @@ export function LoginPage() {
         email: trimmed,
         password,
       })
-      if (signInError) {
-        setError(signInError.message)
-        return
-      }
-      if (!data.session) {
-        setError('Sign-in succeeded but no session returned. Try again.')
-        return
-      }
+      if (signInError) { setError(signInError.message); return }
+      if (!data.session) { setError('Sign-in succeeded but no session returned. Try again.'); return }
       posthog.identify(trimmed, { email: trimmed, role: 'coach' })
       posthog.capture('signed_in', { email: trimmed, role: 'coach', mode: 'supabase' })
       navigate('/coach/dashboard', { replace: true })
@@ -95,7 +94,6 @@ export function LoginPage() {
         setError(oauthError.message)
         setSubmitting(false)
       }
-      // On success the page redirects; nothing more to do here.
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setSubmitting(false)
@@ -103,169 +101,131 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center p-6" style={{ background: THEME.light }}>
-      <div
-        className="w-full max-w-[440px] rounded-2xl border p-8 shadow-sm"
-        style={{ background: THEME.white, borderColor: THEME.border }}
-      >
-        <div className="mb-6 flex items-center gap-1.5">
-          <span
-            className="text-[20px] font-semibold leading-none"
-            style={{ fontFamily: THEME.fontMono, color: THEME.textPrimary }}
-          >
-            synth<span style={{ color: THEME.accent }}>.</span>
-          </span>
-        </div>
-        <div
-          className="mb-2 text-[10px] uppercase tracking-[0.2em]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-        >
-          Sign in
-        </div>
-        <h1
-          className="mb-6 text-[28px] font-semibold leading-tight"
-          style={{ fontFamily: THEME.fontSerif, color: THEME.textPrimary }}
-        >
-          Welcome back.
-        </h1>
+    <AuthLayout tab="login">
+      <AuthHeader
+        title="Welcome back."
+        subtitle="Sign in to your synth account."
+      />
 
-        {/* Google OAuth — only when Supabase is configured */}
-        {supabaseReady && (
-          <>
+      {supabaseReady && (
+        <>
+          <GhostAuthButton onClick={handleGoogleLogin} disabled={submitting}>
+            <GoogleGlyph />
+            Continue with Google
+          </GhostAuthButton>
+          <div
+            className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.32em]"
+            style={{ fontFamily: MONO, color: DIM }}
+          >
+            <div className="h-px flex-1" style={{ background: HAIR }} />
+            or email
+            <div className="h-px flex-1" style={{ background: HAIR }} />
+          </div>
+        </>
+      )}
+
+      <form className="flex flex-col gap-4" onSubmit={handleEmailLogin}>
+        <div>
+          <FieldLabel>Email</FieldLabel>
+          <TextInput
+            type="email"
+            name="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+        </div>
+
+        <div>
+          <FieldLabel
+            hint={
+              <Link to="/login" className="text-[10px] uppercase tracking-[0.28em] transition-colors hover:text-white" style={{ color: GREEN, fontFamily: MONO }}>
+                Forgot?
+              </Link>
+            }
+          >
+            Password
+          </FieldLabel>
+          <div className="relative">
+            <TextInput
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Your password"
+              autoComplete="current-password"
+            />
             <button
               type="button"
-              onClick={handleGoogleLogin}
-              disabled={submitting}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors hover:bg-zinc-50 disabled:opacity-60"
-              style={{
-                borderColor: THEME.border,
-                color: THEME.textPrimary,
-                background: THEME.white,
-              }}
+              onClick={() => setShowPassword(s => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 px-2 text-[10px] uppercase tracking-[0.22em] transition-colors hover:text-white"
+              style={{ fontFamily: MONO, color: DIM }}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              <GoogleGlyph />
-              Continue with Google
+              {showPassword ? 'Hide' : 'Show'}
             </button>
-            <div
-              className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.2em]"
-              style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-            >
-              <div className="h-px flex-1" style={{ background: THEME.border }} />
-              or email
-              <div className="h-px flex-1" style={{ background: THEME.border }} />
-            </div>
-          </>
-        )}
-
-        <form className="flex flex-col gap-4" onSubmit={handleEmailLogin}>
-          <label className="flex flex-col gap-1">
-            <span
-              className="text-[10px] uppercase tracking-[0.18em]"
-              style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-            >
-              Email
-            </span>
-            <input
-              type="email"
-              name="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              className="rounded-lg border px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-emerald-600"
-              style={{ borderColor: THEME.border, color: THEME.textPrimary }}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span
-              className="text-[10px] uppercase tracking-[0.18em]"
-              style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}
-            >
-              Password
-            </span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              className="rounded-lg border px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-emerald-600"
-              style={{ borderColor: THEME.border, color: THEME.textPrimary }}
-            />
-          </label>
-
-          {error && (
-            <div
-              role="alert"
-              className="rounded-lg border px-3 py-2 text-[12px]"
-              style={{
-                borderColor: THEME.red,
-                background: `${THEME.red}10`,
-                color: THEME.red,
-                fontFamily: THEME.fontMono,
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-2 rounded-full py-3 text-[13px] font-semibold uppercase tracking-wider transition-transform hover:scale-[1.01] disabled:opacity-60"
-            style={{ background: THEME.primary, color: THEME.white, fontFamily: THEME.fontMono }}
-          >
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        {!supabaseReady && (
-          <div
-            className="mt-4 rounded-xl border border-dashed p-3 text-[11px] leading-relaxed"
-            style={{ borderColor: THEME.border, color: THEME.textMuted, fontFamily: THEME.fontMono }}
-          >
-            Demo mode. Type any email to enter the coach view ·{' '}
-            <strong>star@synth.app</strong> drops into the athlete view.
           </div>
-        )}
-
-        <div
-          className="mt-5 flex flex-col gap-2 text-[11px]"
-          style={{ fontFamily: THEME.fontMono, color: THEME.textSecondary }}
-        >
-          <div className="flex items-center justify-between">
-            <Link to="/signup" className="hover:underline">
-              Create an account →
-            </Link>
-            <Link to="/join/PAC-WR-2026" className="hover:underline">
-              Join with invite code
-            </Link>
-          </div>
-          <Link to="/" className="hover:underline">
-            ← Back to home
-          </Link>
         </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="rounded-md px-3 py-2.5 text-[12px]"
+            style={{
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              color: '#fca5a5',
+              fontFamily: MONO,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <PrimaryAuthButton type="submit" disabled={submitting}>
+          {submitting ? 'Signing in…' : 'Sign in →'}
+        </PrimaryAuthButton>
+      </form>
+
+      {/* Footer — switch to waitlist */}
+      <div className="mt-7 text-center text-[12px]" style={{ color: MUTED, fontFamily: MONO }}>
+        Don't have an account yet?{' '}
+        <Link to="/signup" className="transition-colors hover:opacity-80" style={{ color: GREEN }}>
+          Join the waitlist →
+        </Link>
       </div>
-    </div>
+
+      <div className="mt-6 text-center text-[10px] uppercase tracking-[0.32em]" style={{ color: DIM, fontFamily: MONO }}>
+        By signing in you agree to our{' '}
+        <a href="/legal/terms" className="transition-colors hover:text-white" style={{ color: MUTED }}>Terms</a>
+        {' '}and{' '}
+        <a href="/legal/privacy" className="transition-colors hover:text-white" style={{ color: MUTED }}>Privacy</a>.
+      </div>
+
+      {/* Unused token reference to keep them in scope for typescript */}
+      <span aria-hidden style={{ display: 'none', color: FG, borderColor: FAINT }} />
+    </AuthLayout>
   )
 }
 
 function GoogleGlyph() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path
-        d="M17.64 9.205c0-.638-.057-1.252-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.703-1.567 2.684-3.875 2.684-6.616z"
         fill="#4285F4"
+        d="M21.6 12.227c0-.81-.066-1.402-.21-2.018H12v3.665h5.515c-.111.94-.713 2.36-2.05 3.314l-.018.124 2.977 2.307.206.02C20.523 18.027 21.6 15.34 21.6 12.227z"
       />
       <path
-        d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.258c-.806.54-1.836.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.331A8.997 8.997 0 0 0 9 18z"
         fill="#34A853"
+        d="M12 22c2.7 0 4.965-.89 6.62-2.42l-3.155-2.45c-.84.59-1.97 1-3.465 1-2.64 0-4.88-1.74-5.685-4.13l-.117.01-3.097 2.4-.04.111C4.71 19.594 8.083 22 12 22z"
       />
       <path
-        d="M3.964 10.71a5.41 5.41 0 0 1-.282-1.71c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
         fill="#FBBC05"
+        d="M6.315 13.99A6.07 6.07 0 0 1 5.985 12c0-.7.12-1.37.318-1.99l-.006-.13-3.137-2.43-.103.05A10.07 10.07 0 0 0 2 12c0 1.61.385 3.13 1.057 4.5l3.258-2.51z"
       />
       <path
-        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-        fill="#EA4335"
+        fill="#EB4335"
+        d="M12 5.88c1.875 0 3.14.81 3.86 1.49l2.823-2.76C16.95 2.99 14.7 2 12 2 8.083 2 4.71 4.4 3.063 7.93l3.247 2.51C7.117 8.05 9.36 5.88 12 5.88z"
       />
     </svg>
   )

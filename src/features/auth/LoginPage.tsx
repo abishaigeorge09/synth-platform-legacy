@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { posthog } from '../../shared/analytics/posthog'
-import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient'
+import { supabase } from '../../lib/supabaseClient'
 import { AuthLayout } from './AuthLayout'
 import {
   FieldLabel, TextInput,
-  PrimaryAuthButton, GhostAuthButton,
+  PrimaryAuthButton,
 } from './authShared'
 import { AUTH_TOKENS } from './authTokens'
 
-const { GREEN, MONO, DIM, HAIR, FAINT, FG } = AUTH_TOKENS
+const { GREEN, MONO, MUTED, DIM, HAIR, FAINT, FG } = AUTH_TOKENS
 
 // Real auth path. When Supabase is configured this page does:
 //   - "Continue with Google" → supabase.auth.signInWithOAuth (redirect)
@@ -26,8 +26,6 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabaseReady = isSupabaseConfigured()
-
   // If a Supabase session already exists, bounce straight to the dashboard.
   useEffect(() => {
     if (!supabase) return
@@ -75,49 +73,12 @@ export function LoginPage() {
     }
   }
 
-  async function handleGoogleLogin() {
-    setError(null)
-    if (!supabase) {
-      setError('Google sign-in requires a configured Supabase project.')
-      return
-    }
-    setSubmitting(true)
-    try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/coach/dashboard`,
-          scopes: 'openid email profile',
-        },
-      })
-      if (oauthError) {
-        setError(oauthError.message)
-        setSubmitting(false)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-      setSubmitting(false)
-    }
-  }
+  // Google OAuth is intentionally disabled until the provider is
+  // configured in the Supabase dashboard (Auth → Providers → Google).
+  // When ready, restore the handler + the Continue-with-Google button.
 
   return (
     <AuthLayout tab="login">
-      {supabaseReady && (
-        <>
-          <GhostAuthButton onClick={handleGoogleLogin} disabled={submitting}>
-            <GoogleGlyph />
-            Continue with Google
-          </GhostAuthButton>
-          <div
-            className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.32em]"
-            style={{ fontFamily: MONO, color: DIM }}
-          >
-            <div className="h-px flex-1" style={{ background: HAIR }} />
-            or
-            <div className="h-px flex-1" style={{ background: HAIR }} />
-          </div>
-        </>
-      )}
 
       <form className="flex flex-col gap-4" onSubmit={handleEmailLogin}>
         <div>
@@ -135,9 +96,13 @@ export function LoginPage() {
         <div>
           <FieldLabel
             hint={
-              <Link to="/login" className="text-[10px] uppercase tracking-[0.28em] transition-colors hover:text-white" style={{ color: GREEN, fontFamily: MONO }}>
+              <a
+                href="mailto:supportsynth@gmail.com?subject=Password%20reset%20request"
+                className="text-[10px] uppercase tracking-[0.28em] transition-colors hover:text-white"
+                style={{ color: GREEN, fontFamily: MONO }}
+              >
                 Forgot?
-              </Link>
+              </a>
             }
           >
             Password
@@ -182,6 +147,20 @@ export function LoginPage() {
         </PrimaryAuthButton>
       </form>
 
+      {/* Subtle demo entry — for stakeholders / press / first-look users
+       *  who don't have credentials yet. Routes into the seeded demo. */}
+      <div className="mt-5 flex items-center justify-center gap-2 text-[11px]" style={{ fontFamily: MONO, color: MUTED }}>
+        <span style={{ color: DIM }}>No account?</span>
+        <Link
+          to="/coach/dashboard"
+          className="inline-flex items-center gap-1 transition-colors hover:opacity-80"
+          style={{ color: GREEN }}
+        >
+          View the demo
+          <span aria-hidden>→</span>
+        </Link>
+      </div>
+
       <div className="mt-6 flex items-center justify-center gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ color: DIM, fontFamily: MONO }}>
         <a href="/legal/terms" className="transition-colors hover:text-white">Terms</a>
         <span style={{ color: HAIR }}>·</span>
@@ -194,25 +173,3 @@ export function LoginPage() {
   )
 }
 
-function GoogleGlyph() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        fill="#4285F4"
-        d="M21.6 12.227c0-.81-.066-1.402-.21-2.018H12v3.665h5.515c-.111.94-.713 2.36-2.05 3.314l-.018.124 2.977 2.307.206.02C20.523 18.027 21.6 15.34 21.6 12.227z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 22c2.7 0 4.965-.89 6.62-2.42l-3.155-2.45c-.84.59-1.97 1-3.465 1-2.64 0-4.88-1.74-5.685-4.13l-.117.01-3.097 2.4-.04.111C4.71 19.594 8.083 22 12 22z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M6.315 13.99A6.07 6.07 0 0 1 5.985 12c0-.7.12-1.37.318-1.99l-.006-.13-3.137-2.43-.103.05A10.07 10.07 0 0 0 2 12c0 1.61.385 3.13 1.057 4.5l3.258-2.51z"
-      />
-      <path
-        fill="#EB4335"
-        d="M12 5.88c1.875 0 3.14.81 3.86 1.49l2.823-2.76C16.95 2.99 14.7 2 12 2 8.083 2 4.71 4.4 3.063 7.93l3.247 2.51C7.117 8.05 9.36 5.88 12 5.88z"
-      />
-    </svg>
-  )
-}

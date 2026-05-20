@@ -99,6 +99,10 @@ const PricingPage = lazyNamed(
   () => import('../features/landing/marketing/PricingPage'),
   'PricingPage',
 )
+const LegalPage = lazyNamed(
+  () => import('../features/legal/LegalPage'),
+  'LegalPage',
+)
 
 const PlatformSynthCorePage           = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'SynthCorePage')
 const PlatformRecoveryHealthPage      = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'RecoveryHealthPage')
@@ -264,6 +268,8 @@ export const routes: RouteObject[] = [
   { path: '/why-us',                            element: withSuspense(<WhyUsPage />,        'Why us') },
   { path: '/resources',                         element: withSuspense(<ResourcesPage />,    'Resources') },
   { path: '/pricing',                           element: withSuspense(<PricingPage />,      'Pricing') },
+  { path: '/legal',                             element: <Navigate to="/legal/privacy" replace /> },
+  { path: '/legal/:slug',                       element: withSuspense(<LegalPage />,        'Legal') },
   {
     path: '/coach',
     element: (

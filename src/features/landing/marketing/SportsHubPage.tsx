@@ -10,11 +10,11 @@ import {
 } from '../shell/tokens'
 
 const SPORTS = [
-  { slug: 'running',  name: 'Running',   tagline: 'Sub-3 marathons. Sub-18 5Ks. Ultras.', capabilities: ['Strava + TrainingPeaks unified', 'Race countdown & taper view', 'Recovery readiness gating hard days'] },
-  { slug: 'cycling',  name: 'Cycling',   tagline: 'FTP, threshold, VO2. Zwift + outdoor.', capabilities: ['Power + HR + cadence normalized', 'TrainerRoad / Wahoo plan sync', 'Acute:chronic load by week'] },
-  { slug: 'swimming', name: 'Swimming',  tagline: 'Pool sets and open water. Meet weeks.', capabilities: ['Apple Watch / Garmin / Coros unified', 'Set planning + send-off tracking', 'Soreness map for shoulder + back'] },
+  { slug: 'running',  name: 'Running',   tagline: 'Sub-3 marathons. Sub-18 5Ks. Ultras.', capabilities: ['Strava + your plan unified', 'Race countdown & taper view', 'Recovery readiness gating hard days'] },
+  { slug: 'cycling',  name: 'Cycling',   tagline: 'FTP, threshold, VO2. Indoor + outdoor.', capabilities: ['Strava + Garmin power normalized', 'Plan vs actual side-by-side', 'Acute:chronic load by week'] },
+  { slug: 'swimming', name: 'Swimming',  tagline: 'Pool sets and open water. Meet weeks.', capabilities: ['Apple Watch / Garmin unified', 'Set planning + send-off tracking', 'Soreness map for shoulder + back'] },
   { slug: 'rowing',   name: 'Rowing',    tagline: 'Built by rowers. Erg + on-water + boats.', capabilities: ['Concept2 Logbook sync', '2K + seat-race tracking', 'Lineup builder writes to Sheets'] },
-  { slug: 'lifting',  name: 'Lifting',   tagline: 'Powerlifting, Olympic, hybrid, gym.', capabilities: ['TrainHeroic / TrueCoach / Volt sync', 'Big-three PR engine over years', 'Volume × intensity dashboards'] },
+  { slug: 'lifting',  name: 'Lifting',   tagline: 'Powerlifting, Olympic, hybrid, gym.', capabilities: ['Spreadsheet + AI Import for any program', 'Big-three PR engine over years', 'Volume × intensity dashboards'] },
   { slug: 'teams',    name: 'Teams',     tagline: 'Clubs, schools, programs of any size.', capabilities: ['Lineup builder with PR + wellness in view', 'Two-way sync — no rip-and-replace', 'Athlete-facing app, visibility you control'] },
 ]
 

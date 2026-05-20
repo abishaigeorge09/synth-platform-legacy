@@ -20,7 +20,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     manifesto: {
       eyebrow: 'why synth for running',
       headline: <>The plan you <KO>wrote</KO> vs. the plan you <KO>ran</KO>.</>,
-      body: 'TrainingPeaks tracks the plan. Strava tracks the run. synth holds both side-by-side and surfaces the gap. Whoop says you slept badly? Your easy day stays easy. HRV says you\'re ready? Your interval day stays on.',
+      body: 'Your plan lives in a spreadsheet. Strava tracks the run. synth holds both side-by-side and surfaces the gap. Whoop says you slept badly? Your easy day stays easy. HRV says you\'re ready? Your interval day stays on.',
       media: {
         kind: 'screenshot',
         label: 'Runner dashboard — weekly load, pace history, race countdown',
@@ -31,7 +31,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       eyebrow: 'capabilities',
       title: 'What synth does for runners.',
       items: [
-        { title: 'Strava + TrainingPeaks unified', body: 'Every run, every plan — in one log, normalized to pace, HR zones, and TSS.' },
+        { title: 'Strava + your plan unified', body: 'Every run, every prescription — in one log, normalized to pace, HR zones, and TSS.' },
         { title: 'Race countdown view', body: 'Your goal race, your taper, your peak. synth orchestrates the last 8 weeks.' },
         { title: 'Threshold + zone tracking', body: 'Your tempo pace, your interval pace, your long-run pace — auto-detected from your data.' },
         { title: 'Recovery readiness', body: 'HRV + sleep + soreness. One number that tells you "go hard," "easy," or "rest."' },
@@ -45,7 +45,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       headline: <>Train smarter. <KO>race faster.</KO></>,
       body: 'Free during the alpha. $9/mo Athlete, $19/mo Athlete Pro.',
       primary: { label: 'start free', to: '/signup' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 
@@ -55,13 +55,13 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     hero: {
       eyebrow: 'for cyclists who train with power',
       headline: <>Synth for <KO>cyclists</KO></>,
-      subhead: 'FTP, threshold, VO2 — synth pulls every watt from Strava, Zwift, Wahoo, Hammerhead, and TrainerRoad. One dashboard for the rider who wants more than a leaderboard.',
+      subhead: 'FTP, threshold, VO2 — synth pulls every watt from Strava and Garmin. One dashboard for the rider who wants more than a leaderboard.',
       primaryCta: { label: 'start free', to: '/signup' },
       secondaryCta: { label: 'see the dashboard', to: '/coach/dashboard' },
       media: {
         kind: 'photo',
         label: 'Amateur cyclist on indoor trainer or outdoor ride',
-        caption: 'Real cyclist context — Zwift setup, gravel ride, or roadie group.',
+        caption: 'Real cyclist context — trainer setup, gravel ride, or roadie group.',
       },
     },
     manifesto: {
@@ -73,10 +73,10 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       eyebrow: 'capabilities',
       title: 'What synth does for cyclists.',
       items: [
-        { title: 'Zwift + Strava + Wahoo unified', body: 'Indoor and outdoor in one log. Power, HR, cadence, elevation, weather.' },
+        { title: 'Strava + Garmin unified', body: 'Indoor and outdoor in one log. Power, HR, cadence, elevation, weather.' },
         { title: 'FTP tracking', body: 'Auto-detected from your hardest 20-minute efforts. History over time.' },
         { title: 'Acute:chronic load', body: 'TSS-based load management. Periodize by feel and by math.' },
-        { title: 'TrainerRoad / Wahoo / Karoo plan sync', body: 'Your prescribed workouts vs your actual execution — side by side.' },
+        { title: 'Plan vs actual side-by-side', body: 'Your prescribed workouts (Sheets or AI Import from any program) vs your actual execution.' },
         { title: 'Recovery readiness', body: 'HRV + sleep before that hard interval set. Worth knowing.' },
         { title: 'Climbing & flat segment analysis', body: 'Track power-to-weight on climbs and W\' on flats.' },
         { title: 'PR engine', body: '1-min, 5-min, 20-min peak power. Best longest ride. Best climb.' },
@@ -86,7 +86,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     closing: {
       headline: <>Power data deserves a <KO>better home</KO>.</>,
       primary: { label: 'start free', to: '/signup' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 
@@ -96,7 +96,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     hero: {
       eyebrow: 'for swimmers — pool and open water',
       headline: <>Synth for <KO>swimmers</KO></>,
-      subhead: 'Pool sets, open-water swims, dry-land work, and the recovery in between. synth pulls every set from Apple Watch, Garmin, Coros, and your coach\'s set sheet — in one log.',
+      subhead: 'Pool sets, open-water swims, dry-land work, and the recovery in between. synth pulls every set from Apple Watch, Garmin, and your coach\'s set sheet — in one log.',
       primaryCta: { label: 'start free', to: '/signup' },
       secondaryCta: { label: 'see the dashboard', to: '/coach/dashboard' },
       media: {
@@ -114,7 +114,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       eyebrow: 'capabilities',
       title: 'What synth does for swimmers.',
       items: [
-        { title: 'Pool + open water unified', body: 'Apple Watch, Garmin, Coros — synth reads them all into one log.' },
+        { title: 'Pool + open water unified', body: 'Apple Watch + Garmin + Apple Health — synth reads them all into one log.' },
         { title: 'Set & interval planning', body: 'Coach writes the set. synth pushes it to your watch. You execute. Splits come back.' },
         { title: 'Recovery readiness', body: 'Especially important for swimmers — shoulder soreness, sleep, training-week stress.' },
         { title: 'Dry-land + pool combined', body: 'Lifting, mobility, S&C — all in the same log as your meters.' },
@@ -127,7 +127,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     closing: {
       headline: <>Train every set. <KO>own every meet.</KO></>,
       primary: { label: 'start free', to: '/signup' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 
@@ -189,7 +189,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     hero: {
       eyebrow: 'for the gym athlete',
       headline: <>Synth for <KO>lifters</KO></>,
-      subhead: 'Powerlifters, Olympic lifters, CrossFit boxes, hybrid athletes. synth pulls every set from your TrainHeroic, TrueCoach, Volt, or your own logbook — and tracks PRs across every modality.',
+      subhead: 'Powerlifters, Olympic lifters, CrossFit boxes, hybrid athletes. synth pulls every set from your Notion log, your training spreadsheet, or a photo of your paper logbook — and tracks PRs across every modality.',
       primaryCta: { label: 'start free', to: '/signup' },
       secondaryCta: { label: 'see the dashboard', to: '/coach/dashboard' },
       media: {
@@ -207,7 +207,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       eyebrow: 'capabilities',
       title: 'What synth does for lifters.',
       items: [
-        { title: 'TrainHeroic / TrueCoach / Volt sync', body: 'Your prescribed cycle pulls in automatically. Execution goes back into synth.' },
+        { title: 'Spreadsheet + AI Import', body: 'Your cycle lives in Sheets or a photo of paper. synth reads either, parses sets, and writes execution back.' },
         { title: 'Big-three PR engine', body: 'Squat, bench, deadlift — across every program you\'ve ever run.' },
         { title: 'Olympic lift tracking', body: 'Snatch, C&J, complexes — with technical-quality notes.' },
         { title: 'Cycle / peak / deload visualization', body: 'See your last 12 months as one arc, not 30 separate sessions.' },
@@ -220,7 +220,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     closing: {
       headline: <>Build the cycle. <KO>own the PR.</KO></>,
       primary: { label: 'start free', to: '/signup' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 
@@ -253,7 +253,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       eyebrow: 'capabilities',
       title: 'Run the program from one screen.',
       items: [
-        { title: 'Full roster sync', body: 'Every athlete, contact, position, eligibility. Two-way sync to TeamWorks.' },
+        { title: 'Full roster sync', body: 'Every athlete, contact, position, eligibility. Two-way sync to your roster spreadsheet.' },
         { title: 'Lineup builder', body: 'Drag-and-drop with PR + wellness + attendance in view. Writes back to Sheets.' },
         { title: 'Session timer', body: 'Race-day stopwatch with splits. Exports back to your spreadsheet.' },
         { title: 'Daily wellness check-in', body: '15-second form on every athlete\'s phone. Coach sees the team in one glance.' },
@@ -267,7 +267,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       headline: <>Programs of any size. <KO>One tier per stage.</KO></>,
       body: '$199/mo Team for ≤30 athletes. $499/mo Team+ for ≤100. Collegiate from $15K/year.',
       primary: { label: 'talk to us', to: 'mailto:supportsynth@gmail.com' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 }

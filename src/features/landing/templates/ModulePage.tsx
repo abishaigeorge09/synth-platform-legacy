@@ -42,7 +42,7 @@ export function ModulePage({ config }: { config: ModulePageConfig }) {
     : config.capabilities.coreCapabilities
 
   return (
-    <PageShell active="platform">
+    <PageShell active="platform" canvas="dark">
       <StandardHero {...config.hero} />
       <ValueBridge {...config.valueBridge} />
       <IntegrationsStrip />

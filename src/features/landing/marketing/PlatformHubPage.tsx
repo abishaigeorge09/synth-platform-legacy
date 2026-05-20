@@ -16,7 +16,7 @@ const MODULES = [
   { slug: 'progress-development', name: 'Progress & Development',sub: 'PRs · trends · season pacing' },
   { slug: 'team-operations',      name: 'Team Operations',       sub: 'lineups · schedules · attendance' },
   { slug: 'custom-analytics',     name: 'Custom Analytics',      sub: 'bespoke models · 4–12 week engagements' },
-  { slug: 'integrations',         name: 'Integrations',          sub: '16+ direct · AI Import for everything else' },
+  { slug: 'integrations',         name: 'Integrations',          sub: '12+ direct · AI Import for everything else' },
   { slug: 'api',                  name: 'API',                   sub: 'read, write, build on your tenant' },
 ]
 
@@ -31,7 +31,7 @@ const SPORTS = [
 
 export function PlatformHubPage() {
   return (
-    <PageShell active="platform">
+    <PageShell active="platform" canvas="dark">
       <StandardHero
         eyebrow="more than a tracker. beyond a dashboard."
         headline={<>Synth <KO>Intelligence Platform</KO></>}
@@ -40,7 +40,7 @@ export function PlatformHubPage() {
         secondaryCta={{ label: 'watch demo', to: '/coach/dashboard' }}
         media={{
           kind: 'illustration',
-          label: 'Platform overview diagram — 16 sources into synth, 8 modules out',
+          label: 'Platform overview diagram — 12 sources into synth, 8 modules out',
           caption: 'Hub-and-spoke schematic of the platform.',
         }}
       />
@@ -178,7 +178,7 @@ export function PlatformHubPage() {
         headline={<>One <KO>platform</KO>. Every signal.</>}
         body="Start free during the alpha. Connect your first source in 60 seconds."
         primary={{ label: 'start free', to: '/signup' }}
-        secondary={{ label: 'see pricing', to: '/#pricing' }}
+        secondary={{ label: 'see pricing', to: '/pricing' }}
       />
     </PageShell>
   )

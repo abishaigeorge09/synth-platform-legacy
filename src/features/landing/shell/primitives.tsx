@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   BG, FG, MUTED, DIM, HAIR, FAINT,
   GREEN, GREEN_2, G_GLOW, G_DIM,
@@ -168,7 +168,7 @@ export function SectionLabel({
     >
       {align === 'center' && <span className="h-px w-12" style={{ background: HAIR }} />}
       <span>{children}</span>
-      <span className="h-px flex-1" style={{ background: HAIR }} />
+      <span className="h-px w-24" style={{ background: HAIR }} />
     </div>
   )
 }
@@ -256,7 +256,217 @@ export function PlaceholderMedia({
   )
 }
 
-/* ─── Nav — site-wide top navigation ─────────────────────────────────── */
+/* ─── Nav — Giga-style two-pill glassmorphism navbar ─────────────────────
+ *  Fixed top, split into two separate translucent pills with the middle
+ *  fully transparent. No scroll-driven state changes — the look adapts
+ *  via the blur sitting over whatever section is scrolling underneath. */
+
+const PILL_STYLE: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.20)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 10,
+  fontFamily: MONO,
+}
+
+type PlatformDropdownItem = { label: string; to: string; hint?: string }
+
+const PRODUCT_PLATFORM: PlatformDropdownItem[] = [
+  { label: 'synth Core',           to: '/platform/synth-core',           hint: 'the data layer' },
+  { label: 'Recovery & Health',    to: '/platform/recovery-health',      hint: 'HRV · sleep · injury' },
+  { label: 'Training & Load',      to: '/platform/training-load',        hint: 'plan vs actual' },
+  { label: 'Progress & Development', to: '/platform/progress-development', hint: 'PRs · trends' },
+  { label: 'Team Operations',      to: '/platform/team-operations',      hint: 'lineups · attendance' },
+  { label: 'Custom Analytics',     to: '/platform/custom-analytics',     hint: 'bespoke engagements' },
+  { label: 'Integrations',         to: '/platform/integrations',         hint: '12+ live' },
+  { label: 'API',                  to: '/platform/api',                  hint: 'build on your tenant' },
+]
+
+const PRODUCT_SPORTS: PlatformDropdownItem[] = [
+  { label: 'Running',  to: '/sports/running',  hint: 'sub-3 · 5K · ultra' },
+  { label: 'Cycling',  to: '/sports/cycling',  hint: 'FTP · indoor · road' },
+  { label: 'Swimming', to: '/sports/swimming', hint: 'pool · open water' },
+  { label: 'Rowing',   to: '/sports/rowing',   hint: 'erg · on-water · boats' },
+  { label: 'Lifting',  to: '/sports/lifting',  hint: 'powerlifting · oly' },
+  { label: 'Teams',    to: '/sports/teams',    hint: 'clubs · schools' },
+]
+
+const COMPANY_ITEMS: PlatformDropdownItem[] = [
+  { label: 'Why us',     to: '/why-us',     hint: 'built by champions' },
+  { label: 'Resources',  to: '/resources',  hint: 'guides · blog · video' },
+  { label: 'Pricing',    to: '/pricing',    hint: '$9 · $19 · teams' },
+  { label: 'Contact',    to: 'mailto:supportsynth@gmail.com', hint: 'supportsynth@gmail.com' },
+]
+
+function NavTriggerButton({
+  label,
+  active,
+  open,
+  onMouseEnter,
+  onFocus,
+}: {
+  label: string
+  active?: boolean
+  open: boolean
+  onMouseEnter: () => void
+  onFocus: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onMouseEnter={onMouseEnter}
+      onFocus={onFocus}
+      className="inline-flex items-center gap-1 px-3 py-1.5 text-[12px] transition-colors"
+      style={{
+        color: active || open ? FG : 'rgba(255,255,255,0.78)',
+        fontFamily: MONO,
+      }}
+    >
+      <span>{label}</span>
+      <motion.span
+        animate={{ rotate: open ? 180 : 0 }}
+        transition={{ duration: 0.2 }}
+        className="inline-block text-[9px]"
+        aria-hidden
+      >
+        ▾
+      </motion.span>
+    </button>
+  )
+}
+
+function ProductDropdownPanel({
+  onClose,
+}: {
+  onClose: () => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.18 }}
+      onMouseLeave={onClose}
+      className="absolute left-0 top-full mt-2 w-[640px] p-2"
+      style={{
+        ...PILL_STYLE,
+        background: 'rgba(8,8,8,0.85)',
+        backdropFilter: 'blur(24px)',
+      }}
+    >
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <div className="px-3 py-2 text-[9px] uppercase tracking-[0.3em]" style={{ color: GREEN }}>
+            // platform
+          </div>
+          <ul className="flex flex-col">
+            {PRODUCT_PLATFORM.map(item => (
+              <li key={item.label}>
+                <Link
+                  to={item.to}
+                  onClick={onClose}
+                  className="flex flex-col gap-0.5 rounded-md px-3 py-2 transition-colors hover:bg-white/5"
+                >
+                  <span className="text-[13px]" style={{ color: FG, fontFamily: MONO }}>
+                    {item.label}
+                  </span>
+                  {item.hint && (
+                    <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: DIM }}>
+                      {item.hint}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <div className="px-3 py-2 text-[9px] uppercase tracking-[0.3em]" style={{ color: GREEN }}>
+            // sports
+          </div>
+          <ul className="flex flex-col">
+            {PRODUCT_SPORTS.map(item => (
+              <li key={item.label}>
+                <Link
+                  to={item.to}
+                  onClick={onClose}
+                  className="flex flex-col gap-0.5 rounded-md px-3 py-2 transition-colors hover:bg-white/5"
+                >
+                  <span className="text-[13px]" style={{ color: FG, fontFamily: MONO }}>
+                    {item.label}
+                  </span>
+                  {item.hint && (
+                    <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: DIM }}>
+                      {item.hint}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function CompanyDropdownPanel({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.18 }}
+      onMouseLeave={onClose}
+      className="absolute left-0 top-full mt-2 w-[260px] p-2"
+      style={{
+        ...PILL_STYLE,
+        background: 'rgba(8,8,8,0.85)',
+        backdropFilter: 'blur(24px)',
+      }}
+    >
+      <ul className="flex flex-col">
+        {COMPANY_ITEMS.map(item => {
+          const external = /^(mailto:|https?:|tel:)/.test(item.to)
+          const inner = (
+            <span className="flex flex-col gap-0.5">
+              <span className="text-[13px]" style={{ color: FG, fontFamily: MONO }}>
+                {item.label}
+              </span>
+              {item.hint && (
+                <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: DIM }}>
+                  {item.hint}
+                </span>
+              )}
+            </span>
+          )
+          return (
+            <li key={item.label}>
+              {external ? (
+                <a
+                  href={item.to}
+                  onClick={onClose}
+                  className="block rounded-md px-3 py-2 transition-colors hover:bg-white/5"
+                >
+                  {inner}
+                </a>
+              ) : (
+                <Link
+                  to={item.to}
+                  onClick={onClose}
+                  className="block rounded-md px-3 py-2 transition-colors hover:bg-white/5"
+                >
+                  {inner}
+                </Link>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </motion.div>
+  )
+}
 
 export function Nav({
   onStart,
@@ -267,72 +477,304 @@ export function Nav({
   ctaLabel?: string
   active?: 'home' | 'platform' | 'sports' | 'teams' | 'pricing' | 'why-us' | 'resources'
 }) {
-  const items: { key: typeof active; label: string; to: string }[] = [
-    { key: 'platform',  label: 'platform',   to: '/platform' },
-    { key: 'sports',    label: 'sports',     to: '/sports' },
-    { key: 'teams',     label: 'for teams',  to: '/sports/teams' },
-    { key: 'pricing',   label: 'pricing',    to: '/#pricing' },
-    { key: 'why-us',    label: 'why us',     to: '/why-us' },
-    { key: 'resources', label: 'resources',  to: '/resources' },
-  ]
+  const [openMenu, setOpenMenu] = useState<'product' | 'company' | null>(null)
+  const closeTimer = useRef<number | null>(null)
+
+  // small delay on close so moving from trigger → panel doesn't kill the menu
+  const queueClose = () => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current)
+    closeTimer.current = window.setTimeout(() => setOpenMenu(null), 140)
+  }
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      window.clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+  }
+  const open = (which: 'product' | 'company') => {
+    cancelClose()
+    setOpenMenu(which)
+  }
+
+  const productActive = active === 'platform' || active === 'sports' || active === 'teams'
+  const companyActive = active === 'why-us' || active === 'resources' || active === 'pricing'
+
+  const [mobileOpen, setMobileOpen] = useState(false)
+
   return (
-    <header
-      className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-5 sm:px-10 py-4"
-      style={{
-        background: 'rgba(5,5,5,0.78)',
-        backdropFilter: 'blur(14px)',
-        borderBottom: `1px solid ${HAIR}`,
-      }}
-    >
-      <Link to="/" className="text-[20px] font-semibold leading-none" style={{ fontFamily: MONO, color: FG }}>
-        synth<span style={{ color: GREEN }}>.</span>
-      </Link>
-      <nav className="flex items-center gap-3 text-[11px] sm:gap-5" style={{ fontFamily: MONO, color: MUTED }}>
-        {items.map(item => (
-          <Link
-            key={item.key}
-            to={item.to}
-            className="hidden transition-colors hover:text-white md:inline"
-            style={{
-              color: active === item.key ? FG : MUTED,
-              borderBottom: active === item.key ? `1px solid ${GREEN}` : '1px solid transparent',
-              paddingBottom: 2,
-            }}
-          >
-            {item.label}
+    <>
+      <header
+        className="fixed inset-x-0 z-40 flex items-start justify-between px-4 sm:px-6"
+        style={{ top: 16, pointerEvents: 'none' }}
+      >
+        {/* LEFT PILL — logo + Product + Company (Product/Company hidden on mobile) */}
+        <div
+          className="relative flex items-center gap-1 px-2 py-1.5"
+          style={{ ...PILL_STYLE, pointerEvents: 'auto' }}
+          onMouseLeave={queueClose}
+        >
+          <Link to="/" className="px-2.5 text-[16px] font-semibold leading-none" style={{ fontFamily: MONO, color: FG }}>
+            synth<span style={{ color: GREEN }}>.</span>
           </Link>
-        ))}
-        <Link to="/login" className="transition-colors hover:text-white">sign in</Link>
-        {onStart ? (
-          <button
-            type="button"
-            onClick={onStart}
-            className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
-            style={{
-              background: GREEN,
-              color: '#000',
-              fontFamily: MONO,
-              boxShadow: `0 0 24px ${G_GLOW}`,
-            }}
+
+          <div className="mx-1 hidden h-5 w-px md:block" style={{ background: 'rgba(255,255,255,0.12)' }} />
+
+          <div className="relative hidden md:block" onMouseEnter={() => open('product')}>
+            <NavTriggerButton
+              label="Product"
+              open={openMenu === 'product'}
+              active={productActive}
+              onMouseEnter={() => open('product')}
+              onFocus={() => open('product')}
+            />
+            <AnimatePresence>
+              {openMenu === 'product' && <ProductDropdownPanel onClose={() => setOpenMenu(null)} />}
+            </AnimatePresence>
+          </div>
+
+          <div className="relative hidden md:block" onMouseEnter={() => open('company')}>
+            <NavTriggerButton
+              label="Company"
+              open={openMenu === 'company'}
+              active={companyActive}
+              onMouseEnter={() => open('company')}
+              onFocus={() => open('company')}
+            />
+            <AnimatePresence>
+              {openMenu === 'company' && <CompanyDropdownPanel onClose={() => setOpenMenu(null)} />}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* RIGHT PILL — desktop only: Download + Sign in + Start free */}
+        <div
+          className="hidden md:flex items-center gap-1 px-2 py-1.5"
+          style={{ ...PILL_STYLE, pointerEvents: 'auto' }}
+        >
+          {onStart ? (
+            <button
+              type="button"
+              onClick={onStart}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition-colors hover:text-white"
+              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: MONO }}
+              aria-label="Download synth"
+            >
+              <span aria-hidden>↓</span>
+              <span>Download</span>
+            </button>
+          ) : (
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition-colors hover:text-white"
+              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: MONO }}
+              aria-label="Download synth"
+            >
+              <span aria-hidden>↓</span>
+              <span>Download</span>
+            </Link>
+          )}
+          <Link
+            to="/login"
+            className="px-3 py-1.5 text-[12px] transition-colors hover:text-white"
+            style={{ color: 'rgba(255,255,255,0.78)', fontFamily: MONO }}
           >
-            {ctaLabel}
-          </button>
-        ) : (
+            Sign in
+          </Link>
           <Link
             to="/signup"
-            className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
-            style={{
-              background: GREEN,
-              color: '#000',
-              fontFamily: MONO,
-              boxShadow: `0 0 24px ${G_GLOW}`,
-            }}
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-[11px] font-semibold"
+            style={{ background: '#fff', color: '#000', fontFamily: MONO }}
           >
             {ctaLabel}
           </Link>
+        </div>
+
+        {/* RIGHT PILL — mobile only: hamburger button */}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="flex items-center justify-center md:hidden"
+          style={{
+            ...PILL_STYLE,
+            pointerEvents: 'auto',
+            width: 44,
+            height: 44,
+            padding: 0,
+          }}
+          aria-label="Open menu"
+          aria-expanded={mobileOpen}
+        >
+          <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke={FG} strokeWidth="1.5" strokeLinecap="round">
+            <line x1="2" y1="2"  x2="18" y2="2"  />
+            <line x1="2" y1="7"  x2="18" y2="7"  />
+            <line x1="2" y1="12" x2="18" y2="12" />
+          </svg>
+        </button>
+      </header>
+
+      {/* Full-screen mobile menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <MobileMenu
+            onClose={() => setMobileOpen(false)}
+            onStart={onStart}
+            active={active}
+          />
         )}
-      </nav>
-    </header>
+      </AnimatePresence>
+    </>
+  )
+}
+
+function MobileMenu({
+  onClose,
+  onStart,
+  active,
+}: {
+  onClose: () => void
+  onStart?: () => void
+  active?: string
+}) {
+  // Lock body scroll while the menu is open; restore on close
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22 }}
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
+      style={{ background: BG, color: FG, fontFamily: MONO }}
+    >
+      {/* Top bar — logo + close */}
+      <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${HAIR}` }}>
+        <Link to="/" onClick={onClose} className="text-[18px] font-semibold" style={{ color: FG }}>
+          synth<span style={{ color: GREEN }}>.</span>
+        </Link>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-10 w-10 items-center justify-center"
+          aria-label="Close menu"
+          style={{ border: `1px solid ${HAIR}`, borderRadius: 8 }}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={FG} strokeWidth="1.5" strokeLinecap="round">
+            <line x1="2" y1="2"  x2="12" y2="12" />
+            <line x1="12" y1="2" x2="2" y2="12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Content — scrollable */}
+      <div className="flex flex-1 flex-col gap-8 px-5 py-8">
+        <MobileMenuGroup
+          title="// platform"
+          items={PRODUCT_PLATFORM}
+          onClick={onClose}
+          activeKey={active === 'platform' ? 'all' : undefined}
+        />
+        <MobileMenuGroup
+          title="// sports"
+          items={PRODUCT_SPORTS}
+          onClick={onClose}
+          activeKey={active === 'sports' ? 'all' : undefined}
+        />
+        <MobileMenuGroup
+          title="// company"
+          items={COMPANY_ITEMS}
+          onClick={onClose}
+        />
+      </div>
+
+      {/* Sticky bottom — CTAs */}
+      <div className="flex flex-col gap-3 px-5 pb-8 pt-4" style={{ borderTop: `1px solid ${HAIR}` }}>
+        {onStart && (
+          <button
+            type="button"
+            onClick={() => { onStart(); onClose() }}
+            className="flex items-center justify-center gap-2 rounded-md px-4 py-3 text-[12px] uppercase tracking-[0.22em]"
+            style={{ border: `1px solid ${HAIR}`, color: FG, fontFamily: MONO }}
+          >
+            <span aria-hidden>↓</span>
+            <span>Download app</span>
+          </button>
+        )}
+        <Link
+          to="/login"
+          onClick={onClose}
+          className="flex items-center justify-center px-4 py-3 text-[12px] uppercase tracking-[0.22em]"
+          style={{ border: `1px solid ${HAIR}`, color: FG, fontFamily: MONO }}
+        >
+          Sign in
+        </Link>
+        <Link
+          to="/signup"
+          onClick={onClose}
+          className="flex items-center justify-center rounded-md px-4 py-3.5 text-[12px] font-semibold uppercase tracking-[0.22em]"
+          style={{ background: GREEN, color: '#000', fontFamily: MONO, boxShadow: `0 0 24px ${G_GLOW}` }}
+        >
+          Start free →
+        </Link>
+      </div>
+    </motion.div>
+  )
+}
+
+function MobileMenuGroup({
+  title,
+  items,
+  onClick,
+  activeKey,
+}: {
+  title: string
+  items: PlatformDropdownItem[]
+  onClick: () => void
+  activeKey?: string
+}) {
+  return (
+    <div>
+      <div className="mb-3 text-[10px] uppercase tracking-[0.32em]" style={{ color: GREEN }}>
+        {title}
+      </div>
+      <ul className="flex flex-col gap-px" style={{ background: HAIR }}>
+        {items.map(item => {
+          const external = /^(mailto:|https?:|tel:)/.test(item.to)
+          const inner = (
+            <div className="flex flex-col gap-0.5 px-1 py-3">
+              <div className="text-[15px]" style={{ color: FG }}>{item.label}</div>
+              {item.hint && (
+                <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: DIM }}>
+                  {item.hint}
+                </div>
+              )}
+            </div>
+          )
+          return (
+            <li key={item.label} style={{ background: BG }}>
+              {external ? (
+                <a href={item.to} onClick={onClick} className="block">
+                  {inner}
+                </a>
+              ) : (
+                <Link to={item.to} onClick={onClick} className="block">
+                  {inner}
+                </Link>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      {activeKey === 'all' && (
+        <div className="mt-1 text-[9px] uppercase tracking-[0.22em]" style={{ color: GREEN }}>
+          you are here
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -388,7 +830,7 @@ const FOOTER_COLS: { title: string; links: { label: string; to: string; external
     links: [
       { label: 'why us',       to: '/why-us' },
       { label: 'resources',    to: '/resources' },
-      { label: 'pricing',      to: '/#pricing' },
+      { label: 'pricing',      to: '/pricing' },
       { label: 'contact',      to: 'mailto:supportsynth@gmail.com', external: true },
     ],
   },
@@ -756,7 +1198,7 @@ export function IntegrationsStrip() {
       <div className="mx-auto w-full max-w-[1280px]">
         <div className="flex items-center gap-4">
           <span className="text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: GREEN }}>
-            // 16+ integrations
+            // 12+ integrations
           </span>
           <span className="h-px flex-1" style={{ background: HAIR }} />
         </div>
@@ -847,13 +1289,22 @@ export function PageShell({
   active,
   onStart,
   ctaLabel,
+  canvas = 'green',
   children,
 }: {
   active?: 'home' | 'platform' | 'sports' | 'teams' | 'pricing' | 'why-us' | 'resources'
   onStart?: () => void
   ctaLabel?: string
+  /** Body overscroll color. Defaults to 'green' (brand). Use 'dark' for
+   *  platform pages so the overscroll matches the dark section background. */
+  canvas?: 'green' | 'dark'
   children: React.ReactNode
 }) {
+  useEffect(() => {
+    document.body.setAttribute('data-app-canvas', canvas)
+    return () => document.body.removeAttribute('data-app-canvas')
+  }, [canvas])
+
   return (
     <div className="flex min-h-dvh w-full flex-col" style={{ background: BG, color: FG }}>
       <Nav active={active} onStart={onStart} ctaLabel={ctaLabel} />

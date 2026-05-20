@@ -17,7 +17,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
       secondaryCta: { label: 'watch a demo', to: '/coach/dashboard' },
       media: {
         kind: 'illustration',
-        label: 'Architecture diagram: 16 sources → synth Core → modules',
+        label: 'Architecture diagram: 12 sources → synth Core → modules',
         caption: 'Replace with the data-layer architecture diagram or a stylized "OS" graphic.',
       },
     },
@@ -40,7 +40,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
         { title: 'Daily status', body: 'A single morning glance: who is ready, who is tired, what changed overnight.' },
         { title: 'Mobile engagement', body: 'Your athletes complete check-ins on their phone in 15 seconds. PWA, no app store.' },
         { title: 'Forms & data collection', body: 'Build any form — wellness, RPE, soreness, mental load. Goes into the same warehouse as everything else.' },
-        { title: 'Seamless data integration', body: '16+ direct integrations live. OAuth in 60 seconds. AI Import for anything without an API.' },
+        { title: 'Seamless data integration', body: '12+ direct integrations live. OAuth in 60 seconds. AI Import for anything without an API.' },
       ],
     },
     closing: {
@@ -111,7 +111,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
     hero: {
       eyebrow: 'more than a training log',
       headline: <>Training & <KO>Load</KO></>,
-      subhead: 'Every session, every interval, every wattage tick — captured from Strava, TrainingPeaks, Concept2, Zwift, or your own spreadsheet. synth normalizes it all and tells you what the week actually cost you.',
+      subhead: 'Every session, every interval, every wattage tick — captured from Strava, Concept2, or your own spreadsheet. synth normalizes it all and tells you what the week actually cost you.',
       primaryCta: { label: 'start free', to: '/signup' },
       secondaryCta: { label: 'see a real plan', to: '/coach/dashboard' },
       media: {
@@ -138,7 +138,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
         { title: 'Session planning & prescription', body: 'Write the week. synth pushes it to your calendar and reminds you on race-week.' },
         { title: 'Periodization view', body: 'Quarter, season, year. See how this week fits the arc — without rebuilding a spreadsheet.' },
         { title: 'RPE & wellness logging', body: '15 seconds after the session. Combined with HRV, the cheapest reliable load signal you can buy.' },
-        { title: 'GPS & power data', body: 'Pulled from Strava, Wahoo, Garmin, Coros, Polar — normalized to one schema.' },
+        { title: 'GPS & power data', body: 'Pulled from Strava, Garmin, Apple Health — normalized to one schema.' },
         { title: 'Growth & maturation tracking', body: 'For junior and developing athletes — peak-height-velocity-aware planning.', hint: 'team plan' },
         { title: 'Performance benchmarking', body: 'Your 5K, your 2K, your back-squat — vs your own history, your age group, or your team.' },
         { title: 'Best-week detection', body: 'synth surfaces your highest-quality weeks so you can repeat what worked.', hint: '+ ai chat: "what was my best week?"' },
@@ -148,7 +148,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
       headline: <>Plan smarter. <KO>execute honestly.</KO></>,
       body: 'Free during the alpha. $9/mo Athlete, $19/mo Athlete Pro.',
       primary: { label: 'start free', to: '/signup' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 
@@ -195,7 +195,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
     closing: {
       headline: <>One season. <KO>one screen.</KO></>,
       primary: { label: 'start free', to: '/signup' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 
@@ -229,7 +229,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
       eyebrow: 'solution capabilities',
       title: 'Run the team from one screen.',
       coreCapabilities: [
-        { title: 'Roster management', body: 'Every athlete, every contact, every position. Two-way sync to TeamWorks if you use it.' },
+        { title: 'Roster management', body: 'Every athlete, every contact, every position. Two-way sync to your team\'s spreadsheet.' },
         { title: 'Lineup builder', body: 'Drag-and-drop with PR + wellness + attendance in view. Writes back to Google Sheets.' },
         { title: 'Session timer', body: 'Race-day-grade stopwatch with splits, comparison, and an export back to your spreadsheet.' },
         { title: 'Attendance & participation', body: 'Daily roll-call on a phone in three taps. No more "did Anna make practice?"' },
@@ -243,7 +243,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
       headline: <>Programs of any size. <KO>One tier per stage.</KO></>,
       body: '$199/mo Team for ≤30 athletes. $499/mo Team+ for ≤100. Collegiate and program tiers from $15K/year.',
       primary: { label: 'talk to us', to: 'mailto:supportsynth@gmail.com' },
-      secondary: { label: 'see pricing', to: '/#pricing' },
+      secondary: { label: 'see pricing', to: '/pricing' },
     },
   },
 
@@ -293,13 +293,13 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
     active: 'platform',
     hero: {
       eyebrow: 'every tool you already use',
-      headline: <>16+ <KO>integrations</KO> and counting</>,
+      headline: <>12+ <KO>integrations</KO> and counting</>,
       subhead: 'Wearables, training apps, team tools, spreadsheets. If it has an API, synth connects. If it doesn\'t, our AI Import pipeline reads photos, voice notes, and pasted text.',
       primaryCta: { label: 'start free', to: '/signup' },
       secondaryCta: { label: 'request an integration', to: 'mailto:supportsynth@gmail.com' },
       media: {
         kind: 'illustration',
-        label: '16-logo grid hub-and-spoke into synth',
+        label: '12-logo grid hub-and-spoke into synth',
         caption: 'Replace with a logo grid + lines converging on the synth mark.',
       },
     },
@@ -312,9 +312,8 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
       eyebrow: 'connectors',
       title: 'The full ecosystem.',
       coreCapabilities: [
-        { title: 'Wearables', body: 'Whoop, Garmin, Oura, Apple Health, Google Health Connect, Polar, Coros, Fitbit, Suunto.' },
-        { title: 'Activity & training apps', body: 'Strava, TrainingPeaks, Concept2 Logbook, Zwift, Peloton, Hammerhead, Wahoo, Final Surge, TrainerRoad.' },
-        { title: 'Team & coaching tools', body: 'TeamWorks, Bridge Athletics, Smartabase, Catapult, Hudl, Volt, TrueCoach, TrainHeroic.' },
+        { title: 'Wearables', body: 'Whoop, Garmin, Oura, Apple Health, Google Health Connect, Fitbit.' },
+        { title: 'Activity & training apps', body: 'Strava, Concept2 Logbook.' },
         { title: 'Spreadsheets & docs', body: 'Google Sheets (priority), Excel, Google Calendar, Notion — read AND write.' },
         { title: 'AI Import — photos', body: 'Snap any chart, paper log, screenshot. Claude Vision turns it into structured data.' },
         { title: 'AI Import — voice', body: 'Post-session voice memo. Whisper → Claude → structured data in your log.' },

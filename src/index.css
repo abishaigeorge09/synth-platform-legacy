@@ -158,6 +158,24 @@ body[data-app-canvas='green'] .app-shell-frame {
   }
 }
 
+/* Dark canvas (platform pages). Overscroll exposes the platform section
+   bg (#050505) instead of green or white, so the platform feels like its
+   own discrete surface. */
+body[data-app-canvas='dark'] {
+  background: #050505;
+}
+body[data-app-canvas='dark'] .app-shell-root {
+  background: #050505;
+}
+body[data-app-canvas='dark'] .app-shell-frame {
+  background: #050505;
+}
+@media (display-mode: standalone) {
+  body[data-app-canvas='dark'] .app-shell-root {
+    background: #050505;
+  }
+}
+
 /* Cream-canvas surfaces (synth AI). Same pattern — overscroll exposes
    cream (matching SYNTH.aiCanvas) instead of cobalt or white. */
 body[data-app-canvas='cream'] {

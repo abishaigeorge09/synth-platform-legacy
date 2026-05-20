@@ -77,6 +77,44 @@ const LandingPage = lazyNamed(
   () => import('../features/landing/LandingPage'),
   'LandingPage',
 )
+
+/* ─── Marketing surface (Kitman-inspired multi-page site) ──────────────── */
+const PlatformHubPage = lazyNamed(
+  () => import('../features/landing/marketing/PlatformHubPage'),
+  'PlatformHubPage',
+)
+const SportsHubPage = lazyNamed(
+  () => import('../features/landing/marketing/SportsHubPage'),
+  'SportsHubPage',
+)
+const WhyUsPage = lazyNamed(
+  () => import('../features/landing/marketing/WhyUsPage'),
+  'WhyUsPage',
+)
+const ResourcesPage = lazyNamed(
+  () => import('../features/landing/marketing/ResourcesPage'),
+  'ResourcesPage',
+)
+const PricingPage = lazyNamed(
+  () => import('../features/landing/marketing/PricingPage'),
+  'PricingPage',
+)
+
+const PlatformSynthCorePage           = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'SynthCorePage')
+const PlatformRecoveryHealthPage      = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'RecoveryHealthPage')
+const PlatformTrainingLoadPage        = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'TrainingLoadPage')
+const PlatformProgressDevelopmentPage = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'ProgressDevelopmentPage')
+const PlatformTeamOperationsPage      = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'TeamOperationsPage')
+const PlatformCustomAnalyticsPage     = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'CustomAnalyticsPage')
+const PlatformIntegrationsPage        = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'IntegrationsPage')
+const PlatformApiPage                 = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'ApiPage')
+
+const SportRunningPage   = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'RunningPage')
+const SportCyclingPage   = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'CyclingPage')
+const SportSwimmingPage  = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'SwimmingPage')
+const SportRowingPage    = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'RowingPage')
+const SportLiftingPage   = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'LiftingPage')
+const SportTeamsPage     = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'TeamsPage')
 const LoginPage = lazyNamed(
   () => import('../features/auth/LoginPage'),
   'LoginPage',
@@ -203,6 +241,29 @@ export const routes: RouteObject[] = [
   { path: '/login', element: withSuspense(<LoginPage />, 'Sign in') },
   { path: '/signup', element: withSuspense(<SignUpPage />, 'Sign up') },
   { path: '/join/:code', element: withSuspense(<JoinWithInvitePage />, 'Join team') },
+
+  /* ─── Marketing surface ──────────────────────────────────────────────── */
+  { path: '/platform',                          element: withSuspense(<PlatformHubPage />,                  'Platform') },
+  { path: '/platform/synth-core',               element: withSuspense(<PlatformSynthCorePage />,            'synth Core') },
+  { path: '/platform/recovery-health',          element: withSuspense(<PlatformRecoveryHealthPage />,       'Recovery & Health') },
+  { path: '/platform/training-load',            element: withSuspense(<PlatformTrainingLoadPage />,         'Training & Load') },
+  { path: '/platform/progress-development',     element: withSuspense(<PlatformProgressDevelopmentPage />,  'Progress & Development') },
+  { path: '/platform/team-operations',          element: withSuspense(<PlatformTeamOperationsPage />,       'Team Operations') },
+  { path: '/platform/custom-analytics',         element: withSuspense(<PlatformCustomAnalyticsPage />,      'Custom Analytics') },
+  { path: '/platform/integrations',             element: withSuspense(<PlatformIntegrationsPage />,         'Integrations') },
+  { path: '/platform/api',                      element: withSuspense(<PlatformApiPage />,                  'API') },
+
+  { path: '/sports',                            element: withSuspense(<SportsHubPage />,    'Sports') },
+  { path: '/sports/running',                    element: withSuspense(<SportRunningPage />, 'Running') },
+  { path: '/sports/cycling',                    element: withSuspense(<SportCyclingPage />, 'Cycling') },
+  { path: '/sports/swimming',                   element: withSuspense(<SportSwimmingPage />,'Swimming') },
+  { path: '/sports/rowing',                     element: withSuspense(<SportRowingPage />,  'Rowing') },
+  { path: '/sports/lifting',                    element: withSuspense(<SportLiftingPage />, 'Lifting') },
+  { path: '/sports/teams',                      element: withSuspense(<SportTeamsPage />,   'For Teams') },
+
+  { path: '/why-us',                            element: withSuspense(<WhyUsPage />,        'Why us') },
+  { path: '/resources',                         element: withSuspense(<ResourcesPage />,    'Resources') },
+  { path: '/pricing',                           element: withSuspense(<PricingPage />,      'Pricing') },
   {
     path: '/coach',
     element: (

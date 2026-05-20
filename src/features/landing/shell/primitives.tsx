@@ -1289,7 +1289,7 @@ export function PageShell({
   active,
   onStart,
   ctaLabel,
-  canvas = 'green',
+  canvas = 'dark',
   children,
 }: {
   active?: 'home' | 'platform' | 'sports' | 'teams' | 'pricing' | 'why-us' | 'resources'

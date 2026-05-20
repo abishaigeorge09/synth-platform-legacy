@@ -1,13 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { AUTH_TOKENS } from './authTokens'
 
-const { GREEN, MUTED, DIM, HAIR, SERIF, MONO, BODY, FG, BG } = AUTH_TOKENS
-
-/** Shared split-panel auth shell — brand on the left, form on the right.
- *  Matches the synth landing aesthetic: dark canvas, Fraunces serif for
- *  the headline, JetBrains Mono for chips/labels, soft hero photo behind
- *  the left panel with a dark wash. */
+const { GREEN, MUTED, HAIR, FAINT, MONO, BODY, FG, BG } = AUTH_TOKENS
 
 type AuthTab = 'login' | 'signup'
 
@@ -20,79 +16,34 @@ export function AuthLayout({
 }) {
   return (
     <div className="flex min-h-dvh w-full" style={{ background: BG, color: FG, fontFamily: BODY }}>
-      {/* LEFT — brand panel */}
+      {/* LEFT — full-bleed image slideshow, top-to-bottom.
+       *  `isolate` is critical: it forces the aside to start its own
+       *  stacking context so the slideshow's absolute layer can paint
+       *  at z-0 without escaping behind the page-root black. */}
       <aside
-        className="relative hidden flex-col justify-between overflow-hidden px-10 py-10 lg:flex"
-        style={{ width: '46%', minWidth: 480 }}
+        className="relative isolate hidden flex-col justify-between overflow-hidden px-10 py-10 lg:flex"
+        style={{ width: '50%', minWidth: 480, borderRight: `1px solid ${HAIR}` }}
       >
-        <div className="absolute inset-0 -z-10" aria-hidden>
-          <img
-            src="/hero-landscape.png"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{ objectPosition: 'center 40%' }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 100%)' }}
-          />
-          <div
-            className="absolute inset-0 mix-blend-overlay"
-            style={{ background: `radial-gradient(ellipse at 30% 60%, rgba(16,185,129,0.14) 0%, transparent 65%)` }}
-          />
-        </div>
+        <SlideshowBackdrop />
 
-        <Link to="/" className="flex items-center gap-2 text-[20px] font-semibold" style={{ fontFamily: MONO, color: FG }}>
+        {/* Top — logo */}
+        <Link
+          to="/"
+          className="relative z-10 inline-flex items-center text-[20px] font-semibold leading-none"
+          style={{ fontFamily: MONO, color: FG, textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
+        >
           synth<span style={{ color: GREEN }}>.</span>
         </Link>
 
-        <div className="flex flex-col gap-7">
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="tracking-[-0.01em]"
-            style={{
-              fontFamily: SERIF,
-              fontSize: 'clamp(36px, 4vw, 64px)',
-              fontWeight: 500,
-              lineHeight: 1.04,
-            }}
-          >
-            Every signal you generate.<br />
-            <span style={{ color: GREEN }}>One screen.</span>
-          </motion.h1>
-
-          <p className="max-w-[440px] text-[15px] leading-relaxed" style={{ color: MUTED }}>
-            synth pulls every tool you already use — Whoop, Strava, Oura, Garmin, Apple Health, your training spreadsheet — into one morning glance.
-          </p>
-
-          <ul className="flex flex-col gap-3 pt-2">
-            {[
-              'Recovery readiness, daily.',
-              'Patterns you can\'t see yourself.',
-              'No rip-and-replace — keep your tools.',
-            ].map(f => (
-              <li key={f} className="flex items-start gap-3 text-[13px]" style={{ fontFamily: MONO, color: FG }}>
-                <span
-                  className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center"
-                  style={{ background: 'rgba(16,185,129,0.12)', border: `1px solid ${GREEN}`, color: GREEN }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 5l2 2 4-4" />
-                  </svg>
-                </span>
-                <span>{f}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
-          <span style={{ color: GREEN }}>●</span>
-          <span>Built by World Championship rowers</span>
-          <span style={{ color: HAIR }}>·</span>
-          <span>Backed by Berkeley SkyDeck</span>
+        {/* Bottom-left — trust line, sits on top of the slide */}
+        <div className="relative z-10 flex items-center gap-2 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: 'rgba(255,255,255,0.65)', textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
+          <motion.span
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            className="inline-block h-1.5 w-1.5 rounded-full"
+            style={{ background: GREEN }}
+          />
+          <span>Berkeley SkyDeck · Pad-13</span>
         </div>
       </aside>
 
@@ -108,7 +59,7 @@ export function AuthLayout({
         </div>
 
         <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10">
-          <div className="w-full max-w-[440px]">
+          <div className="w-full max-w-[420px]">
             <TabSwitcher tab={tab} />
             {children}
           </div>
@@ -118,11 +69,135 @@ export function AuthLayout({
   )
 }
 
+/* ─── Slideshow — 4 full-bleed images, cross-fading on a 5s interval ──
+ *  Drop your images at /public/auth-slides/slide-{1..4}.jpg (or .webp).
+ *  Recommended size: 1600 × 2400 portrait, JPEG quality 80–85, < 500 KB
+ *  each. Falls back to a labeled gradient placeholder if a file is
+ *  missing so the slideshow still rotates while you prep assets. */
+
+const SLIDES = [
+  { src: '/auth-slides/slide-1.png', placeholder: '#0a1410' }, // trail runner — dawn ridge
+  { src: '/auth-slides/slide-2.png', placeholder: '#100a14' }, // cyclist — mountain road
+  { src: '/auth-slides/slide-3.png', placeholder: '#0a0f14' }, // open-water swimmer
+  { src: '/auth-slides/slide-4.png', placeholder: '#0a140d' }, // team — football line of scrimmage
+] as const
+
+const SLIDE_DURATION_MS = 9000
+
+function SlideshowBackdrop() {
+  const [i, setI] = useState(0)
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setI(v => (v + 1) % SLIDES.length)
+    }, SLIDE_DURATION_MS)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const slide = SLIDES[i]
+
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={slide.src}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.0, ease: 'easeInOut' }}
+          className="absolute inset-0"
+        >
+          <SlideMedia src={slide.src} placeholder={slide.placeholder} index={i} />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Dark wash so logo + trust line stay readable */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 35%, rgba(0,0,0,0.65) 100%)',
+        }}
+      />
+
+      {/* Subtle green tint */}
+      <div
+        className="absolute inset-0 mix-blend-overlay"
+        style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(16,185,129,0.10) 0%, transparent 65%)' }}
+      />
+
+      {/* Bottom-center indicators */}
+      <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2">
+        {SLIDES.map((_, idx) => (
+          <span
+            key={idx}
+            className="transition-all"
+            style={{
+              width: idx === i ? 22 : 6,
+              height: 6,
+              borderRadius: 999,
+              background: idx === i ? GREEN : 'rgba(255,255,255,0.25)',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* SlideMedia — shows the image; if the file 404s, shows a dark
+ *  gradient placeholder with a tiny "// slide-N" label so the asset
+ *  slot is obvious until images land. */
+function SlideMedia({ src, placeholder, index }: { src: string; placeholder: string; index: number }) {
+  const [loaded, setLoaded] = useState(false)
+  const [errored, setErrored] = useState(false)
+
+  return (
+    <div className="absolute inset-0">
+      {/* Placeholder painted underneath — shows through if the image hasn't loaded yet */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at 30% 30%, rgba(16,185,129,0.12) 0%, transparent 55%), linear-gradient(180deg, ${placeholder} 0%, #050505 100%)`,
+        }}
+      />
+
+      {!errored && (
+        <img
+          src={src}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover transition-opacity"
+          style={{ opacity: loaded ? 1 : 0 }}
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+        />
+      )}
+
+      {/* If image missing, surface a tiny slot label so it's obvious where to drop assets */}
+      {errored && (
+        <div
+          className="absolute left-6 top-24 inline-flex items-center gap-2 border px-3 py-1.5 text-[9px] uppercase tracking-[0.32em]"
+          style={{
+            borderColor: 'rgba(16,185,129,0.4)',
+            background: 'rgba(0,0,0,0.55)',
+            color: GREEN,
+            fontFamily: MONO,
+          }}
+        >
+          <span>// slide-{index + 1}</span>
+          <span style={{ color: 'rgba(255,255,255,0.4)' }}>· drop image here</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─── Tab switcher ────────────────────────────────────────────────── */
+
 function TabSwitcher({ tab }: { tab: AuthTab }) {
   return (
     <div
-      className="mb-8 grid grid-cols-2 overflow-hidden rounded-md"
-      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AUTH_TOKENS.FAINT}`, fontFamily: MONO }}
+      className="mb-7 grid grid-cols-2 overflow-hidden rounded-md"
+      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${FAINT}`, fontFamily: MONO }}
     >
       <Link
         to="/signup"

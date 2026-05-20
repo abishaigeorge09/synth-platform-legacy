@@ -4,12 +4,12 @@ import { posthog } from '../../shared/analytics/posthog'
 import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient'
 import { AuthLayout } from './AuthLayout'
 import {
-  AuthHeader, FieldLabel, TextInput,
+  FieldLabel, TextInput,
   PrimaryAuthButton, GhostAuthButton,
 } from './authShared'
 import { AUTH_TOKENS } from './authTokens'
 
-const { GREEN, MONO, MUTED, DIM, HAIR, FAINT, FG } = AUTH_TOKENS
+const { GREEN, MONO, DIM, HAIR, FAINT, FG } = AUTH_TOKENS
 
 // Real auth path. When Supabase is configured this page does:
 //   - "Continue with Google" → supabase.auth.signInWithOAuth (redirect)
@@ -102,11 +102,6 @@ export function LoginPage() {
 
   return (
     <AuthLayout tab="login">
-      <AuthHeader
-        title="Welcome back."
-        subtitle="Sign in to your synth account."
-      />
-
       {supabaseReady && (
         <>
           <GhostAuthButton onClick={handleGoogleLogin} disabled={submitting}>
@@ -114,11 +109,11 @@ export function LoginPage() {
             Continue with Google
           </GhostAuthButton>
           <div
-            className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.32em]"
+            className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.32em]"
             style={{ fontFamily: MONO, color: DIM }}
           >
             <div className="h-px flex-1" style={{ background: HAIR }} />
-            or email
+            or
             <div className="h-px flex-1" style={{ background: HAIR }} />
           </div>
         </>
@@ -187,22 +182,13 @@ export function LoginPage() {
         </PrimaryAuthButton>
       </form>
 
-      {/* Footer — switch to waitlist */}
-      <div className="mt-7 text-center text-[12px]" style={{ color: MUTED, fontFamily: MONO }}>
-        Don't have an account yet?{' '}
-        <Link to="/signup" className="transition-colors hover:opacity-80" style={{ color: GREEN }}>
-          Join the waitlist →
-        </Link>
+      <div className="mt-6 flex items-center justify-center gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ color: DIM, fontFamily: MONO }}>
+        <a href="/legal/terms" className="transition-colors hover:text-white">Terms</a>
+        <span style={{ color: HAIR }}>·</span>
+        <a href="/legal/privacy" className="transition-colors hover:text-white">Privacy</a>
       </div>
 
-      <div className="mt-6 text-center text-[10px] uppercase tracking-[0.32em]" style={{ color: DIM, fontFamily: MONO }}>
-        By signing in you agree to our{' '}
-        <a href="/legal/terms" className="transition-colors hover:text-white" style={{ color: MUTED }}>Terms</a>
-        {' '}and{' '}
-        <a href="/legal/privacy" className="transition-colors hover:text-white" style={{ color: MUTED }}>Privacy</a>.
-      </div>
-
-      {/* Unused token reference to keep them in scope for typescript */}
+      {/* unused token guard */}
       <span aria-hidden style={{ display: 'none', color: FG, borderColor: FAINT }} />
     </AuthLayout>
   )

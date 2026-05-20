@@ -21,11 +21,11 @@ export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`w-full px-4 py-3.5 text-[14px] outline-none transition-colors ${props.className ?? ''}`}
+      className={`w-full px-3.5 py-2.5 text-[12px] outline-none transition-colors ${props.className ?? ''}`}
       style={{
         background: 'rgba(255,255,255,0.03)',
         border: `1px solid ${FAINT}`,
-        borderRadius: 8,
+        borderRadius: 6,
         color: FG,
         fontFamily: MONO,
         caretColor: GREEN,

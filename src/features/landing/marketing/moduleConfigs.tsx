@@ -338,7 +338,7 @@ export const MODULE_CONFIGS: Record<string, ModulePageConfig> = {
       headline: <>API <KO>for synth</KO></>,
       subhead: 'A RESTful API into your synth tenant. Pull every athlete, every session, every recovery score. Push your own data. Build custom dashboards, research models, or sport-specific integrations.',
       primaryCta: { label: 'request access', to: 'mailto:supportsynth@gmail.com' },
-      secondaryCta: { label: 'see the docs', to: '/coach/sources' },
+      secondaryCta: { label: 'see all integrations', to: '/platform/integrations' },
       media: {
         kind: 'illustration',
         label: 'API illustration — endpoints, code snippet, response',

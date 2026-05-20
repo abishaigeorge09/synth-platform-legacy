@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useInstallPrompt } from './useInstallPrompt'
 import {
-  PageShell, KO, Hairlines, Crosshairs, SectionLabel, Chevron, PlaceholderMedia,
+  PageShell, KO, Hairlines, Crosshairs, SectionLabel, Chevron,
   ClosingCta, PrimaryButton, OutlineButton,
 } from './shell/primitives'
 import {
@@ -896,10 +896,10 @@ function ToolWall() {
 /* ─── Built by champions ──────────────────────────────────────────────── */
 
 const TEAM = [
-  { name: 'Abishai Gosula',  role: 'CEO · founder',     cred: ['CS · UC Berkeley', 'built the platform'] },
-  { name: 'Matthew Waddell', role: 'advisor',           cred: ['2025 U23 Worlds silver · NZ rowing', 'Cal Rowing · admitted Cambridge'] },
-  { name: 'Star Miller',     role: 'athlete advisor',   cred: ['Cal Women\'s Rowing', 'AUS · U23 Worlds'] },
-  { name: 'Lily Pember',     role: 'athlete advisor',   cred: ['Cal Women\'s Rowing', 'USA · Junior World gold'] },
+  { name: 'Abishai Gosula',  role: 'founder & CEO',     image: '/team/abishai.jpeg', focus: '50% 30%', cred: ['CS · UC Berkeley', 'ex AITA tennis athlete'] },
+  { name: 'Matthew Waddell', role: 'co-founder & COO',  image: '/team/matthew.png',  focus: '22% 35%', cred: ['2025 U23 Worlds silver · NZ rowing', 'Cal Rowing · admitted Cambridge'] },
+  { name: 'Star Miller',     role: 'co-founder & CCO',  image: '/team/star.png',     focus: '50% 30%', cred: ['Cal Women\'s Rowing', 'AUS · U23 Worlds'] },
+  { name: 'Lily Pember',     role: 'co-founder & CSO',  image: '/team/lily.png',     focus: '50% 25%', cred: ['Cal Women\'s Rowing', 'USA · Junior World gold'] },
 ]
 
 function TeamSection() {
@@ -944,7 +944,23 @@ function TeamSection() {
               className="flex flex-col gap-3 p-6"
               style={{ background: BG }}
             >
-              <PlaceholderMedia kind="photo" label={`${m.name} — portrait`} ratio="1/1" />
+              <div
+                className="relative overflow-hidden"
+                style={{ aspectRatio: '1 / 1', background: ELEVATED, border: `1px solid ${HAIR}` }}
+              >
+                <img
+                  src={m.image}
+                  alt={`${m.name} portrait`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ objectPosition: m.focus }}
+                  loading="lazy"
+                />
+                {/* subtle dark wash so text below pops off the card visually */}
+                <div
+                  className="absolute inset-0"
+                  style={{ background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.35) 100%)' }}
+                />
+              </div>
               <div className="mt-2 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: GREEN }}>
                 {m.role}
               </div>

@@ -205,7 +205,14 @@ export function PasscodeInput({
                 ? 'rgba(255, 255, 255, 0.85)'
                 : 'rgba(255, 255, 255, 0.30)',
             fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-          }}
+            // Mask the typed digit visually — each filled cell renders
+            // a bullet instead of the number. We keep type="text" so
+            // password managers don't pop up on a single-character
+            // field; -webkit-text-security covers Safari/Chrome and
+            // textSecurity is the unprefixed form Firefox understands.
+            WebkitTextSecurity: 'disc',
+            textSecurity: 'disc',
+          } as React.CSSProperties}
         />
       ))}
     </motion.div>

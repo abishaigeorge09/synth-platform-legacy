@@ -25,7 +25,7 @@ import { PasscodeInput } from './PasscodeInput'
  * inspection. Real auth still happens via Supabase downstream.
  */
 
-const PASSCODE = '98962005'
+const PASSCODE = '010619'
 
 /**
  * Route prefixes that require the passcode. Anything outside this list
@@ -194,7 +194,7 @@ function GateCard({
         // blank cells + autofocus. Lets the shake animation play to
         // completion before the cells reset.
         key={attemptId}
-        length={8}
+        length={6}
         onSubmit={onSubmit}
         hasError={hasError}
         disabled={verifying}

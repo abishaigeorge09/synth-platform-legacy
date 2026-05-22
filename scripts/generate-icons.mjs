@@ -10,12 +10,12 @@
  *   icon-192.png         — Android launcher / manifest
  *   icon-512.png         — Android splash / manifest
  *   icon-maskable-512.png — Android adaptive icon with emerald padding
- *   og-card.png          — 1200×630 link-preview card (Open Graph /
- *                          Twitter / iMessage). Cobalt canvas with the
- *                          synth icon centered + small. Replaces the
- *                          full-bleed solid-emerald look that messaging
- *                          apps rendered when og:image was just the
- *                          512×512 PWA icon.
+ *
+ * og-card.png (the 1200×630 link-preview card surfaced by iMessage /
+ * Slack / Twitter / Facebook) is intentionally NOT regenerated here.
+ * It's a brand asset that lives committed under public/logos/og-card.png.
+ * Rerun scripts/generate-og-card.mjs by hand if you want to redesign it
+ * — see that file for the recipe.
  */
 import sharp from 'sharp'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
@@ -79,42 +79,4 @@ for (const { name, size } of sizes) {
   console.log(`[icons] wrote icon-maskable-512.png (${size}×${size} maskable, ${maskable.length} bytes)`)
 }
 
-// Open Graph link-preview card. 1200×630 is the Facebook / Twitter /
-// iMessage standard aspect. Cobalt brand canvas with the synth icon
-// centered at ~250 px so the preview reads as "small subtle logo on a
-// product surface" rather than the full-bleed PWA app-icon Vercel was
-// previously serving as og:image.
-{
-  const ogWidth = 1200
-  const ogHeight = 630
-  const iconSize = 240
-  const iconPng = await sharp(svgBuffer, { density: 512 })
-    .resize(iconSize, iconSize, {
-      fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .png()
-    .toBuffer()
-
-  const og = await sharp({
-    create: {
-      width: ogWidth,
-      height: ogHeight,
-      channels: 3,
-      // Brand canvas — matches THEME.canvas / cobalt gradient bottom
-      // (#1F26C9). Solid not gradient because radial gradients in
-      // sharp's create-buffer aren't directly supported and the solid
-      // tone reads cleaner at this size than a faux gradient.
-      background: { r: 31, g: 38, b: 201 },
-    },
-  })
-    .composite([{ input: iconPng, gravity: 'center' }])
-    .png()
-    .toBuffer()
-
-  const out = resolve(outDir, 'og-card.png')
-  writeFileSync(out, og)
-  console.log(`[icons] wrote og-card.png (${ogWidth}×${ogHeight}, ${og.length} bytes)`)
-}
-
-console.log('[icons] done.')
+console.log('[icons] done. (og-card.png handled by scripts/generate-og-card.mjs — run by hand to regenerate.)')

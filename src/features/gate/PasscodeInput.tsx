@@ -41,6 +41,11 @@ type Props = {
   hasError?: boolean
   /** Disabled while we're verifying or transitioning out. */
   disabled?: boolean
+  /** When false (the default), filled cells render `*` instead of
+   *  the typed digit. The real digit stays in component state so
+   *  submit + auto-submit + paste are unaffected. Toggling this
+   *  from the parent re-renders with the actual numbers visible. */
+  revealed?: boolean
   /** Optional aria-label for screen readers. */
   ariaLabel?: string
 }
@@ -50,6 +55,7 @@ export function PasscodeInput({
   onSubmit,
   hasError = false,
   disabled = false,
+  revealed = false,
   ariaLabel = 'Passcode',
 }: Props) {
   const [digits, setDigits] = useState<string[]>(() => Array(length).fill(''))
@@ -185,7 +191,10 @@ export function PasscodeInput({
           autoComplete={i === 0 ? 'one-time-code' : 'off'}
           aria-label={`Digit ${i + 1}`}
           maxLength={length}
-          value={d}
+          // Render `*` for filled cells unless `revealed` is on.
+          // The real digit lives in `digits[i]` and is what
+          // gets submitted; we just swap the visible glyph.
+          value={d ? (revealed ? d : '*') : ''}
           disabled={disabled}
           onChange={(e) => onCellChange(i, e.target.value)}
           onKeyDown={(e) => onCellKeyDown(i, e)}

@@ -25,7 +25,7 @@ import { PasscodeInput } from './PasscodeInput'
  * inspection. Real auth still happens via Supabase downstream.
  */
 
-const PASSCODE = '98962005'
+const PASSCODE = '01062005'
 
 /**
  * Route prefixes that require the passcode. Anything outside this list
@@ -59,6 +59,10 @@ export function AccessGate({ children }: { children: ReactNode }) {
   // effects and lets the shake animation play to completion before
   // the cells reset.
   const [attemptId, setAttemptId] = useState(0)
+  // Show/hide toggle. Default hidden so each filled cell renders `*`;
+  // pressing the "show" button below the cells reveals the real
+  // digits for as long as it's toggled on.
+  const [revealed, setRevealed] = useState(false)
   const reducedMotion = useReducedMotion()
 
   // Gate fires when:
@@ -154,6 +158,8 @@ export function AccessGate({ children }: { children: ReactNode }) {
               hasError={hasError}
               attemptId={attemptId}
               verifying={verifying}
+              revealed={revealed}
+              onToggleReveal={() => setRevealed((r) => !r)}
             />
           </motion.div>
         ) : null}
@@ -167,11 +173,15 @@ function GateCard({
   hasError,
   attemptId,
   verifying,
+  revealed,
+  onToggleReveal,
 }: {
   onSubmit: (code: string) => void
   hasError: boolean
   attemptId: number
   verifying: boolean
+  revealed: boolean
+  onToggleReveal: () => void
 }) {
   return (
     <motion.div
@@ -189,16 +199,36 @@ function GateCard({
         <span style={{ color: '#10B981' }}>.</span>
       </span>
 
-      <PasscodeInput
-        // attemptId bumps after each wrong code → remount with fresh
-        // blank cells + autofocus. Lets the shake animation play to
-        // completion before the cells reset.
-        key={attemptId}
-        length={8}
-        onSubmit={onSubmit}
-        hasError={hasError}
-        disabled={verifying}
-      />
+      <div className="flex w-full flex-col items-center gap-3">
+        <PasscodeInput
+          // attemptId bumps after each wrong code → remount with fresh
+          // blank cells + autofocus. Lets the shake animation play to
+          // completion before the cells reset.
+          key={attemptId}
+          length={8}
+          onSubmit={onSubmit}
+          hasError={hasError}
+          disabled={verifying}
+          revealed={revealed}
+        />
+
+        {/* Show / hide toggle. Sits under the cells; tapping it
+            switches every filled cell between `*` and the real
+            digit. Mono uppercase to match the gate's typography. */}
+        <button
+          type="button"
+          onClick={onToggleReveal}
+          aria-pressed={revealed}
+          aria-label={revealed ? 'Hide passcode' : 'Show passcode'}
+          className="mt-1 text-[10px] uppercase tracking-[0.32em] outline-none transition-colors duration-150 hover:opacity-100 focus-visible:opacity-100"
+          style={{
+            color: revealed ? '#10B981' : 'rgba(255, 255, 255, 0.55)',
+            fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+          }}
+        >
+          {revealed ? 'hide' : 'show'}
+        </button>
+      </div>
 
       <p
         className="min-h-[16px] text-center text-[11px] leading-[1.4]"

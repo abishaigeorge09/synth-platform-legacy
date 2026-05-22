@@ -4,8 +4,9 @@ import {
   Hairlines, Crosshairs, SectionLabel,
   ClosingCta,
 } from '../shell/primitives'
+import { BackedBy } from '../shell/BackedBy'
 import {
-  BG, FG, MUTED, DIM, HAIR, GREEN, DRUK, MONO,
+  BG, FG, MUTED, HAIR, GREEN, DRUK, MONO,
 } from '../shell/tokens'
 
 const TEAM = [
@@ -168,11 +169,10 @@ export function WhyUsPage() {
               </motion.div>
             ))}
           </div>
-          <div className="mt-8 text-[11px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: DIM }}>
-            + backed by berkeley skydeck · pad-13 · batch 22
-          </div>
         </div>
       </section>
+
+      <BackedBy />
 
       <ClosingCta
         headline={<>Train with the team that <KO>built it</KO>.</>}

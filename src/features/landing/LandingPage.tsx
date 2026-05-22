@@ -6,6 +6,7 @@ import {
   PageShell, KO, Hairlines, Crosshairs, SectionLabel, Chevron,
   ClosingCta, PrimaryButton, OutlineButton,
 } from './shell/primitives'
+import { BackedBy } from './shell/BackedBy'
 import {
   BG, ELEVATED, FG, MUTED, DIM, HAIR, FAINT,
   GREEN, GREEN_2, G_GLOW, G_DIM, DRUK, MONO, BODY, SERIF,
@@ -1121,6 +1122,7 @@ export function LandingPage() {
       <PillarsSection />
       <ToolWall />
       <TeamSection />
+      <BackedBy />
       <Pricing />
       <FaqSection />
       <ClosingCta

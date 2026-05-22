@@ -54,6 +54,14 @@ const BACKERS: Backer[] = [
     label: 'Google for Startups',
     href: 'https://startup.google.com/',
   },
+  {
+    name: 'NVIDIA Inception',
+    src: '/logos/backers/nvidia-inception.svg',
+    bg: '#ffffff',
+    logoHeight: 78,
+    label: 'NVIDIA Inception',
+    href: 'https://www.nvidia.com/en-us/startups/',
+  },
 ]
 
 export function BackedBy({ variant = 'section' }: { variant?: 'section' | 'inline' }) {
@@ -99,7 +107,7 @@ export function BackedBy({ variant = 'section' }: { variant?: 'section' | 'inlin
 function BackerGrid() {
   return (
     <div
-      className="mt-10 grid gap-px sm:grid-cols-3"
+      className="mt-10 grid gap-px sm:grid-cols-2 lg:grid-cols-4"
       style={{ background: HAIR }}
     >
       {BACKERS.map((b, i) => {

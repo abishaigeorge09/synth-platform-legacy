@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { SmoothScroll } from './SmoothScroll'
 import { FooterOverlay } from './FooterOverlay'
 import {
   BG, FG, MUTED, DIM, HAIR, FAINT,
@@ -1308,6 +1309,7 @@ export function PageShell({
 
   return (
     <div className="flex min-h-dvh w-full flex-col" style={{ background: BG, color: FG }}>
+      <SmoothScroll />
       <Nav active={active} onStart={onStart} ctaLabel={ctaLabel} />
       <SideRail />
       <main className="flex flex-col">{children}</main>

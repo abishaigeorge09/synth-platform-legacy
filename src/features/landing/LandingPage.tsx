@@ -7,6 +7,8 @@ import {
   PrimaryButton, OutlineButton,
 } from './shell/primitives'
 import { ScrollScenes, type Scene } from './shell/ScrollScenes'
+import { DotGridHover } from './shell/DotGridHover'
+import { ScrollCue } from './shell/ScrollCue'
 import { BackedBy } from './shell/BackedBy'
 import {
   BG, ELEVATED, FG, MUTED, DIM, HAIR, FAINT,
@@ -113,6 +115,18 @@ function Hero() {
       >
         <LogoMarquee />
       </motion.div>
+
+      {/* Scroll cue — bouncing chevron in the bottom-left corner.
+       *  Tiny, low-opacity, lives outside the centered content so it
+       *  doesn't fight the headline; reads as the next-fold affordance. */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 1 }}
+        className="absolute bottom-6 left-6 z-10 hidden sm:block"
+      >
+        <ScrollCue label="// scroll" />
+      </motion.div>
     </section>
   )
 }
@@ -156,10 +170,21 @@ const MARQUEE_TOOLS: string[] = [
 
 function LogoMarquee() {
   const sequence = [...MARQUEE_TOOLS, ...MARQUEE_TOOLS, ...MARQUEE_TOOLS, ...MARQUEE_TOOLS]
+  // XENKRYPT-flavoured outline/fill effect: two identical marquees
+  // stacked. The bottom one is solid white. The top one renders the
+  // same text with text-stroke only (transparent fill) and uses
+  // mix-blend-mode: difference so it inverts to black wherever it
+  // overlaps the solid copy. The visual result is a constantly
+  // shifting outline/fill rhythm as the rows slide.
+  const baseLi: React.CSSProperties = {
+    height: 24,
+    fontFamily: BODY,
+    fontWeight: 600,
+    fontSize: 16,
+    letterSpacing: '-0.005em',
+    whiteSpace: 'nowrap',
+  }
   return (
-    // Outer wrapper centers + caps the marquee at 1200px. The mask is on
-    // this same box so the edge fade lives inside the centered band — the
-    // hero background to the left and right is untouched, exactly like Giga.
     <div
       className="relative mx-auto overflow-hidden py-2"
       style={{
@@ -168,6 +193,7 @@ function LogoMarquee() {
         WebkitMaskImage: 'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgb(0,0,0) 25%, rgb(0,0,0) 75%, rgba(0,0,0,0) 100%)',
       }}
     >
+      {/* Bottom layer — solid muted white */}
       <motion.ul
         className="flex items-center whitespace-nowrap"
         style={{ gap: 100, width: 'max-content', listStyle: 'none', margin: 0, padding: 0 }}
@@ -175,17 +201,38 @@ function LogoMarquee() {
         transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
       >
         {sequence.map((t, i) => (
+          <li key={`fill-${t}-${i}`} style={{ ...baseLi, color: 'rgba(255,255,255,0.62)' }}>
+            {t}
+          </li>
+        ))}
+      </motion.ul>
+
+      {/* Top layer — outline-only text with mix-blend-mode: difference.
+       *  Same animation timing as the bottom layer so the rows track
+       *  together. The difference blend with the row underneath makes
+       *  the outline glyphs appear to "invert" wherever they overlap
+       *  the muted-fill copy. */}
+      <motion.ul
+        aria-hidden
+        className="absolute inset-0 flex items-center whitespace-nowrap py-2"
+        style={{
+          gap: 100,
+          width: 'max-content',
+          listStyle: 'none',
+          margin: 0,
+          padding: 0,
+          mixBlendMode: 'difference',
+        }}
+        animate={{ x: ['0%', '-25%'] }}
+        transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
+      >
+        {sequence.map((t, i) => (
           <li
-            key={`${t}-${i}`}
-            className="flex items-center justify-center"
+            key={`outline-${t}-${i}`}
             style={{
-              height: 24,
-              fontFamily: BODY,
-              fontWeight: 600,
-              fontSize: 16,
-              letterSpacing: '-0.005em',
-              color: 'rgba(255,255,255,0.62)',
-              whiteSpace: 'nowrap',
+              ...baseLi,
+              color: 'transparent',
+              WebkitTextStroke: '1px rgba(255,255,255,0.85)',
             }}
           >
             {t}
@@ -814,11 +861,12 @@ function ToolWall() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: i * 0.02 }}
-              className="flex items-center justify-between px-5 py-6"
+              className="relative flex items-center justify-between px-5 py-6"
               style={{ background: BG, fontFamily: MONO }}
             >
-              <span className="text-[15px] uppercase tracking-[0.02em]" style={{ color: FG }}>{t}</span>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN, boxShadow: `0 0 8px ${GREEN}` }} />
+              <DotGridHover />
+              <span className="relative z-10 text-[15px] uppercase tracking-[0.02em]" style={{ color: FG }}>{t}</span>
+              <span className="relative z-10 h-1.5 w-1.5 rounded-full" style={{ background: GREEN, boxShadow: `0 0 8px ${GREEN}` }} />
             </motion.div>
           ))}
         </div>

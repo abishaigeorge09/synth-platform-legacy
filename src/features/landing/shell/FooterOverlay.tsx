@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import {
   BG, ELEVATED, FG, MUTED, DIM, GREEN, HAIR, MONO, SERIF,
 } from './tokens'
+import { SlicedWordmark } from './SlicedWordmark'
 
 /**
  * World-Labs-style site footer — one tall image block with the brand
@@ -168,6 +169,14 @@ export function FooterOverlay() {
               ),
             )}
           </div>
+        </div>
+
+        {/* Massive sliced wordmark — XENKRYPT-style typographic statement.
+         *  Sits between the image block and the utility row. The bottom
+         *  of the glyphs is clipped via overflow:hidden on the wrapper
+         *  so only the top sliver of each letterform reads. */}
+        <div className="mt-12 sm:mt-16">
+          <SlicedWordmark text="synth" showFraction={0.34} />
         </div>
 
         {/* Utility bar below the image block */}

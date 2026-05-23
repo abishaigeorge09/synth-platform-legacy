@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useInstallPrompt } from '../useInstallPrompt'
 import {
   PageShell, KO, Hairlines, Crosshairs, SectionLabel,
-  ClosingCta, PrimaryButton, OutlineButton,
+  PrimaryButton, OutlineButton,
 } from '../shell/primitives'
 import {
   BG, FG, MUTED, DIM, HAIR, GREEN, DRUK, MONO, BODY,
@@ -220,13 +220,6 @@ export function PricingPage() {
           </div>
         </div>
       </section>
-
-      <ClosingCta
-        headline={<>Start <KO>free</KO>.</>}
-        body="Connect your first source in 60 seconds. No credit card during alpha."
-        primary={{ label: 'get the app', to: '/signup', onClick: handleStart }}
-        secondary={{ label: 'see the platform', to: '/platform' }}
-      />
 
       {showIosTip && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-5 sm:items-center" onClick={() => setShowIosTip(false)}>

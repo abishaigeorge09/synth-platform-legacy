@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useInstallPrompt } from './useInstallPrompt'
 import {
   PageShell, KO, Hairlines, Crosshairs, SectionLabel, Chevron,
-  ClosingCta, PrimaryButton, OutlineButton,
+  PrimaryButton, OutlineButton,
 } from './shell/primitives'
 import { BackedBy } from './shell/BackedBy'
 import {
@@ -1125,13 +1125,6 @@ export function LandingPage() {
       <BackedBy />
       <Pricing />
       <FaqSection />
-      <ClosingCta
-        headline={<>Start <KO>free</KO>.</>}
-        body="Connect your first source in 60 seconds. Cancel any time — your data exports back to wherever you came from."
-        primary={{ label: 'start free', to: '/signup' }}
-        secondary={{ label: 'see the platform', to: '/platform' }}
-      />
-
       <AnimatePresence>
         {showIosTip && (
           <motion.div

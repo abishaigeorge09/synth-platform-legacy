@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   PageShell, StandardHero, KO,
   Hairlines, Crosshairs, SectionLabel, PlaceholderMedia,
-  FeaturedQuote, ClosingCta,
+  FeaturedQuote,
 } from '../shell/primitives'
 import {
   BG, FG, MUTED, HAIR, GREEN, DRUK, MONO,
@@ -63,11 +63,6 @@ export function SportsHubPage() {
         role="Founder · synth"
       />
 
-      <ClosingCta
-        headline={<>Pick your <KO>sport</KO>. Start free.</>}
-        primary={{ label: 'start free', to: '/signup' }}
-        secondary={{ label: 'see the platform', to: '/platform' }}
-      />
     </PageShell>
   )
 }

@@ -99,7 +99,12 @@ export function ScrollScenes({
       className="relative"
       style={{ background: BG, color: FG, height: `${(total + 1) * 100}vh` }}
     >
-      <div className="sticky top-0 flex h-screen flex-col overflow-hidden">
+      {/* Sticky child docks below the fixed nav. Nav sits at top:16 with
+          ~52px-tall pills → nav bottom ≈ 68px. top-20 (80px) gives a
+          ~12px breathing gap; the height clamp keeps the panel inside the
+          visible viewport so the bottom progress bar isn't pushed off
+          screen by the sticky bleeding past 100vh. */}
+      <div className="sticky top-20 flex h-[calc(100vh-96px)] flex-col overflow-hidden">
         <Hairlines />
         <Crosshairs count={3} opacity={0.4} />
 
@@ -117,10 +122,14 @@ export function ScrollScenes({
           </div>
         </div>
 
-        {/* Cross-fading content row — text left, visual right */}
+        {/* Cross-fading content row — text left, visual right.
+            Grid defaults to align-items: stretch (no items-center) so
+            each column fills the row's height. Each column also gets an
+            explicit h-full so its absolutely-positioned scene children
+            have a defined parent height to fill via inset-0. */}
         <div className="relative z-10 flex-1 overflow-hidden">
-          <div className="mx-auto grid h-full w-full max-w-[1280px] gap-8 px-5 sm:px-10 sm:gap-12 lg:grid-cols-2 lg:items-center">
-            <div className="relative">
+          <div className="mx-auto grid h-full w-full max-w-[1280px] gap-8 px-5 py-10 sm:px-10 sm:gap-12 sm:py-14 lg:grid-cols-2">
+            <div className="relative h-full min-h-[320px]">
               {scenes.map((s, i) => (
                 <SceneText
                   key={s.id}

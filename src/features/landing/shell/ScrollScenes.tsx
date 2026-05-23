@@ -64,6 +64,23 @@ export function ScrollScenes({
 
   const total = scenes.length
 
+  // The outer container is `(total + 1) * 100vh` tall: `total * 100vh` of
+  // scroll happens while the sticky child is pinned, then one extra
+  // viewport-height of scroll lets the section glide out. That means
+  // useful "sticky time" runs from progress 0 → total/(total+1), and the
+  // last 1/(total+1) of progress is the section scrolling out of view.
+  //
+  // Before this remap, the last scene (e.g. Act) only got ~4% of total
+  // progress because its 1/N slice (0.667–1.0) straddled the unstick
+  // point at 0.75. After the remap, each scene cleanly owns 1/N of the
+  // sticky time and the unstick gap is invisible to the per-scene math.
+  const progress = useTransform(
+    scrollYProgress,
+    [0, total / (total + 1)],
+    [0, 1],
+    { clamp: true },
+  )
+
   if (reducedMotion) {
     return (
       <section id={anchorId} className="relative" style={{ background: BG, color: FG }}>
@@ -95,7 +112,7 @@ export function ScrollScenes({
           )}
           <div className="mx-auto flex w-full max-w-[1280px] items-center gap-6 overflow-x-auto px-5 py-4 sm:gap-10 sm:px-10">
             {scenes.map((s, i) => (
-              <TabItem key={s.id} scene={s} index={i} total={total} progress={scrollYProgress} />
+              <TabItem key={s.id} scene={s} index={i} total={total} progress={progress} />
             ))}
           </div>
         </div>
@@ -110,7 +127,7 @@ export function ScrollScenes({
                   scene={s}
                   index={i}
                   total={total}
-                  progress={scrollYProgress}
+                  progress={progress}
                 />
               ))}
             </div>
@@ -121,21 +138,24 @@ export function ScrollScenes({
                   scene={s}
                   index={i}
                   total={total}
-                  progress={scrollYProgress}
+                  progress={progress}
                 />
               ))}
             </div>
           </div>
         </div>
 
-        {/* Bottom progress bar */}
+        {/* Bottom progress bar — driven by the remapped `progress` so it
+            reaches 100% exactly when the last scene's range ends, instead
+            of the literal end of the outer container (which is past the
+            unstick point). */}
         <div
           className="relative z-10 h-px w-full"
           style={{ background: HAIR }}
         >
           <motion.div
             className="h-full origin-left"
-            style={{ background: GREEN, scaleX: scrollYProgress }}
+            style={{ background: GREEN, scaleX: progress }}
           />
         </div>
       </div>

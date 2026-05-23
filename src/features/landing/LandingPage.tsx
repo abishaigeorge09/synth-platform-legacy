@@ -6,10 +6,11 @@ import {
   PageShell, KO, Hairlines, Crosshairs, SectionLabel, Chevron,
   ClosingCta, PrimaryButton, OutlineButton,
 } from './shell/primitives'
+import { ScrollScenes, type Scene } from './shell/ScrollScenes'
 import { BackedBy } from './shell/BackedBy'
 import {
   BG, ELEVATED, FG, MUTED, DIM, HAIR, FAINT,
-  GREEN, GREEN_2, G_GLOW, G_DIM, DRUK, MONO, BODY, SERIF,
+  GREEN, G_GLOW, G_DIM, DRUK, MONO, BODY, SERIF,
 } from './shell/tokens'
 
 /* ─── Hero — full-bleed background + serif mission headline ───────────── */
@@ -277,74 +278,26 @@ const PILLARS: Pillar[] = [
 ]
 
 function PillarsSection() {
+  // Wrap each existing PillarVisual in a self-contained ReactNode so the
+  // generic ScrollScenes primitive doesn't need to know about pillar motifs.
+  const scenes: Scene[] = PILLARS.map((p) => ({
+    id: p.motif,
+    num: p.num,
+    label: p.word.toLowerCase(),
+    word: p.word,
+    sub: p.sub,
+    body: p.body,
+    detail: p.detail,
+    cta: p.cta,
+    Visual: <PillarVisual motif={p.motif} />,
+  }))
+
   return (
-    <section id="pillars" className="relative" style={{ background: BG, color: FG }}>
-      <SectionLabel>// what synth does</SectionLabel>
-      {PILLARS.map((p, i) => (
-        <BillboardPillar key={p.word} pillar={p} flip={i % 2 === 1} />
-      ))}
-    </section>
-  )
-}
-
-function BillboardPillar({ pillar, flip }: { pillar: Pillar; flip: boolean }) {
-  return (
-    <div
-      className="relative overflow-hidden px-5 sm:px-10 py-24 sm:py-32"
-    >
-      <Hairlines />
-      <Crosshairs count={3} opacity={0.4} />
-
-      <div className={`relative z-10 mx-auto grid w-full max-w-[1280px] gap-12 lg:grid-cols-2 lg:items-center ${flip ? 'lg:[&>*:first-child]:order-2' : ''}`}>
-        {/* Type column */}
-        <div>
-          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: GREEN }}>
-            <span>// pillar {pillar.num}</span>
-            <span className="h-px w-12" style={{ background: GREEN_2 }} />
-          </div>
-
-          <motion.h3
-            initial={{ opacity: 0, x: -14 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.55 }}
-            className="mt-5 tracking-[-0.02em]"
-            style={{
-              fontFamily: DRUK,
-              fontSize: 'clamp(56px, 10vw, 140px)',
-              textTransform: 'uppercase',
-              lineHeight: 0.95,
-            }}
-          >
-            {pillar.word}<span style={{ color: GREEN }}>.</span>
-          </motion.h3>
-
-          <div className="mt-5 text-[12px] uppercase tracking-[0.3em]" style={{ fontFamily: MONO, color: MUTED }}>
-            {pillar.sub}
-          </div>
-
-          <p className="mt-6 max-w-[460px] text-[16px] leading-relaxed" style={{ fontFamily: BODY, color: FG }}>
-            {pillar.body}
-          </p>
-
-          <ul className="mt-6 space-y-2" style={{ fontFamily: MONO }}>
-            {pillar.detail.map(d => (
-              <li key={d} className="flex items-start gap-3 text-[12px]" style={{ color: MUTED }}>
-                <span className="mt-2 inline-block h-px w-3 shrink-0" style={{ background: GREEN }} />
-                <span>{d}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-7">
-            <Chevron to={pillar.cta.to}>{pillar.cta.label}</Chevron>
-          </div>
-        </div>
-
-        {/* Visual column */}
-        <PillarVisual motif={pillar.motif} />
-      </div>
-    </div>
+    <ScrollScenes
+      anchorId="pillars"
+      eyebrow="// what synth does"
+      scenes={scenes}
+    />
   )
 }
 

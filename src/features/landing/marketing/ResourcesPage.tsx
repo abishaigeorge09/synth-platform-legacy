@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import {
   PageShell, KO,
   Hairlines, Crosshairs, SectionLabel, PlaceholderMedia,
-  ClosingCta,
 } from '../shell/primitives'
 import {
   BG, FG, MUTED, DIM, HAIR, GREEN, DRUK, MONO,
@@ -110,12 +109,6 @@ export function ResourcesPage() {
         </div>
       </section>
 
-      <ClosingCta
-        headline={<>Get the <KO>round-up</KO>.</>}
-        body="A short monthly note from synth. New guides, product updates, athlete-side experiments. No spam."
-        primary={{ label: 'subscribe', to: 'mailto:supportsynth@gmail.com?subject=Round-up subscribe' }}
-        secondary={{ label: 'start free', to: '/signup' }}
-      />
     </PageShell>
   )
 }

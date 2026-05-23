@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import {
   PageShell, StandardHero, KO,
   Hairlines, Crosshairs, SectionLabel,
-  ClosingCta,
 } from '../shell/primitives'
 import { BackedBy } from '../shell/BackedBy'
 import {
@@ -173,13 +172,6 @@ export function WhyUsPage() {
       </section>
 
       <BackedBy />
-
-      <ClosingCta
-        headline={<>Train with the team that <KO>built it</KO>.</>}
-        body="Free during the alpha. 250+ athletes already on. Add yourself to the list."
-        primary={{ label: 'start free', to: '/signup' }}
-        secondary={{ label: 'email the founder', to: 'mailto:supportsynth@gmail.com' }}
-      />
     </PageShell>
   )
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   PageShell, StandardHero, ValueBridge, CapabilityList,
-  FeaturedQuote, IntegrationsStrip, ClosingCta, type StandardHeroProps, type Capability,
+  FeaturedQuote, IntegrationsStrip, type StandardHeroProps, type Capability,
 } from '../shell/primitives'
 
 export type ModulePageConfig = {
@@ -55,7 +55,6 @@ export function ModulePage({ config }: { config: ModulePageConfig }) {
         capabilities={visible}
       />
       {config.quote && <FeaturedQuote {...config.quote} />}
-      <ClosingCta {...config.closing} />
     </PageShell>
   )
 }

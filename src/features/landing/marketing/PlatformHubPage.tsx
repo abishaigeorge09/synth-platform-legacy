@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   PageShell, StandardHero, ValueBridge, KO,
   Hairlines, Crosshairs, SectionLabel, Chevron, PlaceholderMedia,
-  FeaturedQuote, IntegrationsStrip, ClosingCta,
+  FeaturedQuote, IntegrationsStrip,
 } from '../shell/primitives'
 import {
   BG, FG, MUTED, DIM, HAIR, GREEN, DRUK, MONO,
@@ -174,12 +174,6 @@ export function PlatformHubPage() {
         role="Cal Women's Rowing · AUS U23"
       />
 
-      <ClosingCta
-        headline={<>One <KO>platform</KO>. Every signal.</>}
-        body="Start free during the alpha. Connect your first source in 60 seconds."
-        primary={{ label: 'start free', to: '/signup' }}
-        secondary={{ label: 'see pricing', to: '/pricing' }}
-      />
     </PageShell>
   )
 }

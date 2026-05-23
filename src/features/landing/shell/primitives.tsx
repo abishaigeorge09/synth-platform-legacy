@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { FooterOverlay } from './FooterOverlay'
 import {
   BG, FG, MUTED, DIM, HAIR, FAINT,
   GREEN, GREEN_2, G_GLOW, G_DIM,
@@ -1310,7 +1311,7 @@ export function PageShell({
       <Nav active={active} onStart={onStart} ctaLabel={ctaLabel} />
       <SideRail />
       <main className="flex flex-col">{children}</main>
-      <Footer />
+      <FooterOverlay />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import {
   PageShell, StandardHero, ValueBridge, CapabilityList,
-  FeaturedQuote, IntegrationsStrip, ClosingCta, type StandardHeroProps, type Capability,
+  FeaturedQuote, IntegrationsStrip, type StandardHeroProps, type Capability,
 } from '../shell/primitives'
 
 export type SportPageConfig = {
@@ -42,7 +42,6 @@ export function SportPage({ config }: { config: SportPageConfig }) {
         capabilities={config.capabilities.items}
       />
       {config.quote && <FeaturedQuote {...config.quote} />}
-      <ClosingCta {...config.closing} />
     </PageShell>
   )
 }

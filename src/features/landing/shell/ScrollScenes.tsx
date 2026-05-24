@@ -147,14 +147,14 @@ export function ScrollScenes({
         <Hairlines />
         <Crosshairs count={3} opacity={0.4} />
 
-        {/* Eyebrow + tab strip */}
+        {/* Tab strip header — single row, centered. The previous version
+            had a separate `// what synth does` eyebrow row above the
+            tabs, but that duplicated the mono-prefixed labeling of the
+            tabs themselves ("// 01 connect / // 02 synthesize /
+            // 03 act") and the trailing hairline fought the tab
+            alignment. One row reads cleanly. */}
         <div className="relative z-10 border-b" style={{ borderColor: HAIR }}>
-          {eyebrow && (
-            <div className="px-5 pt-6 sm:px-10">
-              <SectionLabel>{eyebrow}</SectionLabel>
-            </div>
-          )}
-          <div className="mx-auto flex w-full max-w-[1280px] items-center gap-6 overflow-x-auto px-5 py-4 sm:gap-10 sm:px-10">
+          <div className="mx-auto flex w-full max-w-[1280px] items-center justify-center gap-8 overflow-x-auto px-5 py-5 sm:gap-14 sm:px-10">
             {scenes.map((s, i) => (
               <TabItem key={s.id} scene={s} index={i} total={total} progress={progress} />
             ))}

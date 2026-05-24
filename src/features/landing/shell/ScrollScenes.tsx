@@ -1,7 +1,35 @@
-import { useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion, useScroll, useTransform, useReducedMotion, type MotionValue } from 'framer-motion'
 import { BG, FG, MUTED, DIM, HAIR, GREEN, GREEN_2, DRUK, MONO, BODY } from './tokens'
 import { SectionLabel, Hairlines, Crosshairs, Chevron } from './primitives'
+
+/** lg breakpoint (Tailwind default 1024px). Below this, the pinned 2-col
+ *  layout becomes cramped and fights mobile touch-scroll; fall back to
+ *  a plain vertical stack of scenes (one section each) instead. */
+const PIN_BREAKPOINT_PX = 1024
+
+function useIsLargeScreen(): boolean {
+  const [isLarge, setIsLarge] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return window.matchMedia(`(min-width: ${PIN_BREAKPOINT_PX}px)`).matches
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mql = window.matchMedia(`(min-width: ${PIN_BREAKPOINT_PX}px)`)
+    const handler = (e: MediaQueryListEvent) => setIsLarge(e.matches)
+    // Modern browsers support addEventListener on MediaQueryList; older
+    // Safari only supports addListener — try the modern path first.
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', handler)
+      return () => mql.removeEventListener('change', handler)
+    }
+    mql.addListener(handler)
+    return () => mql.removeListener(handler)
+  }, [])
+
+  return isLarge
+}
 
 /**
  * Scroll-pinned multi-scene panel. Replaces the "stack N billboard
@@ -56,6 +84,7 @@ export function ScrollScenes({
 }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const reducedMotion = useReducedMotion()
+  const isLarge = useIsLargeScreen()
 
   const { scrollYProgress } = useScroll({
     target: outerRef,
@@ -81,10 +110,20 @@ export function ScrollScenes({
     { clamp: true },
   )
 
-  if (reducedMotion) {
+  // Two fallbacks share the same plain-stack rendering:
+  //  - prefers-reduced-motion: no scroll-tied animation, no pinning
+  //  - small screens (< lg): pinning fights mobile touch-scroll and the
+  //    2-col grid collapses to a cramped stacked layout. A plain stack
+  //    where each scene is its own readable section is the right UX on
+  //    phones / PWA. Native scroll feel preserved.
+  if (reducedMotion || !isLarge) {
     return (
       <section id={anchorId} className="relative" style={{ background: BG, color: FG }}>
-        {eyebrow && <SectionLabel>{eyebrow}</SectionLabel>}
+        {eyebrow && (
+          <div className="px-5 pt-16 sm:px-10 sm:pt-20">
+            <SectionLabel>{eyebrow}</SectionLabel>
+          </div>
+        )}
         {scenes.map((s, i) => (
           <PlainScene key={s.id} scene={s} flip={i % 2 === 1} />
         ))}

@@ -3,6 +3,7 @@ import {
   BG, FG, MUTED, DIM, HAIR, GREEN, DRUK, MONO,
 } from './tokens'
 import { Hairlines, SectionLabel } from './primitives'
+import { DotGridHover } from './DotGridHover'
 
 /**
  * "Backed by" trust strip — surfaces our accelerator + startup-program
@@ -125,11 +126,12 @@ function BackerGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="flex flex-col items-center gap-5 px-6 py-10"
+            className="relative flex flex-col items-center gap-5 px-6 py-10"
             style={{ background: BG }}
           >
+            <DotGridHover />
             <div
-              className="flex h-[130px] w-full max-w-[280px] items-center justify-center rounded-[6px] px-6"
+              className="relative z-10 flex h-[130px] w-full max-w-[280px] items-center justify-center rounded-[6px] px-6"
               style={{ background: b.bg }}
             >
               <img
@@ -140,7 +142,7 @@ function BackerGrid() {
               />
             </div>
             <div
-              className="text-[11px] uppercase tracking-[0.28em]"
+              className="relative z-10 text-[11px] uppercase tracking-[0.28em]"
               style={{ fontFamily: MONO, color: DIM }}
             >
               {b.label}

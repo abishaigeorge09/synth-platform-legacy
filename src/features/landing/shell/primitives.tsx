@@ -186,18 +186,26 @@ export function Chevron({
   children: React.ReactNode
   external?: boolean
 }) {
-  const className = 'inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-opacity hover:opacity-80'
+  const className = 'group inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-opacity hover:opacity-80'
   const style = { fontFamily: MONO, color: GREEN }
+  const arrow = (
+    <span
+      aria-hidden
+      className="inline-block transition-transform duration-200 ease-out group-hover:translate-x-1"
+    >
+      ›
+    </span>
+  )
   if (external) {
     return (
       <a href={to} className={className} style={style}>
-        {children} <span aria-hidden>›</span>
+        {children} {arrow}
       </a>
     )
   }
   return (
     <Link to={to} className={className} style={style}>
-      {children} <span aria-hidden>›</span>
+      {children} {arrow}
     </Link>
   )
 }
@@ -557,30 +565,33 @@ export function Nav({
             <button
               type="button"
               onClick={onStart}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition-colors hover:text-white"
+              className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition-colors hover:text-white"
               style={{ color: 'rgba(255,255,255,0.6)', fontFamily: MONO }}
               aria-label="Download synth"
             >
               <span aria-hidden>↓</span>
               <span>Download</span>
+              <span className="pointer-events-none absolute bottom-1 left-3 right-3 h-px origin-left scale-x-0 bg-white transition-transform duration-300 ease-out group-hover:scale-x-100" />
             </button>
           ) : (
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition-colors hover:text-white"
+              className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition-colors hover:text-white"
               style={{ color: 'rgba(255,255,255,0.6)', fontFamily: MONO }}
               aria-label="Download synth"
             >
               <span aria-hidden>↓</span>
               <span>Download</span>
+              <span className="pointer-events-none absolute bottom-1 left-3 right-3 h-px origin-left scale-x-0 bg-white transition-transform duration-300 ease-out group-hover:scale-x-100" />
             </Link>
           )}
           <Link
             to="/login"
-            className="px-3 py-1.5 text-[12px] transition-colors hover:text-white"
+            className="group relative px-3 py-1.5 text-[12px] transition-colors hover:text-white"
             style={{ color: 'rgba(255,255,255,0.78)', fontFamily: MONO }}
           >
             Sign in
+            <span className="pointer-events-none absolute bottom-1 left-3 right-3 h-px origin-left scale-x-0 bg-white transition-transform duration-300 ease-out group-hover:scale-x-100" />
           </Link>
           <Link
             to="/signup"

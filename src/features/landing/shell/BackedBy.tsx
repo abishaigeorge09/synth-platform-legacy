@@ -39,6 +39,14 @@ const BACKERS: Backer[] = [
     href: 'https://skydeck.berkeley.edu/',
   },
   {
+    name: 'Pad-13',
+    src: '/logos/backers/pad-13.svg',
+    bg: '#ffffff',
+    logoHeight: 64,
+    label: 'Pad-13 · Batch 22',
+    href: 'https://skydeck.berkeley.edu/',
+  },
+  {
     name: 'Microsoft for Startups',
     src: '/logos/backers/microsoft-for-startups.png',
     bg: '#ffffff',
@@ -107,7 +115,7 @@ export function BackedBy({ variant = 'section' }: { variant?: 'section' | 'inlin
 function BackerGrid() {
   return (
     <div
-      className="mt-10 grid gap-px sm:grid-cols-2 lg:grid-cols-4"
+      className="mt-10 grid gap-px sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
       style={{ background: HAIR }}
     >
       {BACKERS.map((b, i) => {

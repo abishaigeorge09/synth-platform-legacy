@@ -3,6 +3,7 @@ import {
   BG, ELEVATED, FG, MUTED, DIM, GREEN, HAIR, MONO, SERIF,
 } from './tokens'
 import { SlicedWordmark } from './SlicedWordmark'
+import { WordReveal } from './WordReveal'
 
 /**
  * World-Labs-style site footer — one tall image block with the brand
@@ -88,7 +89,11 @@ export function FooterOverlay() {
 
           {/* Centered headline + primary CTA */}
           <div className="relative z-10 flex min-h-[clamp(420px,60vh,680px)] flex-col items-center justify-center px-5 text-center">
-            <h2
+            <WordReveal
+              as="h2"
+              text="start free."
+              stagger={0.08}
+              duration={0.7}
               className="tracking-[-0.012em]"
               style={{
                 fontFamily: SERIF,
@@ -97,9 +102,7 @@ export function FooterOverlay() {
                 fontWeight: 500,
                 color: '#ffffff',
               }}
-            >
-              start free.
-            </h2>
+            />
 
             <Link
               to="/signup"

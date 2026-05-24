@@ -9,6 +9,7 @@ import {
 import { ScrollScenes, type Scene } from './shell/ScrollScenes'
 import { DotGridHover } from './shell/DotGridHover'
 import { ScrollCue } from './shell/ScrollCue'
+import { WordReveal } from './shell/WordReveal'
 import { BackedBy } from './shell/BackedBy'
 import {
   BG, ELEVATED, FG, MUTED, DIM, HAIR, FAINT,
@@ -53,12 +54,17 @@ function Hero() {
           <span aria-hidden style={{ color: GREEN }}>›</span>
         </motion.a>
 
-        {/* Serif mission headline — explicit text-center + clamped size so
-         *  long lines never push the headline off the visible center */}
-        <motion.h1
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.85, ease: [0.2, 0.8, 0.2, 1] }}
+        {/* Serif mission headline — per-word reveal on mount. Each word
+            rises from below the baseline with a clip mask above, staggered
+            ~80ms apart, for a cinematic opener instead of a single fade-up. */}
+        <WordReveal
+          as="h1"
+          lines={['Unlock every signal.', 'Push past every limit.']}
+          viewport={false}
+          delay={0.18}
+          stagger={0.07}
+          duration={0.75}
+          lineGap="0.75rem"
           className="w-full text-center tracking-[-0.02em]"
           style={{
             fontFamily: SERIF,
@@ -67,10 +73,7 @@ function Hero() {
             lineHeight: 1.06,
             letterSpacing: '-0.01em',
           }}
-        >
-          <span className="block">Unlock every signal.</span>
-          <span className="block mt-3">Push past every limit.</span>
-        </motion.h1>
+        />
 
         {/* Subhead */}
         <motion.p

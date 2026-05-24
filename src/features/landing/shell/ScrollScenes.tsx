@@ -1,7 +1,35 @@
-import { useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion, useScroll, useTransform, useReducedMotion, type MotionValue } from 'framer-motion'
 import { BG, FG, MUTED, DIM, HAIR, GREEN, GREEN_2, DRUK, MONO, BODY } from './tokens'
 import { SectionLabel, Hairlines, Crosshairs, Chevron } from './primitives'
+
+/** lg breakpoint (Tailwind default 1024px). Below this, the pinned 2-col
+ *  layout becomes cramped and fights mobile touch-scroll; fall back to
+ *  a plain vertical stack of scenes (one section each) instead. */
+const PIN_BREAKPOINT_PX = 1024
+
+function useIsLargeScreen(): boolean {
+  const [isLarge, setIsLarge] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return window.matchMedia(`(min-width: ${PIN_BREAKPOINT_PX}px)`).matches
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mql = window.matchMedia(`(min-width: ${PIN_BREAKPOINT_PX}px)`)
+    const handler = (e: MediaQueryListEvent) => setIsLarge(e.matches)
+    // Modern browsers support addEventListener on MediaQueryList; older
+    // Safari only supports addListener — try the modern path first.
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', handler)
+      return () => mql.removeEventListener('change', handler)
+    }
+    mql.addListener(handler)
+    return () => mql.removeListener(handler)
+  }, [])
+
+  return isLarge
+}
 
 /**
  * Scroll-pinned multi-scene panel. Replaces the "stack N billboard
@@ -56,6 +84,7 @@ export function ScrollScenes({
 }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const reducedMotion = useReducedMotion()
+  const isLarge = useIsLargeScreen()
 
   const { scrollYProgress } = useScroll({
     target: outerRef,
@@ -81,10 +110,20 @@ export function ScrollScenes({
     { clamp: true },
   )
 
-  if (reducedMotion) {
+  // Two fallbacks share the same plain-stack rendering:
+  //  - prefers-reduced-motion: no scroll-tied animation, no pinning
+  //  - small screens (< lg): pinning fights mobile touch-scroll and the
+  //    2-col grid collapses to a cramped stacked layout. A plain stack
+  //    where each scene is its own readable section is the right UX on
+  //    phones / PWA. Native scroll feel preserved.
+  if (reducedMotion || !isLarge) {
     return (
       <section id={anchorId} className="relative" style={{ background: BG, color: FG }}>
-        {eyebrow && <SectionLabel>{eyebrow}</SectionLabel>}
+        {eyebrow && (
+          <div className="px-5 pt-16 sm:px-10 sm:pt-20">
+            <SectionLabel>{eyebrow}</SectionLabel>
+          </div>
+        )}
         {scenes.map((s, i) => (
           <PlainScene key={s.id} scene={s} flip={i % 2 === 1} />
         ))}
@@ -108,14 +147,14 @@ export function ScrollScenes({
         <Hairlines />
         <Crosshairs count={3} opacity={0.4} />
 
-        {/* Eyebrow + tab strip */}
+        {/* Tab strip header — single row, centered. The previous version
+            had a separate `// what synth does` eyebrow row above the
+            tabs, but that duplicated the mono-prefixed labeling of the
+            tabs themselves ("// 01 connect / // 02 synthesize /
+            // 03 act") and the trailing hairline fought the tab
+            alignment. One row reads cleanly. */}
         <div className="relative z-10 border-b" style={{ borderColor: HAIR }}>
-          {eyebrow && (
-            <div className="px-5 pt-6 sm:px-10">
-              <SectionLabel>{eyebrow}</SectionLabel>
-            </div>
-          )}
-          <div className="mx-auto flex w-full max-w-[1280px] items-center gap-6 overflow-x-auto px-5 py-4 sm:gap-10 sm:px-10">
+          <div className="mx-auto flex w-full max-w-[1280px] items-center justify-center gap-8 overflow-x-auto px-5 py-5 sm:gap-14 sm:px-10">
             {scenes.map((s, i) => (
               <TabItem key={s.id} scene={s} index={i} total={total} progress={progress} />
             ))}

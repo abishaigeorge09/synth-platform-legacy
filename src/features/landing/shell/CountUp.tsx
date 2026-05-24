@@ -36,12 +36,10 @@ export function CountUp({
   const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (!inView) return
-
-    if (reducedMotion) {
-      setVal(to)
-      return
-    }
+    // Reduced-motion users don't animate — the final value is rendered
+    // directly via `displayVal` below, so the effect just bails out
+    // without touching state (avoids set-state-in-effect lint rule).
+    if (reducedMotion || !inView) return
 
     const start = performance.now()
     const ms = duration * 1000
@@ -67,7 +65,11 @@ export function CountUp({
     }
   }, [inView, to, duration, reducedMotion])
 
-  const formatted = val.toLocaleString('en-US')
+  // When the user has reduced motion on, the animation is skipped
+  // entirely — render the target value directly. Otherwise render the
+  // animated `val` from the RAF loop.
+  const displayVal = reducedMotion ? to : val
+  const formatted = displayVal.toLocaleString('en-US')
 
   return (
     <span

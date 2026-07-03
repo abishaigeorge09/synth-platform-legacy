@@ -51,7 +51,7 @@ const TIERS = [
       'collegiate tier from $15K/yr',
       'priority support + onboarding',
     ],
-    cta: { label: 'talk to us', to: 'mailto:supportsynth@gmail.com' },
+    cta: { label: 'talk to us', to: 'https://cal.com/abishai-gosula-oilvxc/book-a-call' },
   },
 ]
 
@@ -75,7 +75,7 @@ export function PricingPage() {
   }
 
   return (
-    <PageShell active="pricing" onStart={handleStart} ctaLabel={installed ? 'installed' : 'start free'}>
+    <PageShell active="pricing" onStart={handleStart} ctaLabel={installed ? 'installed' : 'Start free'}>
       {/* Hero */}
       <section
         className="relative overflow-hidden px-5 sm:px-10 pt-32 pb-16 sm:pt-40"
@@ -148,9 +148,11 @@ export function PricingPage() {
                   ))}
                 </ul>
                 <div className="mt-auto pt-4">
-                  {t.cta.to.startsWith('mailto:') ? (
+                  {/^(mailto:|https?:|tel:)/.test(t.cta.to) ? (
                     <a
                       href={t.cta.to}
+                      target={t.cta.to.startsWith('https://') ? '_blank' : undefined}
+                      rel={t.cta.to.startsWith('https://') ? 'noopener noreferrer' : undefined}
                       className="inline-flex items-center gap-2 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.22em]"
                       style={{
                         background: t.featured ? GREEN : 'transparent',

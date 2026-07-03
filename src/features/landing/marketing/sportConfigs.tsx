@@ -231,7 +231,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
       eyebrow: 'for clubs, schools, and programs',
       headline: <>Synth for <KO>teams</KO></>,
       subhead: 'For coaches running 5 to 500 athletes. Lineups, scheduling, attendance, two-way sync to your existing tools, and athlete-level visibility into every signal — without the enterprise price tag or the migration nightmare.',
-      primaryCta: { label: 'talk to us', to: 'mailto:supportsynth@gmail.com' },
+      primaryCta: { label: 'talk to us', to: 'https://cal.com/abishai-gosula-oilvxc/book-a-call' },
       secondaryCta: { label: 'see a team demo', to: '/coach/dashboard' },
       media: {
         kind: 'photo',
@@ -266,7 +266,7 @@ export const SPORT_CONFIGS: Record<string, SportPageConfig> = {
     closing: {
       headline: <>Programs of any size. <KO>One tier per stage.</KO></>,
       body: '$199/mo Team for ≤30 athletes. $499/mo Team+ for ≤100. Collegiate from $15K/year.',
-      primary: { label: 'talk to us', to: 'mailto:supportsynth@gmail.com' },
+      primary: { label: 'talk to us', to: 'https://cal.com/abishai-gosula-oilvxc/book-a-call' },
       secondary: { label: 'see pricing', to: '/pricing' },
     },
   },

@@ -64,8 +64,9 @@ export function PrimaryButton({
     )
   }
   if (external && to) {
+    const newTab = to.startsWith('https://')
     return (
-      <a href={to} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+      <a href={to} target={newTab ? '_blank' : undefined} rel={newTab ? 'noopener noreferrer' : undefined} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
         {children}
       </a>
     )
@@ -105,8 +106,9 @@ export function OutlineButton({
     )
   }
   if (external && to) {
+    const newTab = to.startsWith('https://')
     return (
-      <a href={to} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
+      <a href={to} target={newTab ? '_blank' : undefined} rel={newTab ? 'noopener noreferrer' : undefined} onMouseEnter={enter} onMouseLeave={leave} className={className} style={style}>
         {children}
       </a>
     )
@@ -480,7 +482,7 @@ function CompanyDropdownPanel({ onClose }: { onClose: () => void }) {
 
 export function Nav({
   onStart,
-  ctaLabel = 'start free',
+  ctaLabel = 'Start free',
   active,
 }: {
   onStart?: () => void
@@ -600,6 +602,15 @@ export function Nav({
           >
             {ctaLabel}
           </Link>
+          <a
+            href="https://cal.com/abishai-gosula-oilvxc/book-a-call"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-[11px] font-semibold"
+            style={{ background: '#059669', color: '#fff', fontFamily: MONO }}
+          >
+            Book a call
+          </a>
         </div>
 
         {/* RIGHT PILL — mobile only: hamburger button */}
@@ -733,6 +744,16 @@ function MobileMenu({
         >
           Start free →
         </Link>
+        <a
+          href="https://cal.com/abishai-gosula-oilvxc/book-a-call"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onClose}
+          className="flex items-center justify-center rounded-md px-4 py-3.5 text-[12px] font-semibold uppercase tracking-[0.22em]"
+          style={{ background: '#059669', color: '#fff', fontFamily: MONO }}
+        >
+          Book a Call →
+        </a>
       </div>
     </motion.div>
   )
@@ -796,7 +817,9 @@ function MobileMenuGroup({
 export function SideRail() {
   return (
     <a
-      href="mailto:supportsynth@gmail.com"
+      href="https://cal.com/abishai-gosula-oilvxc/book-a-call"
+      target="_blank"
+      rel="noopener noreferrer"
       className="fixed right-0 top-1/2 z-30 hidden -translate-y-1/2 px-3 py-4 text-[10px] font-semibold uppercase tracking-[0.32em] md:block"
       style={{
         background: GREEN,

@@ -1051,7 +1051,7 @@ function Pricing() {
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <PrimaryButton to="/signup">get started →</PrimaryButton>
-          <OutlineButton to="/sports/teams">talk to us about teams</OutlineButton>
+          <OutlineButton to="https://cal.com/abishai-gosula-oilvxc/book-a-call" external>talk to us about teams</OutlineButton>
           <span className="text-[11px] uppercase tracking-[0.22em]" style={{ fontFamily: MONO, color: DIM }}>
             no credit card
           </span>
@@ -1117,7 +1117,7 @@ export function LandingPage() {
     setShowIosTip(true)
   }
 
-  const ctaLabel = installed ? 'installed' : 'start free'
+  const ctaLabel = installed ? 'installed' : 'Start free'
 
   return (
     <PageShell active="home" onStart={handleStart} ctaLabel={ctaLabel}>

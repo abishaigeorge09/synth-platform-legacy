@@ -270,6 +270,10 @@ export const routes: RouteObject[] = [
   { path: '/pricing',                           element: withSuspense(<PricingPage />,      'Pricing') },
   { path: '/legal',                             element: <Navigate to="/legal/privacy" replace /> },
   { path: '/legal/:slug',                       element: withSuspense(<LegalPage />,        'Legal') },
+  { path: '/privacy',                           element: <Navigate to="/legal/privacy" replace /> },
+  { path: '/terms',                             element: <Navigate to="/legal/terms" replace /> },
+  { path: '/delete-account',                    element: <Navigate to="/legal/delete-account" replace /> },
+  { path: '/support',                           element: <Navigate to="/legal/support" replace /> },
   {
     path: '/coach',
     element: (

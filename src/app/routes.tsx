@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ComponentType } from 'react'
 import { Navigate, type RouteObject } from 'react-router-dom'
+import { featureFlags } from '../lib/featureFlags'
 import { CoachLayout } from '../shared/layout/CoachLayout'
 import { AthleteLayout } from '../features/athlete/AthleteLayout'
 import { RouteFallback } from '../shared/layout/RouteFallback'
@@ -76,6 +77,13 @@ function lazyNamed<T extends string>(
 const LandingPage = lazyNamed(
   () => import('../features/landing/LandingPage'),
   'LandingPage',
+)
+
+// Waitlist mode — one-page site shown when VITE_WAITLIST_MODE=true. Lazy so
+// it never enters the bundle graph of the full site when the flag is off.
+const WaitlistPage = lazyNamed(
+  () => import('../features/landing/WaitlistPage'),
+  'WaitlistPage',
 )
 
 /* ─── Marketing surface (Kitman-inspired multi-page site) ──────────────── */
@@ -234,7 +242,7 @@ function withSuspense(node: React.ReactNode, label?: string) {
   )
 }
 
-export const routes: RouteObject[] = [
+const fullRoutes: RouteObject[] = [
   // Landing intentionally has no PageTitle label so document.title stays
   // at the full marketing line ("synth. — Every data signal. One platform.")
   // — Google's SERP snapshot uses document.title from the rendered DOM, so
@@ -406,3 +414,16 @@ export const routes: RouteObject[] = [
   },
   { path: '*', element: <NotFoundPage /> },
 ]
+
+// Waitlist mode collapses the entire public surface to a single page. Every
+// path renders (or redirects to) the waitlist, so none of the full site is
+// reachable while the flag is on. The full site stays in `fullRoutes` above,
+// untouched — set VITE_WAITLIST_MODE back to 'false'/unset to restore it.
+const waitlistRoutes: RouteObject[] = [
+  { path: '/', element: withSuspense(<WaitlistPage />) },
+  { path: '*', element: <Navigate to="/" replace /> },
+]
+
+export const routes: RouteObject[] = featureFlags.waitlistMode
+  ? waitlistRoutes
+  : fullRoutes

@@ -39,3 +39,6 @@ handoff.md
 PR_BODY.md
 synth-pack/
 public/logos/synth-logos/
+
+# gstack tooling state (local-only, never committed)
+.gstack/

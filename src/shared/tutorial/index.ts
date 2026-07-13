@@ -1,4 +1,4 @@
-export { TutorialProvider } from './TutorialProvider'
-export { useTutorialStore } from './useTutorialStore'
-export { TOURS, getTourForPath, getTourById } from './tours'
-export type { Tour, TourStep, Placement } from './tours'
+export { TutorialProvider } from '@shared/tutorial/TutorialProvider'
+export { useTutorialStore } from '@shared/tutorial/useTutorialStore'
+export { TOURS, getTourForPath, getTourById } from '@shared/tutorial/tours'
+export type { Tour, TourStep, Placement } from '@shared/tutorial/tours'

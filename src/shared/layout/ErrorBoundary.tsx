@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { THEME } from '../../lib/theme'
+import { THEME } from '@lib/theme'
 
 /**
  * Phase 14 — route-level error boundary. Any render error inside a lazy

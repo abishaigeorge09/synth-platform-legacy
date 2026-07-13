@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildUserContent, parseImageDataUrl } from './claude'
+import { buildUserContent, parseImageDataUrl } from '@lib/ai/claude'
 
 describe('parseImageDataUrl', () => {
   it('extracts data + media type from a JPEG data URL', () => {

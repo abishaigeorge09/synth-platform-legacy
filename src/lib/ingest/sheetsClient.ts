@@ -31,8 +31,8 @@
  * confirm path, single Claude extraction.
  */
 
-import { supabase } from '../supabaseClient'
-import type { StorageUploadResult } from './uploadClient'
+import { supabase } from '@lib/supabaseClient'
+import type { StorageUploadResult } from '@lib/ingest/uploadClient'
 
 const SCOPE_READONLY = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 

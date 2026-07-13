@@ -10,8 +10,8 @@
 import { describe, it, expect } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { ToolRenderer } from './ToolRenderer'
-import { EXAMPLES } from './examples'
+import { ToolRenderer } from '@lib/tools/ToolRenderer'
+import { EXAMPLES } from '@lib/tools/examples'
 
 describe('ToolRenderer — SSR smoke', () => {
   for (const spec of EXAMPLES) {

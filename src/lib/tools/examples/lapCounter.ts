@@ -1,4 +1,4 @@
-import type { ToolSpec } from '../schema'
+import type { ToolSpec } from '@lib/tools/schema'
 
 export const LAP_COUNTER: ToolSpec = {
   schema_version: 1,

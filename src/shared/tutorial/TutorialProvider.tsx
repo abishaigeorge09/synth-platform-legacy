@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useTutorialStore } from './useTutorialStore'
-import { getTourForPath } from './tours'
-import { TutorialOverlay } from './TutorialOverlay'
+import { useTutorialStore } from '@shared/tutorial/useTutorialStore'
+import { getTourForPath } from '@shared/tutorial/tours'
+import { TutorialOverlay } from '@shared/tutorial/TutorialOverlay'
 
 const AUTO_START_DELAY_MS = 350
 

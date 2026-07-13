@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
-import { THEME } from '../../lib/theme'
-import { useUiStore } from '../store/useUiStore'
-import { SidebarContent } from './Sidebar'
+import { THEME } from '@lib/theme'
+import { useUiStore } from '@shared/store/useUiStore'
+import { SidebarContent } from '@shared/layout/Sidebar'
 
 /**
  * Mobile-only slide-in drawer that hosts the same SidebarContent the

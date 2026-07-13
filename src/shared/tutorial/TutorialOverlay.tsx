@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import { SYNTH } from '../../features/app/lib/theme'
-import { toast } from '../store/useToastStore'
-import { useTutorialStore } from './useTutorialStore'
-import { getTourById, type Placement, type TourStep } from './tours'
-import { useTargetRect, type Rect } from './useTargetRect'
+import { SYNTH } from '@surfaces/pwa/lib/theme'
+import { toast } from '@shared/store/useToastStore'
+import { useTutorialStore } from '@shared/tutorial/useTutorialStore'
+import { getTourById, type Placement, type TourStep } from '@shared/tutorial/tours'
+import { useTargetRect, type Rect } from '@shared/tutorial/useTargetRect'
 
 const SPOTLIGHT_PAD = 8
 const TOOLTIP_GAP = 14

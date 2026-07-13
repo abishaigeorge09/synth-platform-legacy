@@ -1,4 +1,4 @@
-import { THEME } from '../../lib/theme'
+import { THEME } from '@lib/theme'
 
 const stroke = THEME.primaryDarker
 const accent = THEME.primary

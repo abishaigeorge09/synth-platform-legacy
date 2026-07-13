@@ -18,7 +18,7 @@
  *     path. It holds the Anthropic key as a Supabase secret.
  */
 
-import { modelChainForTier, type ContentBlock } from './claude'
+import { modelChainForTier, type ContentBlock } from '@lib/ai/claude'
 
 const ANTHROPIC_API = '/api/anthropic/v1/messages'
 const ANTHROPIC_VERSION = '2023-06-01'

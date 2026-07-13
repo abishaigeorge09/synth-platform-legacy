@@ -3,7 +3,7 @@
  * Exercises are rowing-relevant strength work with realistic weights
  * for college women rowers.
  */
-import type { GymSession } from '../types'
+import type { GymSession } from '@shared/data/types'
 
 export const SEED_GYM_SESSIONS: GymSession[] = [
   // ── Ella Wheeler (athlete-wheeler-ella) ──────────────────────────────────

@@ -1,7 +1,7 @@
-import { SEED_TIMELINE_EVENTS } from '../seeds'
-import type { UUID } from '../types'
-import { eventsForAthlete } from '../ingestion/timeline'
-import { useStaticQuery } from './useStaticQuery'
+import { SEED_TIMELINE_EVENTS } from '@shared/data/seeds'
+import type { UUID } from '@shared/data/types'
+import { eventsForAthlete } from '@shared/data/ingestion/timeline'
+import { useStaticQuery } from '@shared/data/queries/useStaticQuery'
 
 export function useTimelineEvents() {
   return useStaticQuery(SEED_TIMELINE_EVENTS)

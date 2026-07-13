@@ -21,14 +21,14 @@
  * disabled — there is no demo-mode ingestion path in slice 1.
  */
 
-import { supabase } from '../supabaseClient'
+import { supabase } from '@lib/supabaseClient'
 import type {
   IngestionEvent,
   IngestionPreview,
   SourceUpload,
   SourceUploadKind,
   UUID,
-} from '../../shared/data/types'
+} from '@shared/data/types'
 
 // ─── Mime → kind dispatch ─────────────────────────────────────────────────
 

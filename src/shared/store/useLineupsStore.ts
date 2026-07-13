@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { PublishedLineup, BoatLineup } from '../data/seeds/lineups'
-import { SEED_PUBLISHED_LINEUPS } from '../data/seeds/lineups'
+import type { PublishedLineup, BoatLineup } from '@shared/data/seeds/lineups'
+import { SEED_PUBLISHED_LINEUPS } from '@shared/data/seeds/lineups'
 
 type LineupsState = {
   published: PublishedLineup[]

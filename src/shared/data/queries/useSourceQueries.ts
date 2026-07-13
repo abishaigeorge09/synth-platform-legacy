@@ -2,9 +2,9 @@
  * Source + scan-log queries. Swap internals for Supabase hooks later.
  */
 import { useMemo } from 'react'
-import { useStaticQuery } from './useStaticQuery'
-import { SEED_SOURCES } from '../seeds'
-import { SEED_SCAN_LOGS, scanLogsForSource, latestScanForSource } from '../seeds/scanLogs'
+import { useStaticQuery } from '@shared/data/queries/useStaticQuery'
+import { SEED_SOURCES } from '@shared/data/seeds'
+import { SEED_SCAN_LOGS, scanLogsForSource, latestScanForSource } from '@shared/data/seeds/scanLogs'
 
 export function useSources() {
   return useStaticQuery(SEED_SOURCES)

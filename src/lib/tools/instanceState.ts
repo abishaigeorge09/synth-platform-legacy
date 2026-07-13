@@ -21,7 +21,7 @@ import {
   type Dispatch,
   type Reducer,
 } from 'react'
-import type { ResolvedBindings } from './resolver'
+import type { ResolvedBindings } from '@lib/tools/resolver'
 
 export type ToolInstanceData = ResolvedBindings & {
   __inputs?: Record<string, unknown>

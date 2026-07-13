@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { ELEMENT_RENDERERS } from './registry'
-import type { ToolElement } from './schema'
+import { ELEMENT_RENDERERS } from '@lib/tools/registry'
+import type { ToolElement } from '@lib/tools/schema'
 
 const EXPECTED_TYPES: ToolElement['type'][] = [
   'stat',

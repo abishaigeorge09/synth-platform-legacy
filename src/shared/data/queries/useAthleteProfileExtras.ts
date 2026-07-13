@@ -1,4 +1,4 @@
-import { useStaticQuery } from './useStaticQuery'
+import { useStaticQuery } from '@shared/data/queries/useStaticQuery'
 
 export type AthleteProfileSession = {
   id: string

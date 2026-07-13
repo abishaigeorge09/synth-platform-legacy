@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ChatScope } from '../data/types'
+import type { ChatScope } from '@shared/data/types'
 
 export type ChatMsg = {
   id: string

@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { THEME } from '../../lib/theme'
-import { useUiStore } from '../store/useUiStore'
-import { useTeamStore } from '../store/useTeamStore'
-import { NotificationBell } from './Sidebar'
+import { THEME } from '@lib/theme'
+import { useUiStore } from '@shared/store/useUiStore'
+import { useTeamStore } from '@shared/store/useTeamStore'
+import { NotificationBell } from '@shared/layout/Sidebar'
 
 /**
  * Mobile-only 56 px top bar: hamburger on the left, brand wordmark center,

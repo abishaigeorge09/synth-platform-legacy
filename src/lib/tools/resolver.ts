@@ -20,8 +20,8 @@
  * The PUBLIC CONTRACT is the ResolverState shape and the useResolvedBindings
  * hook signature. Sprint 9 must NOT change either — only the internals.
  */
-import type { ToolSpec } from './schema'
-import { MOCK_SNAPSHOTS } from './snapshots'
+import type { ToolSpec } from '@lib/tools/schema'
+import { MOCK_SNAPSHOTS } from '@lib/tools/snapshots'
 
 export type ResolvedBindings = Record<string, unknown>
 

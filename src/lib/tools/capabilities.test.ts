@@ -18,9 +18,9 @@ import {
   CONNECTOR_LABELS,
   UNSUPPORTED_CAPABILITIES,
   manifestForSystemPrompt,
-} from './capabilities'
-import { ELEMENT_RENDERERS } from './registry'
-import { ToolElementSchema, ToolInputSchema, ToolBindingSchema, ToolSpecSchema } from './schema'
+} from '@lib/tools/capabilities'
+import { ELEMENT_RENDERERS } from '@lib/tools/registry'
+import { ToolElementSchema, ToolInputSchema, ToolBindingSchema, ToolSpecSchema } from '@lib/tools/schema'
 
 describe('capabilities — schema parity', () => {
   it('SUPPORTED_ELEMENTS matches the renderer registry exactly', () => {

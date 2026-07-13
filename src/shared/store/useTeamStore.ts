@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import type { Team } from '../data/types'
-import { SEED_TEAM_CAL_WOMENS } from '../data/seeds'
-import { supabase } from '../../lib/supabaseClient'
+import type { Team } from '@shared/data/types'
+import { SEED_TEAM_CAL_WOMENS } from '@shared/data/seeds'
+import { supabase } from '@lib/supabaseClient'
 
 type TeamState = {
   activeTeam: Team

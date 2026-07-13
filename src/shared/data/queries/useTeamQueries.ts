@@ -2,16 +2,16 @@
  * Team + coach identity queries. Swap internals for Supabase hooks later.
  */
 import { useMemo } from 'react'
-import { useStaticQuery } from './useStaticQuery'
+import { useStaticQuery } from '@shared/data/queries/useStaticQuery'
 import {
   SEED_COACH,
   SEED_TEAM_CAL_MENS,
   SEED_ATHLETES_ALL,
   SEED_SOURCES_ALL,
   SEED_ALERTS,
-} from '../seeds'
-import { ROWIQ_SHEET_316_DATE } from '../rowiqWomensData'
-import { useTeamStore } from '../../store/useTeamStore'
+} from '@shared/data/seeds'
+import { ROWIQ_SHEET_316_DATE } from '@shared/data/rowiqWomensData'
+import { useTeamStore } from '@shared/store/useTeamStore'
 
 export function useTeam() {
   const team = useTeamStore((s) => s.activeTeam)

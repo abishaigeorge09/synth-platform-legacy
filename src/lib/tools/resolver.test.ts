@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { resolveBindings } from './resolver'
-import { EXAMPLES } from './examples'
-import type { ToolSpec } from './schema'
+import { resolveBindings } from '@lib/tools/resolver'
+import { EXAMPLES } from '@lib/tools/examples'
+import type { ToolSpec } from '@lib/tools/schema'
 
 describe('resolveBindings — example specs against MOCK_SNAPSHOTS', () => {
   for (const spec of EXAMPLES) {

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Athlete } from '../data/types'
+import type { Athlete } from '@shared/data/types'
 
 const KEY = 'synth:roster-overrides'
 

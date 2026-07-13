@@ -1,5 +1,5 @@
-import type { ConnectorProvider } from '../types'
-import { log } from '../../../lib/observability'
+import type { ConnectorProvider } from '@shared/data/types'
+import { log } from '@lib/observability'
 
 export type ConnectResult = { ok: boolean; message: string }
 

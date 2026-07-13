@@ -1,4 +1,4 @@
-import type { ResolvedBindings } from '../resolver'
+import type { ResolvedBindings } from '@lib/tools/resolver'
 
 /**
  * Mock data for the stroke-rate-logger example spec.

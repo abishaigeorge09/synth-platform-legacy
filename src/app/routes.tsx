@@ -1,59 +1,59 @@
 import { lazy, Suspense, type ComponentType } from 'react'
 import { Navigate, type RouteObject } from 'react-router-dom'
-import { CoachLayout } from '../shared/layout/CoachLayout'
-import { AthleteLayout } from '../features/athlete/AthleteLayout'
-import { RouteFallback } from '../shared/layout/RouteFallback'
-import { ErrorBoundary } from '../shared/layout/ErrorBoundary'
-import { PageTitle } from '../shared/components/PageTitle'
-import { NotFoundPage } from '../features/notFound/NotFoundPage'
-import { COACH_TOOLS } from '../features/coach/tools/toolRegistry'
-import { AppShell } from '../features/app/AppShell'
-import { AppRoleGate } from '../features/app/AppRoleGate'
-import { WelcomePage as AppWelcomePage } from '../features/app/onboarding/WelcomePage'
-import { RolePickPage as AppOnboardingRolePage } from '../features/app/onboarding/RolePickPage'
-import { SportPickPage as AppOnboardingSportPage } from '../features/app/onboarding/SportPickPage'
-import { CoachTeamSetupPage as AppOnboardingTeamPage } from '../features/app/onboarding/CoachTeamSetupPage'
-import { CoachCapabilitiesPage as AppOnboardingCapabilitiesPage } from '../features/app/onboarding/CoachCapabilitiesPage'
-import { CoachConnectorsPage as AppOnboardingCoachConnectorsPage } from '../features/app/onboarding/CoachConnectorsPage'
-import { AthleteInviteCodePage as AppOnboardingInviteCodePage } from '../features/app/onboarding/AthleteInviteCodePage'
-import { AthleteConnectorsPage as AppOnboardingAthleteConnectorsPage } from '../features/app/onboarding/AthleteConnectorsPage'
-import { TrustCardPage as AppOnboardingTrustPage } from '../features/app/onboarding/TrustCardPage'
-import { ScanningPage as AppOnboardingScanningPage } from '../features/app/onboarding/ScanningPage'
-import { RevealPage as AppOnboardingRevealPage } from '../features/app/onboarding/RevealPage'
-import { TourPage as AppOnboardingTourPage } from '../features/app/onboarding/TourPage'
-import { ComingSoonPage as AppComingSoonPage } from '../features/app/onboarding/ComingSoonPage'
-import { OnboardingGuard } from '../features/app/onboarding/OnboardingGuard'
-import { AppCoachShell } from '../features/app/coach/AppCoachShell'
-import { HomePage as AppCoachHomePage } from '../features/app/coach/HomePage'
-import { AttentionPage as AppCoachAttentionPage } from '../features/app/coach/AttentionPage'
-import { RosterPage as AppCoachRosterPage } from '../features/app/coach/RosterPage'
-import { AthleteDetailPage as AppCoachAthleteDetailPage } from '../features/app/coach/AthleteDetailPage'
-import { AIPage as AppCoachAIPage } from '../features/app/coach/AIPage'
-import { CapturePage as AppCoachCapturePage } from '../features/app/coach/CapturePage'
-import { LineupsPage as AppCoachLineupsPage } from '../features/app/coach/LineupsPage'
-import { CustomToolsPage as AppCoachToolsPage } from '../features/app/coach/CustomToolsPage'
-import { ToolsBuildPage as AppCoachToolsBuildPage } from '../features/app/coach/ToolsBuildPage'
-import { ToolFullscreenPage as AppCoachToolFullscreenPage } from '../features/app/coach/ToolFullscreenPage'
-import { StopwatchPage as AppCoachStopwatchPage } from '../features/app/coach/StopwatchPage'
-import { SessionDetailPage as AppCoachSessionDetailPage } from '../features/app/coach/SessionDetailPage'
-import { SessionTimerPage as AppCoachSessionTimerPage } from '../features/app/coach/SessionTimerPage'
-import { NotesPage as AppCoachNotesPage } from '../features/app/coach/NotesPage'
-import { SourcesPage as AppCoachSourcesPage } from '../features/app/coach/SourcesPage'
-import { SourcesDataViewPage as AppCoachSourcesDataViewPage } from '../features/app/coach/SourcesDataViewPage'
-import { SettingsPage as AppCoachSettingsPage } from '../features/app/coach/SettingsPage'
-import { AppAthleteShell } from '../features/app/athlete/AppAthleteShell'
-import { HomePage as AppAthleteHomePage } from '../features/app/athlete/HomePage'
-import { AIPage as AppAthleteAIPage } from '../features/app/athlete/AIPage'
-import { ErgPacerPage as AppAthleteErgPacerPage } from '../features/app/athlete/ErgPacerPage'
-import { CapturePage as AppAthleteCapturePage } from '../features/app/athlete/CapturePage'
-import { NotesPage as AppAthleteNotesPage } from '../features/app/athlete/NotesPage'
-import { SourcesPage as AppAthleteSourcesPage } from '../features/app/athlete/SourcesPage'
-import { SettingsPage as AppAthleteSettingsPage } from '../features/app/athlete/SettingsPage'
-import { TelemetryPage as AppAthleteTelemetryPage } from '../features/app/athlete/TelemetryPage'
-import { MyProfilePage as AppAthleteMyProfilePage } from '../features/app/athlete/MyProfilePage'
-import { AthleteToolsPage as AppAthleteToolsPage } from '../features/app/athlete/AthleteToolsPage'
-import { AthleteAttentionPage as AppAthleteAttentionPage } from '../features/app/athlete/AthleteAttentionPage'
-import { FormVideoPage as AppAthleteFormVideoPage } from '../features/app/athlete/FormVideoPage'
+import { CoachLayout } from '@shared/layout/CoachLayout'
+import { AthleteLayout } from '@surfaces/webapp/athlete/AthleteLayout'
+import { RouteFallback } from '@shared/layout/RouteFallback'
+import { ErrorBoundary } from '@shared/layout/ErrorBoundary'
+import { PageTitle } from '@shared/components/PageTitle'
+import { NotFoundPage } from '@pages/notFound/NotFoundPage'
+import { COACH_TOOLS } from '@surfaces/webapp/coach/tools/toolRegistry'
+import { AppShell } from '@surfaces/pwa/AppShell'
+import { AppRoleGate } from '@surfaces/pwa/AppRoleGate'
+import { WelcomePage as AppWelcomePage } from '@surfaces/pwa/onboarding/WelcomePage'
+import { RolePickPage as AppOnboardingRolePage } from '@surfaces/pwa/onboarding/RolePickPage'
+import { SportPickPage as AppOnboardingSportPage } from '@surfaces/pwa/onboarding/SportPickPage'
+import { CoachTeamSetupPage as AppOnboardingTeamPage } from '@surfaces/pwa/onboarding/CoachTeamSetupPage'
+import { CoachCapabilitiesPage as AppOnboardingCapabilitiesPage } from '@surfaces/pwa/onboarding/CoachCapabilitiesPage'
+import { CoachConnectorsPage as AppOnboardingCoachConnectorsPage } from '@surfaces/pwa/onboarding/CoachConnectorsPage'
+import { AthleteInviteCodePage as AppOnboardingInviteCodePage } from '@surfaces/pwa/onboarding/AthleteInviteCodePage'
+import { AthleteConnectorsPage as AppOnboardingAthleteConnectorsPage } from '@surfaces/pwa/onboarding/AthleteConnectorsPage'
+import { TrustCardPage as AppOnboardingTrustPage } from '@surfaces/pwa/onboarding/TrustCardPage'
+import { ScanningPage as AppOnboardingScanningPage } from '@surfaces/pwa/onboarding/ScanningPage'
+import { RevealPage as AppOnboardingRevealPage } from '@surfaces/pwa/onboarding/RevealPage'
+import { TourPage as AppOnboardingTourPage } from '@surfaces/pwa/onboarding/TourPage'
+import { ComingSoonPage as AppComingSoonPage } from '@surfaces/pwa/onboarding/ComingSoonPage'
+import { OnboardingGuard } from '@surfaces/pwa/onboarding/OnboardingGuard'
+import { AppCoachShell } from '@surfaces/pwa/coach/AppCoachShell'
+import { HomePage as AppCoachHomePage } from '@surfaces/pwa/coach/HomePage'
+import { AttentionPage as AppCoachAttentionPage } from '@surfaces/pwa/coach/AttentionPage'
+import { RosterPage as AppCoachRosterPage } from '@surfaces/pwa/coach/RosterPage'
+import { AthleteDetailPage as AppCoachAthleteDetailPage } from '@surfaces/pwa/coach/AthleteDetailPage'
+import { AIPage as AppCoachAIPage } from '@surfaces/pwa/coach/AIPage'
+import { CapturePage as AppCoachCapturePage } from '@surfaces/pwa/coach/CapturePage'
+import { LineupsPage as AppCoachLineupsPage } from '@surfaces/pwa/coach/LineupsPage'
+import { CustomToolsPage as AppCoachToolsPage } from '@surfaces/pwa/coach/CustomToolsPage'
+import { ToolsBuildPage as AppCoachToolsBuildPage } from '@surfaces/pwa/coach/ToolsBuildPage'
+import { ToolFullscreenPage as AppCoachToolFullscreenPage } from '@surfaces/pwa/coach/ToolFullscreenPage'
+import { StopwatchPage as AppCoachStopwatchPage } from '@surfaces/pwa/coach/StopwatchPage'
+import { SessionDetailPage as AppCoachSessionDetailPage } from '@surfaces/pwa/coach/SessionDetailPage'
+import { SessionTimerPage as AppCoachSessionTimerPage } from '@surfaces/pwa/coach/SessionTimerPage'
+import { NotesPage as AppCoachNotesPage } from '@surfaces/pwa/coach/NotesPage'
+import { SourcesPage as AppCoachSourcesPage } from '@surfaces/pwa/coach/SourcesPage'
+import { SourcesDataViewPage as AppCoachSourcesDataViewPage } from '@surfaces/pwa/coach/SourcesDataViewPage'
+import { SettingsPage as AppCoachSettingsPage } from '@surfaces/pwa/coach/SettingsPage'
+import { AppAthleteShell } from '@surfaces/pwa/athlete/AppAthleteShell'
+import { HomePage as AppAthleteHomePage } from '@surfaces/pwa/athlete/HomePage'
+import { AIPage as AppAthleteAIPage } from '@surfaces/pwa/athlete/AIPage'
+import { ErgPacerPage as AppAthleteErgPacerPage } from '@surfaces/pwa/athlete/ErgPacerPage'
+import { CapturePage as AppAthleteCapturePage } from '@surfaces/pwa/athlete/CapturePage'
+import { NotesPage as AppAthleteNotesPage } from '@surfaces/pwa/athlete/NotesPage'
+import { SourcesPage as AppAthleteSourcesPage } from '@surfaces/pwa/athlete/SourcesPage'
+import { SettingsPage as AppAthleteSettingsPage } from '@surfaces/pwa/athlete/SettingsPage'
+import { TelemetryPage as AppAthleteTelemetryPage } from '@surfaces/pwa/athlete/TelemetryPage'
+import { MyProfilePage as AppAthleteMyProfilePage } from '@surfaces/pwa/athlete/MyProfilePage'
+import { AthleteToolsPage as AppAthleteToolsPage } from '@surfaces/pwa/athlete/AthleteToolsPage'
+import { AthleteAttentionPage as AppAthleteAttentionPage } from '@surfaces/pwa/athlete/AthleteAttentionPage'
+import { FormVideoPage as AppAthleteFormVideoPage } from '@surfaces/pwa/athlete/FormVideoPage'
 
 // Phase 12 — route-level code splitting. Each feature page becomes its own
 // chunk that's only fetched when the route is visited. Keeps the landing /
@@ -74,87 +74,87 @@ function lazyNamed<T extends string>(
 }
 
 const LandingPage = lazyNamed(
-  () => import('../features/landing/LandingPage'),
+  () => import('@surfaces/landing/LandingPage'),
   'LandingPage',
 )
 
 /* ─── Marketing surface (Kitman-inspired multi-page site) ──────────────── */
 const PlatformHubPage = lazyNamed(
-  () => import('../features/landing/marketing/PlatformHubPage'),
+  () => import('@surfaces/landing/marketing/PlatformHubPage'),
   'PlatformHubPage',
 )
 const SportsHubPage = lazyNamed(
-  () => import('../features/landing/marketing/SportsHubPage'),
+  () => import('@surfaces/landing/marketing/SportsHubPage'),
   'SportsHubPage',
 )
 const WhyUsPage = lazyNamed(
-  () => import('../features/landing/marketing/WhyUsPage'),
+  () => import('@surfaces/landing/marketing/WhyUsPage'),
   'WhyUsPage',
 )
 const ResourcesPage = lazyNamed(
-  () => import('../features/landing/marketing/ResourcesPage'),
+  () => import('@surfaces/landing/marketing/ResourcesPage'),
   'ResourcesPage',
 )
 const PricingPage = lazyNamed(
-  () => import('../features/landing/marketing/PricingPage'),
+  () => import('@surfaces/landing/marketing/PricingPage'),
   'PricingPage',
 )
 const LegalPage = lazyNamed(
-  () => import('../features/legal/LegalPage'),
+  () => import('@pages/legal/LegalPage'),
   'LegalPage',
 )
 
-const PlatformSynthCorePage           = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'SynthCorePage')
-const PlatformRecoveryHealthPage      = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'RecoveryHealthPage')
-const PlatformTrainingLoadPage        = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'TrainingLoadPage')
-const PlatformProgressDevelopmentPage = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'ProgressDevelopmentPage')
-const PlatformTeamOperationsPage      = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'TeamOperationsPage')
-const PlatformCustomAnalyticsPage     = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'CustomAnalyticsPage')
-const PlatformIntegrationsPage        = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'IntegrationsPage')
-const PlatformApiPage                 = lazyNamed(() => import('../features/landing/marketing/platformPages'), 'ApiPage')
+const PlatformSynthCorePage           = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'SynthCorePage')
+const PlatformRecoveryHealthPage      = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'RecoveryHealthPage')
+const PlatformTrainingLoadPage        = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'TrainingLoadPage')
+const PlatformProgressDevelopmentPage = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'ProgressDevelopmentPage')
+const PlatformTeamOperationsPage      = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'TeamOperationsPage')
+const PlatformCustomAnalyticsPage     = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'CustomAnalyticsPage')
+const PlatformIntegrationsPage        = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'IntegrationsPage')
+const PlatformApiPage                 = lazyNamed(() => import('@surfaces/landing/marketing/platformPages'), 'ApiPage')
 
-const SportRunningPage   = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'RunningPage')
-const SportCyclingPage   = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'CyclingPage')
-const SportSwimmingPage  = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'SwimmingPage')
-const SportRowingPage    = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'RowingPage')
-const SportLiftingPage   = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'LiftingPage')
-const SportTeamsPage     = lazyNamed(() => import('../features/landing/marketing/sportPages'), 'TeamsPage')
+const SportRunningPage   = lazyNamed(() => import('@surfaces/landing/marketing/sportPages'), 'RunningPage')
+const SportCyclingPage   = lazyNamed(() => import('@surfaces/landing/marketing/sportPages'), 'CyclingPage')
+const SportSwimmingPage  = lazyNamed(() => import('@surfaces/landing/marketing/sportPages'), 'SwimmingPage')
+const SportRowingPage    = lazyNamed(() => import('@surfaces/landing/marketing/sportPages'), 'RowingPage')
+const SportLiftingPage   = lazyNamed(() => import('@surfaces/landing/marketing/sportPages'), 'LiftingPage')
+const SportTeamsPage     = lazyNamed(() => import('@surfaces/landing/marketing/sportPages'), 'TeamsPage')
 const LoginPage = lazyNamed(
-  () => import('../features/auth/LoginPage'),
+  () => import('@auth/LoginPage'),
   'LoginPage',
 )
 const JoinWithInvitePage = lazyNamed(
-  () => import('../features/auth/JoinWithInvitePage'),
+  () => import('@auth/JoinWithInvitePage'),
   'JoinWithInvitePage',
 )
 const SignUpPage = lazyNamed(
-  () => import('../features/auth/SignUpPage'),
+  () => import('@auth/SignUpPage'),
   'SignUpPage',
 )
 
 const ProductDemoPage = lazyNamed(
-  () => import('../features/productDemo/ProductDemoPage'),
+  () => import('@pages/productDemo/ProductDemoPage'),
   'ProductDemoPage',
 )
 
 const DashboardPage = lazyNamed(
-  () => import('../features/coach/dashboard/DashboardPage'),
+  () => import('@surfaces/webapp/coach/dashboard/DashboardPage'),
   'DashboardPage',
 )
 const AthletesPage = lazyNamed(
-  () => import('../features/coach/athletes/AthletesPage'),
+  () => import('@surfaces/webapp/coach/athletes/AthletesPage'),
   'AthletesPage',
 )
 const AthleteProfilePage = lazyNamed(
-  () => import('../features/coach/athletes/AthleteProfilePage'),
+  () => import('@surfaces/webapp/coach/athletes/AthleteProfilePage'),
   'AthleteProfilePage',
 )
 const SourcesPage = lazyNamed(
-  () => import('../features/coach/sources/SourcesPage'),
+  () => import('@surfaces/webapp/coach/sources/SourcesPage'),
   'SourcesPage',
 )
 const ConnectorsDataViewPage = lazyNamed(
-  () => import('../features/coach/sources/ConnectorsDataViewPage'),
+  () => import('@surfaces/webapp/coach/sources/ConnectorsDataViewPage'),
   'ConnectorsDataViewPage',
 )
 // Lineups + Session Timer are sourced from COACH_TOOLS (Phase 16 —
@@ -162,60 +162,60 @@ const ConnectorsDataViewPage = lazyNamed(
 // plus one illustration, not a three-place edit across routes / sidebar /
 // lazy imports.
 const TeamChatPage = lazyNamed(
-  () => import('../features/coach/ai/TeamChatPage'),
+  () => import('@surfaces/webapp/coach/ai/TeamChatPage'),
   'TeamChatPage',
 )
 const AthleteScopedChatPage = lazyNamed(
-  () => import('../features/coach/ai/AthleteScopedChatPage'),
+  () => import('@surfaces/webapp/coach/ai/AthleteScopedChatPage'),
   'AthleteScopedChatPage',
 )
 const AthleteComparePage = lazyNamed(
-  () => import('../features/coach/athletes/AthleteComparePage'),
+  () => import('@surfaces/webapp/coach/athletes/AthleteComparePage'),
   'AthleteComparePage',
 )
 const SettingsPage = lazyNamed(
-  () => import('../features/coach/settings/SettingsPage'),
+  () => import('@surfaces/webapp/coach/settings/SettingsPage'),
   'SettingsPage',
 )
 
 const MyDashboardPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MyDashboardPage',
 )
 const MyStatsPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MyStatsPage',
 )
 const MyRecordPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MyRecordPage',
 )
 const MyWorkbookPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MyWorkbookPage',
 )
 const MySessionsPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MySessionsPage',
 )
 const MyLineupsPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MyLineupsPage',
 )
 const AthleteSourcesConnectorsPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'AthleteSourcesConnectorsPage',
 )
 const AthleteSourcesDataViewPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'AthleteSourcesDataViewPage',
 )
 const MyChatPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MyChatPage',
 )
 const MySettingsPage = lazyNamed(
-  () => import('../features/athlete/athleteAppPages'),
+  () => import('@surfaces/webapp/athlete/athleteAppPages'),
   'MySettingsPage',
 )
 

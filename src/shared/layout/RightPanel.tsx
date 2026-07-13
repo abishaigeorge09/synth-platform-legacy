@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { THEME } from '../../lib/theme'
-import { useRightPanelStore } from '../store/useRightPanelStore'
-import { useAthletes } from '../data/queries'
-import { useAthleteProfileSessions } from '../data/queries'
-import { ChatView } from '../../features/coach/ai/ChatView'
+import { THEME } from '@lib/theme'
+import { useRightPanelStore } from '@shared/store/useRightPanelStore'
+import { useAthletes } from '@shared/data/queries'
+import { useAthleteProfileSessions } from '@shared/data/queries'
+import { ChatView } from '@surfaces/webapp/coach/ai/ChatView'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 

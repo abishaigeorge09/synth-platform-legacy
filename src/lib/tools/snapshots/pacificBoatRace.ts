@@ -1,4 +1,4 @@
-import type { ResolvedBindings } from '../resolver'
+import type { ResolvedBindings } from '@lib/tools/resolver'
 
 /**
  * Sprint 5.7 — fixture for PACIFIC_BOAT_RACE.

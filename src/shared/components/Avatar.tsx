@@ -1,5 +1,5 @@
-import { THEME } from '../../lib/theme'
-import { useAvatarStore } from '../store/useAvatarStore'
+import { THEME } from '@lib/theme'
+import { useAvatarStore } from '@shared/store/useAvatarStore'
 
 function initials(name: string) {
   return name

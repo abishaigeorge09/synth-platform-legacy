@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import type { ComponentType } from 'react'
-import { THEME } from '../../lib/theme'
-import { useUiStore } from '../store/useUiStore'
-import { COACH_TOOLS } from '../../features/coach/tools/toolRegistry'
+import { THEME } from '@lib/theme'
+import { useUiStore } from '@shared/store/useUiStore'
+import { COACH_TOOLS } from '@surfaces/webapp/coach/tools/toolRegistry'
 import {
   DashboardIllustration,
   AthletesIllustration,
@@ -12,7 +12,7 @@ import {
   SynthAiIllustration,
   SettingsIllustration,
   AddToolIllustration,
-} from '../illustrations/sidebarIllustrations'
+} from '@shared/illustrations/sidebarIllustrations'
 
 /**
  * Phase 17 — global command palette.

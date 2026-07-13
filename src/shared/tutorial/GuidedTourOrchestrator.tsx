@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAppAuthStore } from '../../features/app/store/useAppAuthStore'
-import { useGuidedTourStore } from './useGuidedTourStore'
-import { SYNTH } from '../../features/app/lib/theme'
+import { useAppAuthStore } from '@surfaces/pwa/store/useAppAuthStore'
+import { useGuidedTourStore } from '@shared/tutorial/useGuidedTourStore'
+import { SYNTH } from '@surfaces/pwa/lib/theme'
 
 type TourStop = {
   route: string

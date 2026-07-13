@@ -1,6 +1,6 @@
-import { isSupabaseConfigured } from '../../lib/supabaseClient'
-import { subscribeSupabaseAuth } from '../../lib/authBridge'
-import { useAuthStore } from './useAuthStore'
+import { isSupabaseConfigured } from '@lib/supabaseClient'
+import { subscribeSupabaseAuth } from '@lib/authBridge'
+import { useAuthStore } from '@shared/store/useAuthStore'
 
 /** Call once from `main.tsx` to sync Supabase session into `useAuthStore`. */
 export function initAuth(): void {

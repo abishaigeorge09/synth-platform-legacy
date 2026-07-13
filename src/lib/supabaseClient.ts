@@ -7,7 +7,7 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
  * **The single Supabase browser client for the entire app.**
  *
  * Two instances used to live in this codebase (this file + a separate
- * `src/features/app/lib/supabase.ts`). That setup silently broke auth:
+ * `src/surfaces/pwa/lib/supabase.ts`). That setup silently broke auth:
  * `useAppAuthStore.signInAnonymously()` would mint a session on the second
  * client, but the AI calls (`claude-chat`, `tool-generate`) reached for
  * the JWT off the first client and got null. The 401s in Edge Function

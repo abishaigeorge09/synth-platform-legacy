@@ -4,7 +4,7 @@ import {
   MATCH_AUTO_THRESHOLD,
   MATCH_FLAG_THRESHOLD,
   nameSimilarity,
-} from './athleteMatch'
+} from '@lib/ingest/athleteMatch'
 
 describe('nameSimilarity', () => {
   it('returns 1 for exact matches (case + whitespace insensitive)', () => {

@@ -4,7 +4,7 @@
  * simple so they read at small sizes and match synth's monospace/architectural
  * aesthetic rather than a generic icon set.
  */
-import { THEME } from '../../lib/theme'
+import { THEME } from '@lib/theme'
 
 type Props = { size?: number; muted?: boolean }
 

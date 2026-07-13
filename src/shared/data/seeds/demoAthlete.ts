@@ -4,8 +4,8 @@
  * the 2025 and 2026 erg tests (see SEED_ATHLETE_YOY), so her stats page
  * renders a real progression chart.
  */
-import { SEED_ATHLETES, SEED_ERG_SCORES, SEED_TEAM_CAL_WOMENS, SEED_COACH } from './index'
-import { SEED_ATHLETE_YOY } from './athleteExtras'
+import { SEED_ATHLETES, SEED_ERG_SCORES, SEED_TEAM_CAL_WOMENS, SEED_COACH } from '@shared/data/seeds/index'
+import { SEED_ATHLETE_YOY } from '@shared/data/seeds/athleteExtras'
 
 const DEMO_ATHLETE_ID = 'athlete-miller-star'
 

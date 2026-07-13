@@ -2,7 +2,7 @@
  * Seed lineups. In production these come from session_lineups + session_boats.
  * For UI-first dev the LineupsPage reads published history from here.
  */
-import type { RowingSide } from '../types'
+import type { RowingSide } from '@shared/data/types'
 
 export type SeatAssignment = {
   seatNumber: number

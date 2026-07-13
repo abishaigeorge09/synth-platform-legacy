@@ -1,4 +1,4 @@
-import type { ToolSpec } from '../schema'
+import type { ToolSpec } from '@lib/tools/schema'
 
 export const LINEUP_COMPARE: ToolSpec = {
   schema_version: 1,

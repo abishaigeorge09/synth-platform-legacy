@@ -1,4 +1,4 @@
-import { THEME } from '../../lib/theme'
+import { THEME } from '@lib/theme'
 
 /**
  * Phase 25 — inline error state for query hook consumers.

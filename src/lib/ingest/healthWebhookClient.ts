@@ -12,8 +12,8 @@
  * looks the secret up via the service-role key (see the Edge Function).
  */
 
-import { supabase } from '../supabaseClient'
-import type { UUID } from '../../shared/data/types'
+import { supabase } from '@lib/supabaseClient'
+import type { UUID } from '@shared/data/types'
 
 const PROVIDER = 'apple_health'
 const SECRET_BYTES = 32  // 256 bits of entropy — overkill for a URL secret, fine.

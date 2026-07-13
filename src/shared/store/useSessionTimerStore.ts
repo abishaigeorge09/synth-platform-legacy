@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Split } from '../../features/coach/tools/sessionTimer/components/useStopwatch'
+import type { Split } from '@surfaces/webapp/coach/tools/sessionTimer/components/useStopwatch'
 
 export type TimerBoat = {
   id: string

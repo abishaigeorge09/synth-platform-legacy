@@ -8,8 +8,8 @@
  * Stays separate from `toolGenerateClient.ts` so the Build flow doesn't
  * import unrelated catalog code.
  */
-import { supabase } from '../supabaseClient'
-import { ToolSpecSchema, type ToolSpec } from '../tools/schema'
+import { supabase } from '@lib/supabaseClient'
+import { ToolSpecSchema, type ToolSpec } from '@lib/tools/schema'
 
 export type PublishedTool = {
   versionId: string

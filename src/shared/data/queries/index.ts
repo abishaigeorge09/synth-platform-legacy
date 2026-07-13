@@ -16,11 +16,11 @@
  */
 
 // Shim
-export { useStaticQuery } from './useStaticQuery'
-export type { StaticQueryResult } from './useStaticQuery'
+export { useStaticQuery } from '@shared/data/queries/useStaticQuery'
+export type { StaticQueryResult } from '@shared/data/queries/useStaticQuery'
 
 // Team + identity
-export { useTeam, useCoach, useTeamStats } from './useTeamQueries'
+export { useTeam, useCoach, useTeamStats } from '@shared/data/queries/useTeamQueries'
 
 // Athletes + erg scores
 export {
@@ -30,7 +30,7 @@ export {
   useErgScoreForAthlete,
   useAthleteYoy,
   useAllAthleteYoy,
-} from './useAthleteQueries'
+} from '@shared/data/queries/useAthleteQueries'
 
 // Athlete profile extras (sessions, wellness, lineups, notes)
 export {
@@ -40,7 +40,7 @@ export {
   useAthleteCoachNotes,
   getAthleteRecovery,
   isAthleteFlagged,
-} from './useAthleteProfileExtras'
+} from '@shared/data/queries/useAthleteProfileExtras'
 
 // Sources + scan logs
 export {
@@ -48,22 +48,22 @@ export {
   useScanLogs,
   useScanLogsForSource,
   useLatestScanForSource,
-} from './useSourceQueries'
+} from '@shared/data/queries/useSourceQueries'
 
 // Alerts + activity + sessions
-export { useAlerts, useActivity, useSessions } from './useActivityQueries'
+export { useAlerts, useActivity, useSessions } from '@shared/data/queries/useActivityQueries'
 
 // Dashboard aggregations
-export { useMonthlyTrends, useAiInsight } from './useDashboardQueries'
+export { useMonthlyTrends, useAiInsight } from '@shared/data/queries/useDashboardQueries'
 
 // Lineups
-export { usePublishedLineups, makeEmptyBoat } from './useLineupQueries'
-export type { SeatAssignment, BoatLineup, PublishedLineup } from './useLineupQueries'
+export { usePublishedLineups, makeEmptyBoat } from '@shared/data/queries/useLineupQueries'
+export type { SeatAssignment, BoatLineup, PublishedLineup } from '@shared/data/queries/useLineupQueries'
 
 // Timeline + connectors + AI import (SCHEMA §9)
-export { useTimelineEvents, useTimelineForAthlete } from './useTimelineQueries'
-export { useConnectorAccounts } from './useConnectorAccountsQuery'
-export { useAiImportJobs } from './useAiImportQueries'
+export { useTimelineEvents, useTimelineForAthlete } from '@shared/data/queries/useTimelineQueries'
+export { useConnectorAccounts } from '@shared/data/queries/useConnectorAccountsQuery'
+export { useAiImportJobs } from '@shared/data/queries/useAiImportQueries'
 
 // Demo athlete (athlete-side current user)
 export {
@@ -76,7 +76,7 @@ export {
   useDemoAthletePersonalSources,
   useDemoTeam,
   useDemoCoach,
-} from './useDemoAthleteQueries'
+} from '@shared/data/queries/useDemoAthleteQueries'
 
 // Ingestion (file uploads → confirmed events). Empty in demo mode;
 // populated when the coach is signed in to a real Supabase project.
@@ -84,4 +84,4 @@ export {
   useSourceUploads,
   useIngestedEventsForAthlete,
   useIngestedEventsForTeam,
-} from './useIngestionQueries'
+} from '@shared/data/queries/useIngestionQueries'

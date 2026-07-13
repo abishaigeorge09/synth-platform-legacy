@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import type { User, UserRole } from '../data/types'
-import { SEED_COACH, SEED_TEAM_CAL_WOMENS } from '../data/seeds'
-import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient'
+import type { User, UserRole } from '@shared/data/types'
+import { SEED_COACH, SEED_TEAM_CAL_WOMENS } from '@shared/data/seeds'
+import { supabase, isSupabaseConfigured } from '@lib/supabaseClient'
 
 export type AuthMode = 'demo' | 'supabase'
 

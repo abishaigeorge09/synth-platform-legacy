@@ -7,7 +7,7 @@
  * When the real agent lands (Phase P1+), swap this module for a query hook on
  * the `scan_logs` table — the shape here already matches `docs/SCHEMA.md`.
  */
-import type { ScanLog } from '../types'
+import type { ScanLog } from '@shared/data/types'
 
 export const SEED_SCAN_LOGS: ScanLog[] = [
   // ── Erg workbooks (google_sheets) ──────────────────────────────────────────

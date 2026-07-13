@@ -16,7 +16,7 @@
  *   tool_published         — head coach publishes a tool_versions row
  *   tool_installed         — coach installs from catalog
  */
-import { posthog } from '../shared/analytics/posthog'
+import { posthog } from '@shared/analytics/posthog'
 
 export type ToolEvent =
   | 'tool_request_submitted'

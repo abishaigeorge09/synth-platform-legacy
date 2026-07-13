@@ -1,7 +1,7 @@
 import { BrowserRouter, useRoutes } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
-import { routes } from './app/routes'
-import { AccessGate } from './features/gate/AccessGate'
+import { routes } from '@app/routes'
+import { AccessGate } from '@pages/gate/AccessGate'
 
 function AppRoutes() {
   return useRoutes(routes)

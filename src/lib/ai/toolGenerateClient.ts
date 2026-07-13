@@ -13,9 +13,9 @@
  * a real session). The Build workspace dispatches between live + mock
  * via `getAIClientMode()`.
  */
-import { supabase } from '../supabaseClient'
-import { isClaudeConfigured } from './env'
-import { ToolSpecSchema, type ToolSpec } from '../tools/schema'
+import { supabase } from '@lib/supabaseClient'
+import { isClaudeConfigured } from '@lib/ai/env'
+import { ToolSpecSchema, type ToolSpec } from '@lib/tools/schema'
 
 const FUNCTION_PATH = '/functions/v1/tool-generate'
 

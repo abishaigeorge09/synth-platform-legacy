@@ -13,7 +13,7 @@
  * Two athletes (Lola Crampin, Giulia Bosio) trend downward in recovery
  * (rising soreness, dropping energy) across the 30-day window.
  */
-import type { WellnessCheckin } from '../types'
+import type { WellnessCheckin } from '@shared/data/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

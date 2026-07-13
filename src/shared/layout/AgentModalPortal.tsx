@@ -1,41 +1,41 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
-import { useUiStore } from '../store/useUiStore'
-import { THEME } from '../../lib/theme'
-import { useSources, useScanLogs, useAiImportJobs } from '../data/queries'
-import { connectConnector } from '../data/connectors/connectorService'
+import { useUiStore } from '@shared/store/useUiStore'
+import { THEME } from '@lib/theme'
+import { useSources, useScanLogs, useAiImportJobs } from '@shared/data/queries'
+import { connectConnector } from '@shared/data/connectors/connectorService'
 import type {
   ConnectorProvider,
   IngestionPreview,
   Source,
   SourceType,
-} from '../data/types'
-import { toast } from '../store/useToastStore'
-import { useTeamStore } from '../store/useTeamStore'
-import { useConnectorConnectionsStore } from '../store/useConnectorConnectionsStore'
-import { useCoachOnboardingStore } from '../store/useCoachOnboardingStore'
-import { useAthleteOnboardingStore } from '../store/useAthleteOnboardingStore'
-import { isSupabaseConfigured } from '../../lib/supabaseClient'
+} from '@shared/data/types'
+import { toast } from '@shared/store/useToastStore'
+import { useTeamStore } from '@shared/store/useTeamStore'
+import { useConnectorConnectionsStore } from '@shared/store/useConnectorConnectionsStore'
+import { useCoachOnboardingStore } from '@shared/store/useCoachOnboardingStore'
+import { useAthleteOnboardingStore } from '@shared/store/useAthleteOnboardingStore'
+import { isSupabaseConfigured } from '@lib/supabaseClient'
 import {
   classifyFile,
   requestParse,
   uploadAndParse,
-} from '../../lib/ingest/uploadClient'
+} from '@lib/ingest/uploadClient'
 import {
   fetchSheetAsUpload,
   initiateSheetsConnect,
   SHEETS_CONNECT_PARAM,
   SHEETS_CONNECT_VALUE,
-} from '../../lib/ingest/sheetsClient'
+} from '@lib/ingest/sheetsClient'
 import {
   disableHealthWebhook,
   enableHealthWebhook,
   getHealthConnector,
   SAMPLE_SHORTCUT_BODY,
   type HealthConnectorSummary,
-} from '../../lib/ingest/healthWebhookClient'
-import { IngestionPreviewPanel } from '../../features/coach/agent/IngestionPreviewPanel'
+} from '@lib/ingest/healthWebhookClient'
+import { IngestionPreviewPanel } from '@surfaces/webapp/coach/agent/IngestionPreviewPanel'
 
 type Tab = 'sources' | 'scans' | 'add'
 
@@ -632,7 +632,7 @@ function SheetsConnectorRow({
       window.history.replaceState({}, '', cleanHref)
       setBusy('completing')
       try {
-        const { completeSheetsConnect } = await import('../../lib/ingest/sheetsClient')
+        const { completeSheetsConnect } = await import('@lib/ingest/sheetsClient')
         const result = await completeSheetsConnect()
         if (cancelled) return
         if (result?.ok) {

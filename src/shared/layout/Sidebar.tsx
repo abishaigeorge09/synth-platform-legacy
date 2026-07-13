@@ -1,12 +1,12 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useState, type ComponentType, type ReactNode } from 'react'
-import { THEME } from '../../lib/theme'
-import { useAlerts, useActivity } from '../data/queries'
-import { useUiStore } from '../store/useUiStore'
-import { useNotificationStore } from '../store/useNotificationStore'
-import { useTeamStore } from '../store/useTeamStore'
-import { COACH_DEMO_SQUADS, SEED_TEAM_CAL_MENS } from '../data/seeds'
+import { THEME } from '@lib/theme'
+import { useAlerts, useActivity } from '@shared/data/queries'
+import { useUiStore } from '@shared/store/useUiStore'
+import { useNotificationStore } from '@shared/store/useNotificationStore'
+import { useTeamStore } from '@shared/store/useTeamStore'
+import { COACH_DEMO_SQUADS, SEED_TEAM_CAL_MENS } from '@shared/data/seeds'
 import {
   DashboardIllustration,
   AthletesIllustration,
@@ -14,9 +14,9 @@ import {
   AddToolIllustration,
   SynthAiIllustration,
   SettingsIllustration,
-} from '../illustrations/sidebarIllustrations'
-import { COACH_TOOLS } from '../../features/coach/tools/toolRegistry'
-import { prefetchRoute } from '../../app/routePrefetch'
+} from '@shared/illustrations/sidebarIllustrations'
+import { COACH_TOOLS } from '@surfaces/webapp/coach/tools/toolRegistry'
+import { prefetchRoute } from '@app/routePrefetch'
 
 type NavItem = {
   to: string

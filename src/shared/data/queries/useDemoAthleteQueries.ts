@@ -2,7 +2,7 @@
  * Demo athlete queries — the athlete-side "current user" data.
  * In production these become auth-scoped queries on the signed-in athlete.
  */
-import { useStaticQuery } from './useStaticQuery'
+import { useStaticQuery } from '@shared/data/queries/useStaticQuery'
 import {
   DEMO_ATHLETE,
   DEMO_ATHLETE_ERG,
@@ -13,7 +13,7 @@ import {
   DEMO_ATHLETE_PERSONAL_SOURCES,
   DEMO_TEAM,
   DEMO_COACH,
-} from '../seeds/demoAthlete'
+} from '@shared/data/seeds/demoAthlete'
 
 export function useDemoAthlete() {
   return useStaticQuery(DEMO_ATHLETE)

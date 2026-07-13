@@ -1,14 +1,14 @@
-import { SEED_ATHLETES_ALL } from '../../shared/data/seeds'
+import { SEED_ATHLETES_ALL } from '@shared/data/seeds'
 import {
   buildAthleteSeedSummary,
   buildTeamDataSummary,
-} from './contextBuilders'
+} from '@lib/ai/contextBuilders'
 import {
   DEMO_ATHLETE_PROFILE,
   GOALS,
   LATEST_COACH_FEEDBACK,
   TODAY_SCHEDULE,
-} from '../../features/athlete/data/demoAthleteData'
+} from '@surfaces/webapp/athlete/data/demoAthleteData'
 
 export function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)

@@ -1,8 +1,8 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { ComponentType } from 'react'
-import { THEME } from '../../lib/theme'
-import { prefetchRoute } from '../../app/routePrefetch'
+import { THEME } from '@lib/theme'
+import { prefetchRoute } from '@app/routePrefetch'
 import {
   AthletesIllustration,
   DashboardIllustration,
@@ -11,8 +11,8 @@ import {
   SettingsIllustration,
   SourcesIllustration,
   SynthAiIllustration,
-} from '../illustrations/sidebarIllustrations'
-import { DEMO_ATHLETE_PROFILE, TODAY_META } from '../../features/athlete/data/demoAthleteData'
+} from '@shared/illustrations/sidebarIllustrations'
+import { DEMO_ATHLETE_PROFILE, TODAY_META } from '@surfaces/webapp/athlete/data/demoAthleteData'
 
 type NavItem = {
   to: string

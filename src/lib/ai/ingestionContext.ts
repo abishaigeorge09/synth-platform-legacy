@@ -12,8 +12,8 @@
  * prompt without conditionals.
  */
 
-import { supabase } from '../supabaseClient'
-import type { IngestionEvent, UUID } from '../../shared/data/types'
+import { supabase } from '@lib/supabaseClient'
+import type { IngestionEvent, UUID } from '@shared/data/types'
 
 const MAX_EVENTS_FOR_ATHLETE = 60
 const MAX_EVENTS_FOR_TEAM = 80

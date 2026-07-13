@@ -19,14 +19,14 @@ import type {
   Source,
   Team,
   User,
-} from '../types'
-export { SEED_WELLNESS } from './wellness'
+} from '@shared/data/types'
+export { SEED_WELLNESS } from '@shared/data/seeds/wellness'
 import {
   ERG_316_2K,
   ROWIQ_ROSTER_COUNT_2526,
   ROWIQ_SHEET_316_DATE,
-} from '../../../prototype/rowiqWomensData'
-import { SEED_SESSIONS_EXPANDED, SEED_SESSION_BOATS, SEED_SESSION_SPLITS } from './sessions'
+} from '@shared/data/prototype/rowiqWomensData'
+import { SEED_SESSIONS_EXPANDED, SEED_SESSION_BOATS, SEED_SESSION_SPLITS } from '@shared/data/seeds/sessions'
 
 // ─── Team ──────────────────────────────────────────────────────────────────
 
@@ -345,25 +345,25 @@ export const SEED_AI_IMPORT_JOBS: AiImportJob[] = [
 
 // ─── Strava activities ────────────────────────────────────────────────────
 
-export { SEED_STRAVA_ACTIVITIES } from './stravaActivities'
+export { SEED_STRAVA_ACTIVITIES } from '@shared/data/seeds/stravaActivities'
 
 // ─── Gym sessions ─────────────────────────────────────────────────────────
 
-export { SEED_GYM_SESSIONS } from './gymSessions'
+export { SEED_GYM_SESSIONS } from '@shared/data/seeds/gymSessions'
 
 // ─── Sleep & HRV ──────────────────────────────────────────────────────────
 
-export { SEED_SLEEP_HRV } from './sleepHrv'
+export { SEED_SLEEP_HRV } from '@shared/data/seeds/sleepHrv'
 
 // ─── Calendar events ─────────────────────────────────────────────────────
 
-export { SEED_CALENDAR } from './calendar'
-export type { CalendarEvent } from './calendar'
+export { SEED_CALENDAR } from '@shared/data/seeds/calendar'
+export type { CalendarEvent } from '@shared/data/seeds/calendar'
 
 // ─── Coach notes ─────────────────────────────────────────────────────────
 
-export { SEED_COACH_NOTES } from './coachNotes'
-export type { CoachNote } from './coachNotes'
+export { SEED_COACH_NOTES } from '@shared/data/seeds/coachNotes'
+export type { CoachNote } from '@shared/data/seeds/coachNotes'
 
 // Compatibility aliases for older query modules.
 export const SEED_ATHLETES_ALL = SEED_ATHLETES

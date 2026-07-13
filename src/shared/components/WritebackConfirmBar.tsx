@@ -1,5 +1,5 @@
-import { THEME } from '../../lib/theme'
-import { useWritebackStore } from '../store/useWritebackStore'
+import { THEME } from '@lib/theme'
+import { useWritebackStore } from '@shared/store/useWritebackStore'
 
 /** Surfaces pending write-back intents (Sheets + timeline) for coach confirmation. */
 export function WritebackConfirmBar() {

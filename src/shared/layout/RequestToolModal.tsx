@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { THEME } from '../../lib/theme'
-import { useUiStore } from '../store/useUiStore'
+import { THEME } from '@lib/theme'
+import { useUiStore } from '@shared/store/useUiStore'
 
 export function RequestToolModal() {
   const open = useUiStore((s) => s.requestToolOpen)

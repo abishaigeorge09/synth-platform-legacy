@@ -1,4 +1,4 @@
-import type { ResolvedBindings } from '../resolver'
+import type { ResolvedBindings } from '@lib/tools/resolver'
 
 /**
  * Wellness summary uses the label-match heuristic on the `stat` renderer:

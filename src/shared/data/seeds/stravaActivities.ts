@@ -3,7 +3,7 @@
  * 15 activities across April 1–24 2026: 8 rowing, 4 run, 2 cycle, 1 yoga.
  * Realistic HR / distance / duration for a college women's rower.
  */
-import type { StravaActivity } from '../types'
+import type { StravaActivity } from '@shared/data/types'
 
 const AID = 'athlete-miller-star'
 

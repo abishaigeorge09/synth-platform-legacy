@@ -4,9 +4,9 @@ import {
   SEED_ERG_SCORES_ALL,
   SEED_SOURCES_ALL,
   SEED_TEAM_CAL_WOMENS,
-} from '../../shared/data/seeds'
-import { DEMO_ATHLETE } from '../../shared/data/seeds/demoAthlete'
-import { getYoyFor } from '../../shared/data/seeds/athleteExtras'
+} from '@shared/data/seeds'
+import { DEMO_ATHLETE } from '@shared/data/seeds/demoAthlete'
+import { getYoyFor } from '@shared/data/seeds/athleteExtras'
 
 function fmt2k(seconds?: number) {
   if (seconds === undefined || !Number.isFinite(seconds)) return '—'

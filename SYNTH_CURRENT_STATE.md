@@ -2,7 +2,7 @@
 
 A snapshot of synth-platform as of 2026-05-15, prepared for handoff to the architect designing the new Python + Go backend.
 
-This document is descriptive, not aspirational. It reports what is in the code today. Where the code is silent or contradictory, that is flagged. All file paths are relative to repo root `/Users/abishaigeorgegosula/synth-platform`.
+This document is descriptive, not aspirational. It reports what is in the code today. Where the code is silent or contradictory, that is flagged. All file paths are relative to repo root `/Users/abishaigeorgegosula/synth-platform-legacy`.
 
 ---
 

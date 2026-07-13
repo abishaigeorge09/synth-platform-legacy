@@ -8,8 +8,8 @@
 //   - streamClaudeMessages() SSE streaming. Calls onTextDelta(fullText) as
 //                            tokens arrive; resolves with final full text.
 
-import { supabase } from '../supabaseClient'
-import { isClaudeConfigured } from './env'
+import { supabase } from '@lib/supabaseClient'
+import { isClaudeConfigured } from '@lib/ai/env'
 
 // Anthropic model tiers. We don't pin to a single ID — directClient
 // runs a fallback chain within each tier so a key with patchy model

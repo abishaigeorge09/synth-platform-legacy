@@ -20,12 +20,12 @@ import {
   type ToolInput,
   type ToolPage,
   type ToolSpec,
-} from './schema'
-import { ELEMENT_RENDERERS } from './registry'
-import { useResolvedBindings } from './resolver'
-import { ToolStateContext, useToolInstanceState } from './instanceState'
-import { SYNTH } from '../../features/app/lib/theme'
-import { TOOL_STAGGER } from '../../features/app/lib/motion'
+} from '@lib/tools/schema'
+import { ELEMENT_RENDERERS } from '@lib/tools/registry'
+import { useResolvedBindings } from '@lib/tools/resolver'
+import { ToolStateContext, useToolInstanceState } from '@lib/tools/instanceState'
+import { SYNTH } from '@surfaces/pwa/lib/theme'
+import { TOOL_STAGGER } from '@surfaces/pwa/lib/motion'
 
 // ─── Public component ─────────────────────────────────────────────────────
 

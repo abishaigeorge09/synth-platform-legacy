@@ -23,13 +23,35 @@ The build is **UI-first**: every surface is shipping as React/TypeScript against
 
 ## Architecture — five systems
 
-synth. is deliberately modular:
+synth. is deliberately modular. The `src/` tree is organized by **product surface**:
 
-1. **Landing page** (`src/features/landing/`) — public marketing + PWA install. Phase 10.
-2. **Coach Dashboard** (`src/features/coach/`) — the coach's home. Dashboard, Athletes, Sources, Custom Tools, synth. AI, Settings, synth. Agent modal portal. Phases 2–9.
-3. **synth. Agent** (`src/shared/layout/AgentModalPortal.tsx` + `src/features/coach/agent/`) — the connector/scraping engine as a modal overlay. Phase 4.
-4. **Custom Tools** (`src/features/coach/tools/`) — sport-specific internal apps. Lineups (Phase 5) + Session Timer (Phase 6) ship for rowing; the ToolRegistry pattern keeps the sidebar extensible.
-5. **Athlete view** (`src/features/athlete/`) — separate experience for athletes who join via invite code. Phase 7.
+- **Landing** → `src/surfaces/landing/`
+- **Desktop webapp** (coach + desktop athlete view) → `src/surfaces/webapp/{coach,athlete}/`
+- **PWA app** → `src/surfaces/pwa/`
+
+The five systems map onto these surfaces:
+
+1. **Landing page** (`src/surfaces/landing/`) — public marketing + PWA install. Phase 10.
+2. **Coach Dashboard** (`src/surfaces/webapp/coach/`) — the coach's home. Dashboard, Athletes, Sources, Custom Tools, synth. AI, Settings, synth. Agent modal portal. Phases 2–9.
+3. **synth. Agent** (`src/shared/layout/AgentModalPortal.tsx` + `src/surfaces/webapp/coach/agent/`) — the connector/scraping engine as a modal overlay. Phase 4.
+4. **Custom Tools** (`src/surfaces/webapp/coach/tools/`) — sport-specific internal apps. Lineups (Phase 5) + Session Timer (Phase 6) ship for rowing; the ToolRegistry pattern keeps the sidebar extensible.
+5. **Athlete view** (`src/surfaces/webapp/athlete/`) — desktop athlete experience for athletes who join via invite code. Phase 7.
+
+## Path aliases
+
+Cross-folder imports use path aliases (defined in `tsconfig.app.json` `paths` and mirrored in `vite.config.ts` / `vitest.config.ts` `resolve.alias`) instead of deep relative paths:
+
+| Alias | Target |
+|---|---|
+| `@shared/*` | `src/shared/*` |
+| `@lib/*` | `src/lib/*` |
+| `@app/*` | `src/app/*` |
+| `@auth/*` | `src/auth/*` |
+| `@surfaces/*` | `src/surfaces/*` |
+| `@pages/*` | `src/pages/*` |
+| `@/*` | `src/*` |
+
+Use aliases for anything that reaches out of a feature into the shared/lib/app trees or across surfaces. Imports between siblings inside the same feature stay relative.
 
 ## Stack
 
@@ -115,35 +137,40 @@ src/
 │   │       └── index.ts          # All Phase 0 seed exports
 │   ├── illustrations/
 │   │   └── sidebarIllustrations.tsx   # Custom SVG glyphs for every sidebar item
-│   └── components/               # Shared primitives (grows during Phases 2+)
-├── features/
-│   ├── landing/
+│   ├── components/               # Shared primitives (@shared/components)
+│   │   ├── SynthLayerDashboardMockup.tsx  # Dashboard mockup (Phase 2 input)
+│   │   ├── advanceGate.tsx       # AdvanceGateProvider (no-op wrapper)
+│   │   └── chat/                 # Stream chat components
+│   └── data/
+│       ├── seeds/index.ts        # All seed exports
+│       └── prototype/            # LEGACY — Pacific Women's mock dashboard
+│           ├── ProductPrototypeApp.tsx
+│           ├── RowiqWomensCharts.tsx
+│           ├── rowiqWomensData.ts   # Real erg data (used by seeds)
+│           ├── womensDemoData.ts
+│           └── athleteCards/        # SynthAthleteCard*, SynthAthleteProfile, etc.
+├── surfaces/                     # The three product surfaces (@surfaces/*)
+│   ├── landing/                  # Public marketing + PWA install
 │   │   └── LandingPage.tsx
-│   ├── auth/
-│   │   ├── LoginPage.tsx
-│   │   └── JoinWithInvitePage.tsx
-│   ├── coach/
-│   │   ├── dashboard/DashboardPage.tsx
-│   │   ├── athletes/AthletesPage.tsx
-│   │   ├── sources/SourcesPage.tsx
-│   │   ├── tools/
-│   │   │   ├── lineups/LineupsPage.tsx
-│   │   │   └── sessionTimer/SessionTimerPage.tsx
-│   │   ├── ai/TeamChatPage.tsx
-│   │   └── settings/SettingsPage.tsx
-│   └── athlete/
-│       ├── AthleteLayout.tsx
-│       └── athletePages.tsx      # All athlete stubs in one file
-├── prototype/                    # LEGACY — Pacific Women's mock dashboard
-│   ├── ProductPrototypeApp.tsx   # Phase 2 absorbs this into the new Dashboard route
-│   ├── RowiqWomensCharts.tsx
-│   ├── rowiqWomensData.ts        # Real erg data (used by seeds)
-│   ├── womensDemoData.ts
-│   └── athleteCards/             # SynthAthleteCard*, SynthAthleteProfile, etc.
-├── components/
-│   ├── SynthLayerDashboardMockup.tsx  # Current dashboard mockup (Phase 2 input)
-│   └── advanceGate.tsx                # AdvanceGateProvider (no-op wrapper)
-└── lib/
+│   ├── webapp/                   # Desktop webapp
+│   │   ├── coach/               # Coach dashboard, athletes, sources, tools, ai, settings, agent
+│   │   │   ├── dashboard/DashboardPage.tsx
+│   │   │   ├── athletes/AthletesPage.tsx
+│   │   │   ├── sources/SourcesPage.tsx
+│   │   │   ├── tools/{lineups,sessionTimer}/
+│   │   │   ├── ai/TeamChatPage.tsx
+│   │   │   └── settings/SettingsPage.tsx
+│   │   └── athlete/             # Desktop athlete view
+│   │       ├── AthleteLayout.tsx
+│   │       └── athleteAppPages.tsx
+│   └── pwa/                      # Installable PWA app (coach + athlete mobile)
+├── auth/                         # LoginPage, JoinWithInvitePage (@auth/*)
+├── pages/                        # Standalone public pages (@pages/*)
+│   ├── legal/                    # LegalPage
+│   ├── productDemo/
+│   ├── notFound/                 # NotFoundPage
+│   └── gate/                     # AccessGate
+└── lib/                          # Framework-agnostic helpers (@lib/*)
     ├── theme.ts                  # THEME — single source of truth for colors/fonts
     └── motion.ts                 # TRANSITIONS, STAGGER, VARIANTS
 
@@ -157,7 +184,7 @@ docs/
 ## Data flow — UI-first
 
 ```
-src/prototype/rowiqWomensData.ts          (real Pacific Women's erg data)
+src/shared/data/prototype/rowiqWomensData.ts          (real Pacific Women's erg data)
        │
        ├──→ src/shared/data/seeds/index.ts
        │          │
@@ -239,13 +266,13 @@ The entire app installs as a PWA and works on Android, iPhone, iPad, and desktop
 
 ### Layout modes
 - **Coach side** — Fixed 260 px sidebar at `≥ md` (768 px). Below that, the sidebar hides and a **hamburger + slide-in drawer** takes over. Both surfaces render the same `SidebarContent` component (`src/shared/layout/Sidebar.tsx`) so there's one nav implementation. The drawer lives in `src/shared/layout/MobileSidebarDrawer.tsx`; the top bar with the hamburger is `src/shared/layout/MobileTopBar.tsx`. Both are always mounted inside `CoachLayout` but hide themselves via `md:hidden` / `hidden md:flex`.
-- **Athlete side** — Horizontal top nav at `≥ md`. On mobile, the top nav is hidden and a fixed **bottom tab bar** (`src/features/athlete/components/AthleteBottomTabs.tsx`) takes over with 4 primary tabs (Team, Stats, Sessions, AI) plus a **More** button that opens a slide-up bottom sheet (`AthleteMoreSheet.tsx`) for Lineups / Sources / Settings.
+- **Athlete side** — Horizontal top nav at `≥ md`. On mobile, the top nav is hidden and a fixed **bottom tab bar** (`src/surfaces/webapp/athlete/components/AthleteBottomTabs.tsx`) takes over with 4 primary tabs (Team, Stats, Sessions, AI) plus a **More** button that opens a slide-up bottom sheet (`AthleteMoreSheet.tsx`) for Lineups / Sources / Settings.
 
 ### PWA infrastructure
 - Service worker + web app manifest generated by `vite-plugin-pwa` (`vite.config.ts`). `display: standalone`, `orientation: any`, scope `/`.
 - **Icons** are generated from `public/logos/synth-icon-green.svg` by `scripts/generate-icons.mjs` (runs via `npm run prebuild`). Outputs: `icon-152.png`, `icon-180.png`, `icon-192.png`, `icon-512.png`, and `icon-maskable-512.png` for Android adaptive icons.
 - **iOS install metadata** in `index.html`: `apple-touch-icon` links (180, 152), `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style="black-translucent"`, `apple-mobile-web-app-title="synth."`, and split `theme-color` meta tags for light and dark system preferences.
-- **Install prompt** — `src/features/landing/useInstallPrompt.ts` captures `beforeinstallprompt` on Chromium. iOS gets a **"Share → Add to Home Screen"** instructions modal. See `LandingPage.tsx`.
+- **Install prompt** — `src/surfaces/landing/useInstallPrompt.ts` captures `beforeinstallprompt` on Chromium. iOS gets a **"Share → Add to Home Screen"** instructions modal. See `LandingPage.tsx`.
 
 ### Touch + safe area
 - **Drag-and-drop** (`/coach/tools/lineups`) uses dual `MouseSensor` + `TouchSensor` from @dnd-kit. The TouchSensor has a 180 ms `delay` and 6 px `tolerance` so vertical page scroll still works while hold-drag is responsive.

@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { THEME } from '../../lib/theme'
-import { useUiStore } from '../store/useUiStore'
-import { useAuthStore } from '../store/useAuthStore'
-import { useTeamStore } from '../store/useTeamStore'
+import { THEME } from '@lib/theme'
+import { useUiStore } from '@shared/store/useUiStore'
+import { useAuthStore } from '@shared/store/useAuthStore'
+import { useTeamStore } from '@shared/store/useTeamStore'
 
 export function CoachProfileModal() {
   const open = useUiStore((s) => s.coachProfileOpen)

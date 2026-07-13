@@ -5,7 +5,7 @@
  * over the two-week window — a pattern the dashboard should flag.
  * Most other athletes are stable or slightly improving.
  */
-import type { SleepHrvEntry } from '../types'
+import type { SleepHrvEntry } from '@shared/data/types'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import type { ResolvedBindings } from '../resolver'
+import type { ResolvedBindings } from '@lib/tools/resolver'
 
 /**
  * Sprint 5.6 — empty `laps` array so user-added rows from the Lap

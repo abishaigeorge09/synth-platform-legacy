@@ -30,10 +30,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { ToolElement } from './schema'
-import type { ResolvedBindings } from './resolver'
-import { useToolState } from './instanceState'
-import { SYNTH } from '../../features/app/lib/theme'
+import type { ToolElement } from '@lib/tools/schema'
+import type { ResolvedBindings } from '@lib/tools/resolver'
+import { useToolState } from '@lib/tools/instanceState'
+import { SYNTH } from '@surfaces/pwa/lib/theme'
 
 // ─── Renderer type ────────────────────────────────────────────────────────
 

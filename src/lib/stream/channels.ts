@@ -1,4 +1,4 @@
-import type { Team } from '../../shared/data/types'
+import type { Team } from '@shared/data/types'
 
 /** Messaging CID id segment (Stream `type` + `id`). */
 export function teamMessagingChannelId(team: Pick<Team, 'id'>): string {

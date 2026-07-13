@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { isSupabaseConfigured } from '../../lib/supabaseClient'
+import { isSupabaseConfigured } from '@lib/supabaseClient'
 
 const KEY = 'synth:athlete-onboarding'
 

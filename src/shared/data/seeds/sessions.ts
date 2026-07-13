@@ -3,7 +3,7 @@
  * The minimal SEED_SESSIONS in index.ts only had 1 entry — this module
  * provides a richer set for the Session Timer history and session detail views.
  */
-import type { Session, SessionBoat, SessionSplit } from '../types'
+import type { Session, SessionBoat, SessionSplit } from '@shared/data/types'
 
 const TEAM_ID = 'team-cal-womens-rowing'
 const COACH_ID = 'user-coach-cal-womens'

@@ -2,9 +2,9 @@
  * Athlete roster + erg score queries. Swap internals for Supabase hooks later.
  */
 import { useMemo } from 'react'
-import { useStaticQuery } from './useStaticQuery'
-import { SEED_ATHLETES, SEED_ERG_SCORES } from '../seeds'
-import { getYoyFor, SEED_ATHLETE_YOY } from '../seeds/athleteExtras'
+import { useStaticQuery } from '@shared/data/queries/useStaticQuery'
+import { SEED_ATHLETES, SEED_ERG_SCORES } from '@shared/data/seeds'
+import { getYoyFor, SEED_ATHLETE_YOY } from '@shared/data/seeds/athleteExtras'
 
 export function useAthletes() {
   return useStaticQuery(SEED_ATHLETES)

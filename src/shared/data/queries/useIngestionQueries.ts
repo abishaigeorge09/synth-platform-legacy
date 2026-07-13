@@ -13,8 +13,8 @@
  */
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabaseClient'
-import type { IngestionEvent, SourceUpload, UUID } from '../types'
+import { supabase } from '@lib/supabaseClient'
+import type { IngestionEvent, SourceUpload, UUID } from '@shared/data/types'
 
 type Result<T> = {
   data: T

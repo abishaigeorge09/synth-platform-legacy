@@ -1,5 +1,5 @@
 import { StreamChat } from 'stream-chat'
-import { isStreamConfigured } from './env'
+import { isStreamConfigured } from '@lib/stream/env'
 
 let client: StreamChat | null = null
 

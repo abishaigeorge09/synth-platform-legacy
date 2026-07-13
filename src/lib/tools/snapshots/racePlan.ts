@@ -1,4 +1,4 @@
-import type { ResolvedBindings } from '../resolver'
+import type { ResolvedBindings } from '@lib/tools/resolver'
 
 export const RACE_PLAN_DATA: ResolvedBindings = {
   schedule: {

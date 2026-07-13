@@ -1,4 +1,4 @@
-import { featureFlags } from './featureFlags'
+import { featureFlags } from '@lib/featureFlags'
 
 const levels = { debug: 0, info: 1, warn: 2, error: 3 }
 const min = levels[featureFlags.logLevel] ?? 1

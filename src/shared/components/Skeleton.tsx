@@ -1,4 +1,4 @@
-import { THEME } from '../../lib/theme'
+import { THEME } from '@lib/theme'
 
 /**
  * Phase 24 — reusable skeleton primitives for loading states.

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { THEME } from '../../lib/theme'
+import { THEME } from '@lib/theme'
 
 /**
  * Phase 12 — lightweight fallback shown while a lazy-loaded route chunk is

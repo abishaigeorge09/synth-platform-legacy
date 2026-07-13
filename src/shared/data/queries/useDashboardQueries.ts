@@ -2,8 +2,8 @@
  * Dashboard-specific aggregated queries (trends, AI insight).
  * These are computed views in production — swap for server-side aggregation.
  */
-import { useStaticQuery } from './useStaticQuery'
-import { MONTHLY_TRENDS, AI_INSIGHT_MARKDOWN } from '../seeds/trends'
+import { useStaticQuery } from '@shared/data/queries/useStaticQuery'
+import { MONTHLY_TRENDS, AI_INSIGHT_MARKDOWN } from '@shared/data/seeds/trends'
 
 export function useMonthlyTrends() {
   return useStaticQuery(MONTHLY_TRENDS)

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { WritebackDestination, WritebackIntent } from '../data/types'
-import { log } from '../../lib/observability'
+import type { WritebackDestination, WritebackIntent } from '@shared/data/types'
+import { log } from '@lib/observability'
 
 let _id = 0
 function nextId() {

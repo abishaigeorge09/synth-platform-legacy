@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { generateToolSpec, MockGenerationError } from './mockGenerator'
+import { generateToolSpec, MockGenerationError } from '@lib/tools/mockGenerator'
 import {
   STROKE_RATE_LOGGER,
   LINEUP_COMPARE,
   WELLNESS_SUMMARY,
   LAP_COUNTER,
   RACE_PLAN,
-} from './examples'
+} from '@lib/tools/examples'
 
 describe('generateToolSpec — keyword matching', () => {
   it('routes "stroke rate logger that pulls from concept2" to STROKE_RATE_LOGGER', () => {

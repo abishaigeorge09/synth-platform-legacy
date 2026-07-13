@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ConnectorProvider } from '../data/types'
+import type { ConnectorProvider } from '@shared/data/types'
 
 const KEY = 'synth:connector-connections'
 

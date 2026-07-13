@@ -6,7 +6,7 @@
  * suggestions will disagree with the server's auto-tagging decisions.
  */
 
-import type { Athlete } from '../../shared/data/types'
+import type { Athlete } from '@shared/data/types'
 
 export type AthleteMatch = {
   athleteId: string

@@ -3,7 +3,7 @@
 // here means: Supabase is wired up so we can mint an access token to call the
 // function. Auth-required check happens server-side in the function itself.
 
-import { isSupabaseConfigured } from '../supabaseClient'
+import { isSupabaseConfigured } from '@lib/supabaseClient'
 
 export const AI_PROVIDER = 'edge-function'
 export const AI_ENABLED = true

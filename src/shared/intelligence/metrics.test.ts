@@ -6,7 +6,7 @@ import {
   computeTrainingLoad01,
   riskTierFromTotal,
   sumRiskWeights,
-} from './metrics'
+} from '@shared/intelligence/metrics'
 
 describe('computeTrainingLoad01', () => {
   it('weights water/erg/gym/cross', () => {

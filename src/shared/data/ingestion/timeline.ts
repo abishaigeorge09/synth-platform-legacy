@@ -1,4 +1,4 @@
-import type { AthleteTimelineEvent, UUID } from '../types'
+import type { AthleteTimelineEvent, UUID } from '@shared/data/types'
 
 /** Shape check before persisting a timeline row (client or server). */
 export function validateTimelineEvent(e: Partial<AthleteTimelineEvent>): e is AthleteTimelineEvent {

@@ -11,14 +11,14 @@
  * before their substrings (e.g. "stroke rate" before "rate") so a query
  * like "stroke rate logger" hits the right rule deterministically.
  */
-import type { ToolSpec } from './schema'
+import type { ToolSpec } from '@lib/tools/schema'
 import {
   STROKE_RATE_LOGGER,
   LINEUP_COMPARE,
   WELLNESS_SUMMARY,
   LAP_COUNTER,
   RACE_PLAN,
-} from './examples'
+} from '@lib/tools/examples'
 
 type Rule = { keyword: string; spec: ToolSpec }
 

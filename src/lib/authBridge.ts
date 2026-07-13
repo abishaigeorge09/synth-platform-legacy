@@ -1,5 +1,5 @@
-import type { User, UserRole } from '../shared/data/types'
-import { supabase } from './supabaseClient'
+import type { User, UserRole } from '@shared/data/types'
+import { supabase } from '@lib/supabaseClient'
 
 /**
  * Map a Supabase auth user to the app's `User` shape by looking up the

@@ -1,4 +1,4 @@
-import type { ToolSpec } from '../schema'
+import type { ToolSpec } from '@lib/tools/schema'
 
 /**
  * Sprint 5.7 — first schema_version: 2 example.

@@ -5,8 +5,8 @@ import {
   safeParseToolSpec,
   type ToolElement,
   type ToolSpec,
-} from './schema'
-import { EXAMPLES } from './examples'
+} from '@lib/tools/schema'
+import { EXAMPLES } from '@lib/tools/examples'
 
 // Each test does its own JSON.parse(JSON.stringify(...)) to defend against
 // mutation across tests. Round-tripping through JSON also catches anything

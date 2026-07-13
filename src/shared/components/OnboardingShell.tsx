@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { THEME } from '../../lib/theme'
-import { AuthIllustrationView, type AuthIllustrationId } from './AuthIllustrations'
+import { THEME } from '@lib/theme'
+import { AuthIllustrationView, type AuthIllustrationId } from '@shared/components/AuthIllustrations'
 
 export function OnboardingShell({
   kicker,

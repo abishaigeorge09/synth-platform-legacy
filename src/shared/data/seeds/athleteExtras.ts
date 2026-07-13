@@ -3,8 +3,8 @@
  * both the 2025-03-17 and 2026-03-16 tests. Used on AthleteProfilePage to
  * render progression deltas. The rest of the roster has a single data point.
  */
-import { ERG_2K_YOY } from '../../../prototype/rowiqWomensData'
-import { SEED_ATHLETES } from './index'
+import { ERG_2K_YOY } from '@shared/data/prototype/rowiqWomensData'
+import { SEED_ATHLETES } from '@shared/data/seeds/index'
 
 function parseErgTime(time: string): number {
   const [m, s] = time.split(':')

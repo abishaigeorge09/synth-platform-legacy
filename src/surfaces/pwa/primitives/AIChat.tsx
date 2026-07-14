@@ -4,7 +4,7 @@
 // the getActiveSuggestions helper used by AIPage. Splitting these into
 // separate files would scatter cohesive UI logic; trade-off is a full
 // HMR reload on edits to this file.
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -268,6 +268,7 @@ function CalloutBlock({
     warn: SYNTH.ink,
     success: SYNTH.ink,
   }[part.tone]
+  const links = useContext(AthleteLinksContext)
 
   return (
     <div
@@ -283,14 +284,14 @@ function CalloutBlock({
           className="text-[12px] font-semibold leading-tight"
           style={{ color: titleColor }}
         >
-          {part.title}
+          {renderRichText(part.title, links)}
         </p>
       ) : null}
       <p
         className={`text-[13px] leading-snug ${part.title ? 'mt-0.5' : ''}`}
         style={{ color: SYNTH.aiTextMuted }}
       >
-        {part.text}
+        {renderRichText(part.text, links)}
       </p>
     </div>
   )
@@ -306,6 +307,7 @@ function BulletListBlock({
     med: SYNTH.accentAmber,
     low: SYNTH.accentEmerald,
   }
+  const links = useContext(AthleteLinksContext)
   return (
     <ul className="my-2 flex flex-col gap-1.5" style={{ fontFamily: SYNTH.font }}>
       {part.items.map((item, i) => (
@@ -318,11 +320,11 @@ function BulletListBlock({
           />
           <div className="min-w-0 flex-1">
             <p className="text-[14px] leading-snug" style={{ color: SYNTH.ink }}>
-              {item.label}
+              {renderRichText(item.label, links)}
             </p>
             {item.sub ? (
               <p className="mt-0.5 text-[11px]" style={{ color: SYNTH.aiTextMuted }}>
-                {item.sub}
+                {renderRichText(item.sub, links)}
               </p>
             ) : null}
           </div>
@@ -337,6 +339,7 @@ function TableBlock({
 }: {
   part: Extract<ChatPart, { kind: 'table' }>
 }) {
+  const links = useContext(AthleteLinksContext)
   return (
     <div
       className="my-2 overflow-hidden rounded-2xl border"
@@ -391,7 +394,7 @@ function TableBlock({
                 >
                   {row.map((cell, ci) => (
                     <td key={ci} className="px-3 py-2">
-                      {cell}
+                      {renderRichText(cell, links)}
                     </td>
                   ))}
                 </tr>
@@ -489,14 +492,29 @@ function ErgGlyph() {
 export function AIThread({
   messages,
   emptyHeadline,
+  athletes,
+  onAthleteClick,
 }: {
   messages: ChatMessage[]
   emptyHeadline: string
+  /** Roster used to make athlete names clickable inline (headline prose
+   *  and "Athlete" table columns). Omit to disable name-linking. */
+  athletes?: { id: string; name: string }[]
+  onAthleteClick?: (athleteId: string) => void
 }) {
   const endRef = useRef<HTMLDivElement>(null)
+  // Depend on `messages` itself, not messages.length — AIPage replaces
+  // the array on every streaming delta (same length, new reference), so
+  // scrolling only on length change meant the thread sat still while a
+  // response grew and only jumped once the message count itself changed.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [messages.length])
+  }, [messages])
+
+  const links: AthleteLinks = useMemo(
+    () => ({ matcher: buildNameMatcher(athletes ?? []), onAthleteClick }),
+    [athletes, onAthleteClick],
+  )
 
   if (messages.length === 0) {
     return (
@@ -513,12 +531,14 @@ export function AIThread({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5 px-5 py-4">
-      {messages.map((m) => (
-        <MessageRow key={m.id} message={m} />
-      ))}
-      <div ref={endRef} />
-    </div>
+    <AthleteLinksContext.Provider value={links}>
+      <div className="flex flex-1 flex-col gap-5 px-5 py-4">
+        {messages.map((m) => (
+          <MessageRow key={m.id} message={m} />
+        ))}
+        <div ref={endRef} />
+      </div>
+    </AthleteLinksContext.Provider>
   )
 }
 
@@ -645,18 +665,93 @@ type Group =
     }
 
 /**
- * Renders `**bold**` markdown spans inside a plain-text chat segment.
- * The system prompt (see aiClient.ts buildSystemPrompt) explicitly
- * instructs Claude to bold the key number in its headline sentence;
- * without this the user sees literal asterisks in the message.
+ * Roster + click handler for making athlete names tappable wherever they
+ * appear in an AI response (headline prose, table cells). Provided by
+ * AIThread; consumed by MessageRow/InlineGroup/TableBlock. Context (not
+ * prop-drilling) because the render tree between AIThread and the leaf
+ * text renderers is several components deep.
  */
-function renderInlineBold(text: string): ReactNode {
-  const segments = text.split(/(\*\*[^*]+\*\*)/g)
-  if (segments.length === 1) return text
-  return segments.map((seg, i) => {
-    const m = /^\*\*([^*]+)\*\*$/.exec(seg)
-    return m ? <strong key={i}>{m[1]}</strong> : <span key={i}>{seg}</span>
-  })
+type AthleteLinks = {
+  /** Built once per `athletes` list change — see AIThread. */
+  matcher: NameMatcher | null
+  onAthleteClick?: (athleteId: string) => void
+}
+const AthleteLinksContext = createContext<AthleteLinks>({ matcher: null })
+
+type NameMatcher = { regex: RegExp; idByName: Map<string, string> }
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Builds a single regex that matches either a full athlete name or their
+ * first name (Claude's prose mostly uses first names after the initial
+ * mention), longest-first so "Olivia Roth" wins over a bare "Olivia".
+ * Word-boundaried to avoid matching inside unrelated words.
+ */
+function buildNameMatcher(athletes: { id: string; name: string }[]): NameMatcher | null {
+  if (athletes.length === 0) return null
+  const idByName = new Map<string, string>()
+  const names = new Set<string>()
+  for (const a of athletes) {
+    names.add(a.name)
+    idByName.set(a.name, a.id)
+    const first = a.name.split(' ')[0]
+    if (first && !idByName.has(first)) {
+      names.add(first)
+      idByName.set(first, a.id)
+    }
+  }
+  const sorted = [...names].sort((a, b) => b.length - a.length).map(escapeRegExp)
+  return { regex: new RegExp(`\\b(?:${sorted.join('|')})\\b`, 'g'), idByName }
+}
+
+/**
+ * Renders `**bold**` markdown spans and, when a NameMatcher is supplied,
+ * turns athlete-name mentions into tappable links to their profile. Single
+ * pass over both patterns at once so a name inside a bold span (e.g.
+ * "**Olivia's 2K**") doesn't get split in a way that orphans the `**`.
+ */
+function renderRichText(
+  text: string,
+  links: { matcher: NameMatcher | null; onAthleteClick?: (id: string) => void },
+): ReactNode {
+  const boldSrc = '\\*\\*[^*]+\\*\\*'
+  const combined = links.matcher
+    ? new RegExp(`(${boldSrc})|(${links.matcher.regex.source})`, 'g')
+    : new RegExp(`(${boldSrc})`, 'g')
+
+  const out: ReactNode[] = []
+  let last = 0
+  let key = 0
+  let m: RegExpExecArray | null
+  while ((m = combined.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index))
+    if (m[1]) {
+      out.push(<strong key={key++}>{m[1].slice(2, -2)}</strong>)
+    } else if (m[2] && links.matcher) {
+      const id = links.matcher.idByName.get(m[2])
+      out.push(
+        id && links.onAthleteClick ? (
+          <button
+            key={key++}
+            type="button"
+            onClick={() => links.onAthleteClick?.(id)}
+            className="underline decoration-1 underline-offset-2"
+            style={{ color: 'inherit', fontWeight: 500 }}
+          >
+            {m[2]}
+          </button>
+        ) : (
+          m[2]
+        ),
+      )
+    }
+    last = combined.lastIndex
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
 }
 
 type InlinePart = Extract<ChatPart, { kind: 'text' | 'chip' }>
@@ -687,13 +782,13 @@ function toLines(parts: InlinePart[]): LineToken[][] {
   return lines
 }
 
-function renderLine(line: LineToken[], stripMarker: boolean): ReactNode {
+function renderLine(line: LineToken[], stripMarker: boolean, links: AthleteLinks): ReactNode {
   return line.map((t, i) => {
     if (t.kind === 'chip') {
       return <CitationChip key={i} source={t.source} subject={t.subject} date={t.date} />
     }
     const text = stripMarker && i === 0 ? t.text.replace(LIST_MARKER_RE, '') : t.text
-    return <span key={i}>{renderInlineBold(text)}</span>
+    return <span key={i}>{renderRichText(text, links)}</span>
   })
 }
 
@@ -704,6 +799,7 @@ function renderLine(line: LineToken[], stripMarker: boolean): ReactNode {
  * else becomes its own paragraph so line breaks in Claude's prose show up.
  */
 function InlineGroup({ parts }: { parts: InlinePart[] }) {
+  const links = useContext(AthleteLinksContext)
   const lines = toLines(parts)
   const blocks: ReactNode[] = []
   let listBuffer: LineToken[][] = []
@@ -718,7 +814,7 @@ function InlineGroup({ parts }: { parts: InlinePart[] }) {
               className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
               style={{ background: SYNTH.aiTextMuted }}
             />
-            <span>{renderLine(line, true)}</span>
+            <span>{renderLine(line, true, links)}</span>
           </li>
         ))}
       </ul>,
@@ -735,7 +831,7 @@ function InlineGroup({ parts }: { parts: InlinePart[] }) {
     }
     flushList()
     if (line.length === 0) return
-    blocks.push(<p key={`p-${blocks.length}`}>{renderLine(line, false)}</p>)
+    blocks.push(<p key={`p-${blocks.length}`}>{renderLine(line, false, links)}</p>)
   })
   flushList()
 
@@ -869,6 +965,19 @@ export function AIComposer({
   placeholder,
 }: ComposerProps) {
   const hasContent = value.trim().length > 0 || !!attachment
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-grow the composer as the coach types instead of clipping a long
+  // message to one line. Caps at ~6 lines so a very long paste doesn't
+  // swallow the whole screen; it scrolls internally past that.
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const maxHeight = 168
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
+  }, [value])
 
   return (
     <div
@@ -939,6 +1048,7 @@ export function AIComposer({
       ) : null}
 
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {

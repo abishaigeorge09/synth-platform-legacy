@@ -449,7 +449,12 @@ export function AIPage() {
         </header>
 
         <div className="synth-scroll flex min-h-0 flex-1 flex-col overflow-y-auto pb-2">
-          <AIThread messages={messages} emptyHeadline={greeting} />
+          <AIThread
+            messages={messages}
+            emptyHeadline={greeting}
+            athletes={APP_MOCK_ATHLETES.map((a) => ({ id: a.id, name: a.name }))}
+            onAthleteClick={(athleteId) => navigate(`/app/coach/athlete/${athleteId}`)}
+          />
         </div>
 
         <SuggestionRow

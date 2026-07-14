@@ -692,18 +692,27 @@ function escapeRegExp(s: string): string {
  */
 function buildNameMatcher(athletes: { id: string; name: string }[]): NameMatcher | null {
   if (athletes.length === 0) return null
-  const idByName = new Map<string, string>()
-  const names = new Set<string>()
+
+  // First names collide in real rosters (this mock data alone has three
+  // Lilys and two Avas). Linking a bare first name to whichever athlete
+  // happened to come first in the array sent people to the wrong
+  // profile. Only link a first name when exactly one athlete has it —
+  // full names are always linked since "First Last" is the unique key.
+  const firstNameCounts = new Map<string, number>()
   for (const a of athletes) {
-    names.add(a.name)
+    const first = a.name.split(' ')[0]
+    if (first) firstNameCounts.set(first, (firstNameCounts.get(first) ?? 0) + 1)
+  }
+
+  const idByName = new Map<string, string>()
+  for (const a of athletes) {
     idByName.set(a.name, a.id)
     const first = a.name.split(' ')[0]
-    if (first && !idByName.has(first)) {
-      names.add(first)
+    if (first && firstNameCounts.get(first) === 1) {
       idByName.set(first, a.id)
     }
   }
-  const sorted = [...names].sort((a, b) => b.length - a.length).map(escapeRegExp)
+  const sorted = [...idByName.keys()].sort((a, b) => b.length - a.length).map(escapeRegExp)
   return { regex: new RegExp(`\\b(?:${sorted.join('|')})\\b`, 'g'), idByName }
 }
 

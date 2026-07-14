@@ -289,6 +289,13 @@ function handleSseDataLine(raw: string, onText: (t: string) => void): void {
   }
 }
 
+// No request should hang forever — a cold Edge Function start, a stalled
+// upstream connection, or a network blip should surface as a clear error
+// the user can retry, not an infinite "thinking" indicator. This bounds
+// both "never got a response" and "stream stalled partway through": the
+// watchdog resets on every chunk and aborts if none arrive in time.
+const STREAM_WATCHDOG_MS = 25_000
+
 export async function streamClaudeMessages(args: {
   system: string
   model: string
@@ -312,10 +319,18 @@ export async function streamClaudeMessages(args: {
   let lastErr: unknown
   const headers = await authHeaders()
   for (const model of tryModels) {
+    const controller = new AbortController()
+    let watchdog: ReturnType<typeof setTimeout> | undefined
+    const armWatchdog = () => {
+      clearTimeout(watchdog)
+      watchdog = setTimeout(() => controller.abort(), STREAM_WATCHDOG_MS)
+    }
     try {
+      armWatchdog()
       const res = await fetch(functionURL(), {
         method: 'POST',
         headers,
+        signal: controller.signal,
         body: JSON.stringify({
           model,
           max_tokens: 2048,
@@ -364,6 +379,7 @@ export async function streamClaudeMessages(args: {
       }
       while (true) {
         const { done, value } = await reader.read()
+        armWatchdog()
         if (done) break
         lineBuf += decoder.decode(value, { stream: true })
         flushLines(false)
@@ -372,12 +388,18 @@ export async function streamClaudeMessages(args: {
       flushLines(true)
       return full
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        lastErr = new Error('synth took too long to respond. Try again.')
+        continue
+      }
       // Hard errors (429 / 401 / 403) escape the chain immediately.
       // Everything else gets stashed and we try the next model.
       if ((e as { isHardError?: boolean })?.isHardError) {
         throw e
       }
       lastErr = e
+    } finally {
+      clearTimeout(watchdog)
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))

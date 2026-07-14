@@ -79,27 +79,54 @@ export async function streamDirectMessages(args: {
     return [...new Set([args.model, ...modelChainForTier('sonnet')])]
   })()
 
+  // No request should hang forever — see STREAM_WATCHDOG_MS in claude.ts
+  // for the same fix on the production edge-function path. Resets on
+  // every chunk; aborts if none arrive in time so the UI shows a clear
+  // error instead of spinning indefinitely.
+  const WATCHDOG_MS = 25_000
+
   let res: Response | null = null
   let lastBody = ''
+  let watchdog: ReturnType<typeof setTimeout> | undefined
+  // Reused for both the initial fetch and the subsequent read loop, so
+  // one abort() covers "never connected" and "stalled mid-stream" alike.
+  let controller = new AbortController()
+  const armWatchdog = () => {
+    clearTimeout(watchdog)
+    watchdog = setTimeout(() => controller.abort(), WATCHDOG_MS)
+  }
+
   for (const model of tryModels) {
-    res = await fetch(ANTHROPIC_API, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': ANTHROPIC_VERSION,
-        // Required when Anthropic detects a browser-context request
-        // (Origin header forwarded by the Vite dev proxy).
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 2048,
-        stream: true,
-        system: args.system,
-        messages: args.messages,
-      }),
-    })
+    controller = new AbortController()
+    armWatchdog()
+    try {
+      res = await fetch(ANTHROPIC_API, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': ANTHROPIC_VERSION,
+          // Required when Anthropic detects a browser-context request
+          // (Origin header forwarded by the Vite dev proxy).
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model,
+          max_tokens: 2048,
+          stream: true,
+          system: args.system,
+          messages: args.messages,
+        }),
+      })
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        lastBody = 'synth took too long to respond. Try again.'
+        res = null
+        continue
+      }
+      throw e
+    }
     if (res.ok) {
       console.log('[anthropic-direct] using model:', model)
       break
@@ -136,11 +163,21 @@ export async function streamDirectMessages(args: {
     }
   }
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    lineBuf += decoder.decode(value, { stream: true })
-    flushLines(false)
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      armWatchdog()
+      if (done) break
+      lineBuf += decoder.decode(value, { stream: true })
+      flushLines(false)
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('synth took too long to respond. Try again.')
+    }
+    throw e
+  } finally {
+    clearTimeout(watchdog)
   }
   lineBuf += decoder.decode()
   flushLines(true)

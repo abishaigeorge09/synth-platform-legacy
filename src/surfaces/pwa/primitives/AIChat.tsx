@@ -18,9 +18,6 @@ import {
   Star,
   Pencil,
   Trash2,
-  Info,
-  AlertTriangle,
-  Check,
   Trophy,
   Heart,
   Timer,
@@ -262,10 +259,14 @@ function CalloutBlock({
 }: {
   part: Extract<ChatPart, { kind: 'callout' }>
 }) {
-  const tone = {
-    info: { color: SYNTH.canvasTop, icon: <Info size={14} strokeWidth={2.4} /> },
-    warn: { color: SYNTH.accentAmber, icon: <AlertTriangle size={14} strokeWidth={2.4} /> },
-    success: { color: SYNTH.accentEmerald, icon: <Check size={14} strokeWidth={2.6} /> },
+  // Quiet treatment — no tone-colored icon badge, no colored left rail.
+  // A callout should read as an emphasized paragraph, not an "AI tool"
+  // widget. Tone still nudges the title color a touch so warn/success
+  // are still scannable at a glance, but there's no icon or accent bar.
+  const titleColor = {
+    info: SYNTH.ink,
+    warn: SYNTH.ink,
+    success: SYNTH.ink,
   }[part.tone]
 
   return (
@@ -274,34 +275,23 @@ function CalloutBlock({
       style={{
         background: SYNTH.aiCard,
         borderColor: SYNTH.aiBorder,
-        borderLeft: `3px solid ${tone.color}`,
         fontFamily: SYNTH.font,
       }}
     >
-      <div className="flex items-start gap-2">
-        <span
-          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-          style={{ background: `${tone.color}22`, color: tone.color }}
+      {part.title ? (
+        <p
+          className="text-[12px] font-semibold leading-tight"
+          style={{ color: titleColor }}
         >
-          {tone.icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          {part.title ? (
-            <p
-              className="text-[12px] font-semibold leading-tight"
-              style={{ color: SYNTH.ink }}
-            >
-              {part.title}
-            </p>
-          ) : null}
-          <p
-            className={`text-[13px] leading-snug ${part.title ? 'mt-0.5' : ''}`}
-            style={{ color: SYNTH.ink }}
-          >
-            {part.text}
-          </p>
-        </div>
-      </div>
+          {part.title}
+        </p>
+      ) : null}
+      <p
+        className={`text-[13px] leading-snug ${part.title ? 'mt-0.5' : ''}`}
+        style={{ color: SYNTH.aiTextMuted }}
+      >
+        {part.text}
+      </p>
     </div>
   )
 }
@@ -624,19 +614,13 @@ function MessageRow({ message }: { message: ChatMessage }) {
       {groups.map((g, i) => {
         if (g.kind === 'inline') {
           return (
-            <p
+            <div
               key={i}
-              className="max-w-full text-[15px] leading-[1.55]"
+              className="flex max-w-full flex-col gap-1.5 text-[15px] leading-[1.55]"
               style={{ color: SYNTH.ink, fontFamily: SYNTH.font }}
             >
-              {g.parts.map((p, pi) =>
-                p.kind === 'text' ? (
-                  <span key={pi}>{p.text}</span>
-                ) : (
-                  <CitationChip key={pi} source={p.source} subject={p.subject} date={p.date} />
-                ),
-              )}
-            </p>
+              <InlineGroup parts={g.parts} />
+            </div>
           )
         }
         if (g.part.kind === 'chart') return <ChartBlock key={i} part={g.part} />
@@ -659,6 +643,104 @@ type Group =
         { kind: 'chart' | 'callout' | 'bulletList' | 'illustration' | 'table' }
       >
     }
+
+/**
+ * Renders `**bold**` markdown spans inside a plain-text chat segment.
+ * The system prompt (see aiClient.ts buildSystemPrompt) explicitly
+ * instructs Claude to bold the key number in its headline sentence;
+ * without this the user sees literal asterisks in the message.
+ */
+function renderInlineBold(text: string): ReactNode {
+  const segments = text.split(/(\*\*[^*]+\*\*)/g)
+  if (segments.length === 1) return text
+  return segments.map((seg, i) => {
+    const m = /^\*\*([^*]+)\*\*$/.exec(seg)
+    return m ? <strong key={i}>{m[1]}</strong> : <span key={i}>{seg}</span>
+  })
+}
+
+type InlinePart = Extract<ChatPart, { kind: 'text' | 'chip' }>
+type LineToken = { kind: 'text'; text: string } | Extract<InlinePart, { kind: 'chip' }>
+
+const LIST_MARKER_RE = /^\s*(?:[-*•]|\d+[.)])\s+/
+
+/**
+ * Splits a run of text/chip parts into lines on `\n`, keeping citation
+ * chips attached to whichever line they fall on. Claude's prose often
+ * contains multiple sentences and the occasional "- point" list; without
+ * this the whole response rendered as one run-on paragraph with no line
+ * breaks (newlines collapse in HTML by default).
+ */
+function toLines(parts: InlinePart[]): LineToken[][] {
+  const lines: LineToken[][] = [[]]
+  for (const p of parts) {
+    if (p.kind === 'chip') {
+      lines[lines.length - 1].push(p)
+      continue
+    }
+    const segments = p.text.split('\n')
+    segments.forEach((seg, i) => {
+      if (i > 0) lines.push([])
+      if (seg.length > 0) lines[lines.length - 1].push({ kind: 'text', text: seg })
+    })
+  }
+  return lines
+}
+
+function renderLine(line: LineToken[], stripMarker: boolean): ReactNode {
+  return line.map((t, i) => {
+    if (t.kind === 'chip') {
+      return <CitationChip key={i} source={t.source} subject={t.subject} date={t.date} />
+    }
+    const text = stripMarker && i === 0 ? t.text.replace(LIST_MARKER_RE, '') : t.text
+    return <span key={i}>{renderInlineBold(text)}</span>
+  })
+}
+
+/**
+ * Renders a run of text/citation parts as proper paragraphs and bullet
+ * lists instead of one flat blob. Consecutive "- " / "1. " lines become
+ * a dotted list (matching BulletListBlock's visual language); everything
+ * else becomes its own paragraph so line breaks in Claude's prose show up.
+ */
+function InlineGroup({ parts }: { parts: InlinePart[] }) {
+  const lines = toLines(parts)
+  const blocks: ReactNode[] = []
+  let listBuffer: LineToken[][] = []
+
+  const flushList = () => {
+    if (listBuffer.length === 0) return
+    blocks.push(
+      <ul key={`ul-${blocks.length}`} className="flex flex-col gap-1">
+        {listBuffer.map((line, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <span
+              className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: SYNTH.aiTextMuted }}
+            />
+            <span>{renderLine(line, true)}</span>
+          </li>
+        ))}
+      </ul>,
+    )
+    listBuffer = []
+  }
+
+  lines.forEach((line) => {
+    const firstText = line.find((t): t is { kind: 'text'; text: string } => t.kind === 'text')
+    const isListLine = !!firstText && LIST_MARKER_RE.test(firstText.text)
+    if (isListLine) {
+      listBuffer.push(line)
+      return
+    }
+    flushList()
+    if (line.length === 0) return
+    blocks.push(<p key={`p-${blocks.length}`}>{renderLine(line, false)}</p>)
+  })
+  flushList()
+
+  return <>{blocks}</>
+}
 
 function groupParts(parts: ChatPart[]): Group[] {
   const out: Group[] = []

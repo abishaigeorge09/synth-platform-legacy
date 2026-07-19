@@ -1,5 +1,5 @@
 /**
- * Seed Strava activities for Star Miller (athlete-miller-star).
+ * Seed Strava activities for Sloane Carrow (athlete-miller-star).
  * 15 activities across April 1–24 2026: 8 rowing, 4 run, 2 cycle, 1 yoga.
  * Realistic HR / distance / duration for a college women's rower.
  */

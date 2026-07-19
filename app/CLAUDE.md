@@ -579,6 +579,7 @@ Each phase ends with: `tsc -b` clean, `npm run lint` clean, manual walk on iPhon
 10. **Don't add a chart library beyond recharts.** Don't add a UI kit. Don't add another animation library. The stack above is the stack.
 11. **Sentence-case headlines.** Reserve lowercase two-tone display for marketing surfaces only.
 12. **Mock data shaped to `docs/SCHEMA.md`.** Backend swap is mechanical.
+13. **No explanatory caption text as a design element.** Never add a sentence or paragraph whose only job is to describe what a chart, button, or section already shows or does (e.g. "This chart shows X through Y, where the shape means Z"). If a screen needs that sentence to be understood, fix the screen — better labels, a clearer chart, a tighter button copy — don't paper over it with prose underneath. Exception: content the user actually asked for (empty-state guidance, error messages, onboarding copy that's part of a designed flow).
 
 ---
 

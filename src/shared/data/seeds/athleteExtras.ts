@@ -20,7 +20,7 @@ export type AthleteYoyPair = {
   deltaSec: number
 }
 
-// Match the "E. Wheeler" shortName format back to an athlete by last-name.
+// Match the "M. Rothmore" shortName format back to an athlete by last-name.
 function matchShortToAthlete(short: string) {
   const lastName = short.split('. ')[1]?.trim().toLowerCase()
   if (!lastName) return null

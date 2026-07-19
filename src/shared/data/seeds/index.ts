@@ -69,7 +69,7 @@ function slugify(s: string) {
 }
 
 function displayName(lastFirst: string) {
-  // "Wheeler, Ella" → "Ella Wheeler"
+  // "Rothmore, Marnie" → "Marnie Rothmore"
   const [last, first] = lastFirst.split(',').map((p) => p.trim())
   return first ? `${first} ${last}` : lastFirst
 }
@@ -206,7 +206,7 @@ export const SEED_ACTIVITY: ActivityItem[] = [
     id: 'act-1',
     teamId: SEED_TEAM_CAL_WOMENS.id,
     kind: 'session',
-    title: "Ella Wheeler PR'd 2K at 6:35.6",
+    title: "Marnie Rothmore PR'd 2K at 6:35.6",
     detail: 'New personal best — #1 on roster, 316 2K sheet',
     at: '2026-04-25T20:00:00Z',
   },
@@ -223,14 +223,14 @@ export const SEED_ACTIVITY: ActivityItem[] = [
     teamId: SEED_TEAM_CAL_WOMENS.id,
     kind: 'scan',
     title: '3 athletes missed wellness check-in',
-    detail: 'Star Miller, Vivi Spitz, Madeline Cox — follow up',
+    detail: 'Sloane Carrow, Elowen Underhill, Delphine Brambleton — follow up',
     at: '2026-04-25T16:00:00Z',
   },
   {
     id: 'act-4',
     teamId: SEED_TEAM_CAL_WOMENS.id,
     kind: 'session',
-    title: 'Coach note added: Star Miller',
+    title: 'Coach note added: Sloane Carrow',
     detail: 'HRV 10% below baseline, light practice recommended',
     at: '2026-04-24T10:00:00Z',
   },
@@ -238,7 +238,7 @@ export const SEED_ACTIVITY: ActivityItem[] = [
     id: 'act-5',
     teamId: SEED_TEAM_CAL_WOMENS.id,
     kind: 'scan',
-    title: 'Madeline Cox flagged: recovery 42%',
+    title: 'Delphine Brambleton flagged: recovery 42%',
     detail: 'Poor sleep 3 nights — wearable hub alert',
     at: '2026-04-24T08:30:00Z',
   },

@@ -687,7 +687,7 @@ function escapeRegExp(s: string): string {
 /**
  * Builds a single regex that matches either a full athlete name or their
  * first name (Claude's prose mostly uses first names after the initial
- * mention), longest-first so "Olivia Roth" wins over a bare "Olivia".
+ * mention), longest-first so "Larkin Tremaine" wins over a bare "Olivia".
  * Word-boundaried to avoid matching inside unrelated words.
  */
 function buildNameMatcher(athletes: { id: string; name: string }[]): NameMatcher | null {

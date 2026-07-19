@@ -7,6 +7,7 @@ import { AthletePickerSheet } from './AthletePickerSheet'
 import {
   type Boat,
   COXED,
+  isSculling,
   totalSeats,
   seatSide,
   useLineupBuilderStore,
@@ -50,7 +51,11 @@ export function BoatLineupCard({ boat, onEdit }: Props) {
 
   const limit = totalSeats(boat.size)
   const filled = boat.seats.filter((s) => s.athleteId !== null).length
-  const isWide = boat.size === '4+' || boat.size === '4-' || boat.size === '4x' || boat.size === '8+'
+  // Port/starboard columns only make sense for sweep boats — a sculler
+  // holds both oars, so 1x/2x/4x always render as a single blue column
+  // regardless of seat count.
+  const scull = isSculling(boat.size)
+  const isWide = !scull && (boat.size === '4+' || boat.size === '4-' || boat.size === '8+')
   const hasCox = COXED[boat.size]
 
   const rowerSeats = boat.seats.filter((s) => seatSide(boat.size, s.position) !== 'X')
@@ -194,8 +199,8 @@ export function BoatLineupCard({ boat, onEdit }: Props) {
       ) : (
         <div className="mt-3">
           <SideColumn
-            label="Crew"
-            color={SYNTH.inkOnBrandMuted}
+            label={scull ? 'Scull' : 'Crew'}
+            color={scull ? SYNTH.sideScull : SYNTH.inkOnBrandMuted}
             seats={rowerSeats}
             onSeatTap={onSeatTap}
           />

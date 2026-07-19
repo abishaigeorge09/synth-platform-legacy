@@ -36,7 +36,7 @@ export const SEED_SCAN_LOGS: ScanLog[] = [
       '',
       '## Notable',
       '',
-      '- `Wheeler, Ella` logged a new **season best** (−2.4s vs. 2026-02-18).',
+      '- `Rothmore, Marnie` logged a new **season best** (−2.4s vs. 2026-02-18).',
       '- `Kaur, Priya` missing from sheet — flagged for coach follow-up.',
       '',
       '_No schema drift detected. Next scan: 2026-04-15 · 18:00 PT._',

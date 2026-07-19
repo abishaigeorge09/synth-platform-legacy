@@ -1326,8 +1326,8 @@ export function MyWorkbookPage() {
   const rows = WORKBOOK_SHEETS[activeSheet]
   const cols = activeSheet === 'Erg Log' ? WORKBOOK_COLUMNS : activeSheet === "8.25 30'" ? ['Side', 'Athlete', 'Meters', 'Split', 'Watts', 'SPM'] : ['Side', 'Athlete', 'P1', 'P2', 'P3', 'SPM']
 
-  // Compute Star Miller's row + rank for the personal hero card
-  const starRowIndex = rows.findIndex((r) => r[1] === 'Star Miller')
+  // Compute Sloane Carrow's row + rank for the personal hero card
+  const starRowIndex = rows.findIndex((r) => r[1] === 'Sloane Carrow')
   const starRow = starRowIndex >= 0 ? rows[starRowIndex] : null
   const starRank = starRowIndex >= 0 ? starRowIndex + 1 : null
 
@@ -1465,7 +1465,7 @@ export function MyWorkbookPage() {
             </thead>
             <tbody>
               {filteredRows.map(({ row, rank }) => {
-                const isStarRow = row[1] === 'Star Miller'
+                const isStarRow = row[1] === 'Sloane Carrow'
                 return (
                   <tr
                     key={`${activeSheet}-${rank}`}
@@ -1722,10 +1722,10 @@ export function MySessionsPage() {
 }
 
 const STAR_MILLER_ID = 'a-miller'
-const STAR_MILLER_NAME = 'Star Miller'
+const STAR_MILLER_NAME = 'Sloane Carrow'
 
 /** Tiny boat-diagram primitive — a vertical column of seats with cox at top.
- *  Highlights the seat where Star Miller sits. Used in MyLineupsPage. */
+ *  Highlights the seat where Sloane Carrow sits. Used in MyLineupsPage. */
 function BoatDiagram({
   seats,
   highlightName,
@@ -1798,7 +1798,7 @@ export function MyLineupsPage() {
 
   const publishedFromStore = useLineupsStore((s) => s.published)
 
-  /** Filter store lineups to those containing Star Miller by athleteId */
+  /** Filter store lineups to those containing Sloane Carrow by athleteId */
   const storeCards = [...publishedFromStore]
     .filter((pl) =>
       pl.boats.some((b) => b.seats.some((s) => s.athleteId === STAR_MILLER_ID)),
@@ -3220,7 +3220,7 @@ export function AthleteSourcesDataViewPage() {
                       </thead>
                       <tbody>
                         {WORKBOOK_SHEETS['Erg Log'].map((row, i) => {
-                          const isStarRow = row[1] === 'Star Miller'
+                          const isStarRow = row[1] === 'Sloane Carrow'
                           return (
                             <tr
                               key={i}

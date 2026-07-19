@@ -56,15 +56,15 @@ export type SheetRow = {
 }
 
 export const TEAM_ROSTER: DemoRosterAthlete[] = [
-  { id: 'ew', name: 'Ella Wheeler', side: 'port', year: 'SR' },
-  { id: 'ji', name: 'Julia Irmler', side: 'starboard', year: 'SR' },
-  { id: 'la', name: 'Lily Abbott', side: 'port', year: 'JR' },
-  { id: 'sm', name: 'Star Miller', side: 'starboard', year: 'JR' },
-  { id: 'lv', name: 'Lotta Van Westreenen', side: 'starboard', year: 'SO' },
-  { id: 'or', name: 'Olivia Roth', side: 'port', year: 'SO' },
-  { id: 'mb', name: 'Minou Bauman', side: 'port', year: 'SR' },
-  { id: 'lc', name: 'Lola Crampin', side: 'starboard', year: 'SR' },
-  { id: 'cj', name: 'Charly Johnson', side: 'cox', year: 'SR' },
+  { id: 'ew', name: 'Marnie Rothmore', side: 'port', year: 'SR' },
+  { id: 'ji', name: 'Brielle Whitcombe', side: 'starboard', year: 'SR' },
+  { id: 'la', name: 'Freya Birchwood', side: 'port', year: 'JR' },
+  { id: 'sm', name: 'Sloane Carrow', side: 'starboard', year: 'JR' },
+  { id: 'lv', name: 'Corin Wexford', side: 'starboard', year: 'SO' },
+  { id: 'or', name: 'Larkin Tremaine', side: 'port', year: 'SO' },
+  { id: 'mb', name: 'Odette Oakden', side: 'port', year: 'SR' },
+  { id: 'lc', name: 'Marisol Ulverton', side: 'starboard', year: 'SR' },
+  { id: 'cj', name: 'Odile Ashcombe', side: 'cox', year: 'SR' },
 ]
 
 export const DATA_VIEW_TABS: DataViewTab[] = [
@@ -130,12 +130,12 @@ export const INFERENCE_LOG: InferenceLogItem[] = [
 ]
 
 export const SHEETS_ROWS: SheetRow[] = [
-  { id: 'r1', athlete: 'Ella Wheeler', date: 'Apr 24', session: 'AM steady', type: 'Row', notes: 'Rate cap 18. Focus catch.' },
-  { id: 'r2', athlete: 'Julia Irmler', date: 'Apr 24', session: 'AM steady', type: 'Row', notes: 'Clean finishes. 2×10 at 20.' },
-  { id: 'r3', athlete: 'Star Miller', date: 'Apr 24', session: 'PM lift', type: 'S&C', notes: 'Back-off volume due low recovery.' },
-  { id: 'r4', athlete: 'Olivia Roth', date: 'Apr 23', session: 'Erg test', type: 'Erg', notes: '6K controlled. Negative split.' },
-  { id: 'r5', athlete: 'Minou Bauman', date: 'Apr 23', session: 'AT piece', type: 'Row', notes: 'Seat racing focus. Strong mid-drive.' },
-  { id: 'r6', athlete: 'Lola Crampin', date: 'Apr 22', session: 'Starts', type: 'Row', notes: 'Explosive first 10. Quick hands away.' },
+  { id: 'r1', athlete: 'Marnie Rothmore', date: 'Apr 24', session: 'AM steady', type: 'Row', notes: 'Rate cap 18. Focus catch.' },
+  { id: 'r2', athlete: 'Brielle Whitcombe', date: 'Apr 24', session: 'AM steady', type: 'Row', notes: 'Clean finishes. 2×10 at 20.' },
+  { id: 'r3', athlete: 'Sloane Carrow', date: 'Apr 24', session: 'PM lift', type: 'S&C', notes: 'Back-off volume due low recovery.' },
+  { id: 'r4', athlete: 'Larkin Tremaine', date: 'Apr 23', session: 'Erg test', type: 'Erg', notes: '6K controlled. Negative split.' },
+  { id: 'r5', athlete: 'Odette Oakden', date: 'Apr 23', session: 'AT piece', type: 'Row', notes: 'Seat racing focus. Strong mid-drive.' },
+  { id: 'r6', athlete: 'Marisol Ulverton', date: 'Apr 22', session: 'Starts', type: 'Row', notes: 'Explosive first 10. Quick hands away.' },
 ]
 
 export type Concept2Row = {
@@ -173,14 +173,14 @@ export type VoiceNoteItem = {
 
 export const CONCEPT2_ROWS: Concept2Row[] = [
   { athlete: 'Phelps', date: 'Apr 20', testType: '2K', split: '1:38.2', watts: 412, strokeRate: 32, distance: '2,000m', isPr: true, daysSince: 4 },
-  { athlete: 'Ella Wheeler', date: 'Apr 20', testType: 'Piece', split: '1:38.9', watts: 362, strokeRate: 35, distance: '2,000m', daysSince: 4 },
+  { athlete: 'Marnie Rothmore', date: 'Apr 20', testType: 'Piece', split: '1:38.9', watts: 362, strokeRate: 35, distance: '2,000m', daysSince: 4 },
   { athlete: 'Gold', date: 'Apr 18', testType: '6K', split: '1:42.1', watts: 348, strokeRate: 28, distance: '6,000m', daysSince: 6 },
   { athlete: 'Manton', date: 'Apr 16', testType: '2K', split: '1:39.0', watts: 398, strokeRate: 33, distance: '2,000m', daysSince: 8 },
   { athlete: 'Baroni', date: 'Apr 4', testType: '30min', split: '1:48.3', watts: 276, strokeRate: 26, distance: '8,300m', daysSince: 20 },
 ]
 
 export const STRAVA_ACTIVITIES: StravaActivityRow[] = [
-  { id: 'str-1', athlete: 'Ella Wheeler', at: 'Apr 22, 7:15 PM', type: 'Run', distanceKm: 5.2, duration: '26:14', pace: '5:03/km', avgHr: 152, effort: 6 },
+  { id: 'str-1', athlete: 'Marnie Rothmore', at: 'Apr 22, 7:15 PM', type: 'Run', distanceKm: 5.2, duration: '26:14', pace: '5:03/km', avgHr: 152, effort: 6 },
   { id: 'str-2', athlete: 'Manton', at: 'Apr 22, 6:02 PM', type: 'Cycle', distanceKm: 24.1, duration: '48:40', pace: '29.6kph', avgHr: 149, effort: 7 },
   { id: 'str-3', athlete: 'Gold', at: 'Apr 21, 5:33 PM', type: 'Run', distanceKm: 6.8, duration: '34:11', pace: '5:01/km', avgHr: 158, effort: 7 },
   { id: 'str-4', athlete: 'Holt', at: 'Apr 20, 9:20 AM', type: 'Walk', distanceKm: 4.2, duration: '38:08', pace: '9:04/km', effort: 3 },
@@ -190,7 +190,7 @@ export const VOICE_NOTES: VoiceNoteItem[] = [
   {
     id: 'note-1',
     at: 'Apr 22, 3:45 PM',
-    athlete: 'Ella Wheeler',
+    athlete: 'Marnie Rothmore',
     tags: ['Technique', 'Positive'],
     transcript: "Ella's catch timing has improved since we adjusted her footplate. Still late on the drive at high rates.",
     extracted: ['Catch timing improved', 'Footplate adjusted', 'Drive connection needs work at high rate'],

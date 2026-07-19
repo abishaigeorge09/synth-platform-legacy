@@ -2,7 +2,7 @@ import type { ResolvedBindings } from '@lib/tools/resolver'
 
 export const RACE_PLAN_DATA: ResolvedBindings = {
   schedule: {
-    athlete: { name: 'Star Miller', side: 'S', year: 'JR' },
+    athlete: { name: 'Sloane Carrow', side: 'S', year: 'JR' },
     rows: [
       { piece: 'Open',     distance: '0–250m',     rate: 36, target_split: '1:38' },
       { piece: 'Settle',   distance: '250–500m',   rate: 32, target_split: '1:42' },

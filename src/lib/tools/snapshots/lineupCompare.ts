@@ -4,14 +4,14 @@ export const LINEUP_COMPARE_DATA: ResolvedBindings = {
   boat_a: {
     name: '1V 8+',
     seats: [
-      { seat: 8, athlete: 'Wheeler, Ella', side: 'S' },
-      { seat: 7, athlete: 'Spitz, Vivi', side: 'P' },
-      { seat: 6, athlete: 'Miller, Star', side: 'S' },
-      { seat: 5, athlete: 'Cox, Madeline', side: 'P' },
-      { seat: 4, athlete: 'Brown, Hayley', side: 'S' },
-      { seat: 3, athlete: 'Reid, Phoebe', side: 'P' },
-      { seat: 2, athlete: 'Jamieson, Pippa', side: 'S' },
-      { seat: 1, athlete: 'Park, Ana', side: 'P' },
+      { seat: 8, athlete: 'Rothmore, Marnie', side: 'S' },
+      { seat: 7, athlete: 'Underhill, Elowen', side: 'P' },
+      { seat: 6, athlete: 'Carrow, Sloane', side: 'S' },
+      { seat: 5, athlete: 'Brambleton, Delphine', side: 'P' },
+      { seat: 4, athlete: 'Prentiss, Isadora', side: 'S' },
+      { seat: 3, athlete: 'Cotswold, Wilhelmina', side: 'P' },
+      { seat: 2, athlete: 'Osgood, Perry', side: 'S' },
+      { seat: 1, athlete: 'Fenmore, Odalys', side: 'P' },
     ],
   },
   boat_b: {

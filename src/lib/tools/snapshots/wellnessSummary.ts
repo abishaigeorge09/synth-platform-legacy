@@ -16,5 +16,5 @@ export const WELLNESS_SUMMARY_DATA: ResolvedBindings = {
     { date: 'May 3', sleep: 7.4, energy: 7, soreness: 3 },
     { date: 'May 4', sleep: 7.6, energy: 8, soreness: 3 },
   ],
-  flagged: { count: 2, names: ['Star Miller', 'Madeline Cox'] },
+  flagged: { count: 2, names: ['Sloane Carrow', 'Delphine Brambleton'] },
 }

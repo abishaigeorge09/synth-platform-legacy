@@ -115,7 +115,7 @@ export function InsightsTab({ onApplySuggested, onGoHistory }: Props) {
             }}
           >
             <div style={{ fontSize: 13, color: 'var(--amber-primary)', fontWeight: 600 }}>
-              ⚠ Star Miller — Recovery 62/100
+              ⚠ Sloane Carrow — Recovery 62/100
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
               HRV 10% below baseline. Consider lighter seat or swap with Bouman (recovery: 91).
@@ -131,7 +131,7 @@ export function InsightsTab({ onApplySuggested, onGoHistory }: Props) {
             }}
           >
             <div style={{ fontSize: 13, color: 'var(--red-primary)', fontWeight: 600 }}>
-              🔴 Madeline Cox — Recovery 42/100
+              🔴 Delphine Brambleton — Recovery 42/100
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
               Poor sleep (5.1 hrs avg) + high soreness. Recommend rest or 2V only.
@@ -146,7 +146,7 @@ export function InsightsTab({ onApplySuggested, onGoHistory }: Props) {
             }}
           >
             <div style={{ fontSize: 13, color: 'var(--amber-primary)', fontWeight: 600 }}>
-              ⚠ Lola Crampin — Recovery 55/100
+              ⚠ Marisol Ulverton — Recovery 55/100
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
               Elevated soreness reported. Monitor during warm-up, consider reduced piece count.
@@ -290,15 +290,15 @@ export function InsightsTab({ onApplySuggested, onGoHistory }: Props) {
         {/* Card 5: Erg Rankings */}
         <Card title="Erg Rankings · Top 9">
           {[
-            { rank: 1, name: 'Ella Wheeler',         time: '6:35.6', delta: '—' },
-            { rank: 2, name: 'Julia Irmler',          time: '6:38.6', delta: '+3.0s' },
-            { rank: 3, name: 'Lily Abbott',           time: '6:41.7', delta: '+6.1s' },
-            { rank: 4, name: 'Lotta Van Westreenen',  time: '6:45.6', delta: '+10.0s' },
-            { rank: 5, name: 'Star Miller',           time: '6:44.9', delta: '+9.3s' },
-            { rank: 6, name: 'Olivia Roth',           time: '6:48.1', delta: '+12.5s' },
-            { rank: 7, name: 'Madeline Cox',          time: '6:48.9', delta: '+13.3s' },
-            { rank: 8, name: 'Minou Bouman',          time: '6:50.0', delta: '+14.4s' },
-            { rank: 9, name: 'Lola Crampin',          time: '6:55.8', delta: '+20.2s' },
+            { rank: 1, name: 'Marnie Rothmore',         time: '6:35.6', delta: '—' },
+            { rank: 2, name: 'Brielle Whitcombe',          time: '6:38.6', delta: '+3.0s' },
+            { rank: 3, name: 'Freya Birchwood',           time: '6:41.7', delta: '+6.1s' },
+            { rank: 4, name: 'Corin Wexford',  time: '6:45.6', delta: '+10.0s' },
+            { rank: 5, name: 'Sloane Carrow',           time: '6:44.9', delta: '+9.3s' },
+            { rank: 6, name: 'Larkin Tremaine',           time: '6:48.1', delta: '+12.5s' },
+            { rank: 7, name: 'Delphine Brambleton',          time: '6:48.9', delta: '+13.3s' },
+            { rank: 8, name: 'Odette Oakden',          time: '6:50.0', delta: '+14.4s' },
+            { rank: 9, name: 'Marisol Ulverton',          time: '6:55.8', delta: '+20.2s' },
           ].map((r) => (
             <div
               key={r.rank}

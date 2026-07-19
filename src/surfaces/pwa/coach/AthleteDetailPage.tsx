@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -9,14 +9,15 @@ import {
   Activity,
   Zap,
   Heart,
+  Upload,
 } from 'lucide-react'
 import {
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   Line,
   LineChart,
+  ScatterChart,
+  Scatter,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -25,6 +26,11 @@ import {
   Cell,
 } from 'recharts'
 import { SYNTH } from '../lib/theme'
+import {
+  buildForceAngleCurves,
+  buildAngleVelocityCurves,
+  type StrokeCurve,
+} from '../data/strokeCurves'
 import { toast } from '@shared/store/useToastStore'
 import { CoachPageHeader } from '../primitives/CoachPageHeader'
 import { SwipeBackPage } from '../primitives/SwipeBackPage'
@@ -186,7 +192,7 @@ export function AthleteDetailPage() {
             {tab === 'sessions'  && <SessionsTab  athleteId={athlete.id} />}
             {tab === 'lineups'   && <LineupsTab   athleteId={athlete.id} />}
             {tab === 'wellness'  && <WellnessTab  athleteId={athlete.id} />}
-            {tab === 'telemetry' && <TelemetryTab />}
+            {tab === 'telemetry' && <TelemetryTab athleteId={athlete.id} athleteName={athlete.name} />}
             {tab === 'compare'   && <CompareTab   athlete={athlete} athletes={athletes} ergScores={ergScores} />}
             {tab === 'notes'     && <NotesTab     athleteId={athlete.id} />}
             {tab === 'settings'  && <SettingsTab  athleteName={athlete.name} />}
@@ -890,20 +896,6 @@ function SettingsTab({ athleteName }: { athleteName: string }) {
 
 // ─── Telemetry ───────────────────────────────────────────────────────────────
 
-const TELEM_STROKE: { date: string; spm: number; target: number }[] = [
-  { date: '4/01', spm: 18, target: 20 }, { date: '4/05', spm: 19, target: 20 },
-  { date: '4/08', spm: 22, target: 22 }, { date: '4/12', spm: 23, target: 22 },
-  { date: '4/15', spm: 24, target: 24 }, { date: '4/19', spm: 25, target: 24 },
-  { date: '4/22', spm: 26, target: 26 }, { date: '4/26', spm: 27, target: 26 },
-  { date: '4/29', spm: 28, target: 28 },
-]
-const TELEM_POWER: { date: string; watts: number }[] = [
-  { date: '4/01', watts: 180 }, { date: '4/05', watts: 185 },
-  { date: '4/08', watts: 204 }, { date: '4/12', watts: 211 },
-  { date: '4/15', watts: 220 }, { date: '4/19', watts: 228 },
-  { date: '4/22', watts: 235 }, { date: '4/26', watts: 241 },
-  { date: '4/29', watts: 248 },
-]
 const TELEM_HR_ZONES: { zone: string; minutes: number; color: string }[] = [
   { zone: 'Z1', minutes: 22, color: '#6366F1' },
   { zone: 'Z2', minutes: 48, color: '#10B981' },
@@ -923,27 +915,144 @@ function fmtTelemSplit(v: number) {
   return `${m}:${s.padStart(4, '0')}`
 }
 
-function TelemetryTab() {
-  const [range, setRange] = useState<'2w' | '4w' | 'all'>('4w')
-  const spmSlice = range === '2w' ? TELEM_STROKE.slice(-4) : range === '4w' ? TELEM_STROKE.slice(-6) : TELEM_STROKE
-  const pwrSlice = range === '2w' ? TELEM_POWER.slice(-4) : range === '4w' ? TELEM_POWER.slice(-6) : TELEM_POWER
+function TelemetryTab({ athleteId, athleteName }: { athleteId: string; athleteName: string }) {
+  const forceCurves = useMemo(() => buildForceAngleCurves(athleteId), [athleteId])
+  const velocityCurves = useMemo(() => buildAngleVelocityCurves(athleteId), [athleteId])
+
+  // Peach export attachment — demo-only: we don't parse the file, just
+  // hold onto it. Keeping the actual File (not just its name) is what
+  // lets "Generate doc" hand the coach back that same file under a new
+  // name instead of always building a fresh synthetic report.
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [docName, setDocName] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const extOf = (name: string) => {
+    const dot = name.lastIndexOf('.')
+    return dot === -1 ? '' : name.slice(dot)
+  }
+
+  const onPickFile = (files: FileList | null) => {
+    const f = files?.[0]
+    if (!f) return
+    setAttachment(f)
+    const dot = f.name.lastIndexOf('.')
+    setDocName(dot === -1 ? f.name : f.name.slice(0, dot))
+    toast(`${f.name} attached to this session`, 'success')
+  }
+
+  const [printing, setPrinting] = useState(false)
+  const onGenerateDoc = () => {
+    // With a file attached: hand back that exact file's bytes under the
+    // coach's chosen name — no new report, just a rename + re-download.
+    if (attachment) {
+      const renamed = `${docName.trim() || attachment.name}${extOf(attachment.name)}`
+      const url = URL.createObjectURL(attachment)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = renamed
+      a.click()
+      URL.revokeObjectURL(url)
+      toast(`Saved as ${renamed}`, 'success')
+      return
+    }
+    // No attachment: fall back to the synthesized print report.
+    setPrinting(true)
+  }
+  useEffect(() => {
+    if (!printing) return
+    const id = requestAnimationFrame(() => {
+      window.print()
+      setPrinting(false)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [printing])
 
   return (
     <div className="flex flex-col gap-4 px-5">
-      {/* Range toggle */}
-      <div className="flex items-center gap-1.5">
-        {(['2w', '4w', 'all'] as const).map((k) => (
-          <button key={k} type="button" onClick={() => setRange(k)}
-            className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
-            style={{
-              background: range === k ? SYNTH.inkOnBrand : 'transparent',
-              border: `1px solid ${range === k ? SYNTH.inkOnBrand : SYNTH.glassBorder}`,
-              color: range === k ? SYNTH.ink : SYNTH.inkOnBrandMuted,
-              fontFamily: SYNTH.font,
-            }}
-          >{k}</button>
-        ))}
+      {printing ? (
+        <TelemetryPrintReport
+          athleteName={athleteName}
+          attachmentName={attachment?.name}
+          forceCurves={forceCurves}
+          velocityCurves={velocityCurves}
+        />
+      ) : null}
+
+      {/* Peach export attachment */}
+      <div
+        className="flex items-center gap-3 rounded-3xl p-3.5"
+        style={{ background: SYNTH.inlineCard, border: `1px solid ${SYNTH.inlineCardBorder}` }}
+      >
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
+          style={{ background: `${SYNTH.cardSky}22`, color: SYNTH.cardSky }}
+        >
+          <Upload size={16} strokeWidth={2.2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-bold leading-tight" style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}>
+            {attachment ? attachment.name : 'Upload a Peach export'}
+          </p>
+          <p className="mt-0.5 text-[10px]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
+            {attachment ? 'Attached to this session' : 'Attach the boat tool’s PDF or CSV to this session'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em]"
+          style={{ background: 'rgba(255,255,255,0.10)', border: `1px solid ${SYNTH.glassBorder}`, color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+        >
+          {attachment ? 'Replace' : 'Upload'}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.csv"
+          className="hidden"
+          onChange={(e) => {
+            onPickFile(e.target.files)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+          }}
+        />
       </div>
+
+      {/* Rename — only relevant once a file is attached; this is the name
+          "Generate doc" will save the attached file back out under. */}
+      {attachment ? (
+        <div
+          className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5"
+          style={{ background: SYNTH.glass, border: `1px solid ${SYNTH.glassBorder}` }}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
+            Save as
+          </span>
+          <input
+            value={docName}
+            onChange={(e) => setDocName(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-[12px] font-semibold outline-none"
+            style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}
+          />
+          <span className="text-[11px]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
+            {extOf(attachment.name)}
+          </span>
+        </div>
+      ) : null}
+
+      {/* Stroke analysis — gate force / angle velocity loop plots, styled
+          after a Concept2 PowerLine export. Leads the tab: the SPM-vs-target
+          and watts-per-session charts that used to sit here were flagged as
+          inaccurate and were removed rather than kept front and center. */}
+      <Card kicker="Gate force" title="GateForceX (kgf) vs. GateAngle (°)" subtitle={`Last ${forceCurves.length} strokes`}>
+        <StrokeLoopChart curves={forceCurves} yLabel="kgf" yDomain={[-10, 100]} />
+        <StrokeLegend curves={forceCurves} />
+      </Card>
+
+      <Card kicker="Gate angle velocity" title="GateAngleVel (°/s) vs. GateAngle (°)" subtitle={`Last ${velocityCurves.length} strokes`}>
+        <StrokeLoopChart curves={velocityCurves} yLabel="°/s" yDomain={[-180, 180]} />
+        <StrokeLegend curves={velocityCurves} />
+      </Card>
 
       {/* Summary tiles */}
       <div className="grid grid-cols-3 gap-2">
@@ -960,43 +1069,6 @@ function TelemetryTab() {
           </div>
         ))}
       </div>
-
-      {/* Stroke rate */}
-      <Card kicker="Stroke rate" title="SPM vs target">
-        <div className="h-[160px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={spmSlice} margin={{ top: 8, right: 8, bottom: 4, left: -20 }}>
-              <CartesianGrid stroke="rgba(255,255,255,0.12)" vertical={false} strokeDasharray="2 4" />
-              <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.55)' }} tickLine={false} axisLine={false} />
-              <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.55)' }} tickLine={false} axisLine={false} domain={[16, 30]} />
-              <Tooltip contentStyle={{ background: SYNTH.canvasInk, border: `1px solid ${SYNTH.glassBorder}`, borderRadius: 12, fontSize: 11, color: SYNTH.inkOnBrand }} labelStyle={{ color: SYNTH.inkOnBrandMuted }} formatter={(v, k) => [`${v} spm`, k === 'spm' ? 'Actual' : 'Target']} />
-              <Line type="monotone" dataKey="target" stroke="rgba(255,255,255,0.22)" strokeWidth={1.5} strokeDasharray="4 3" dot={false} name="target" />
-              <Line type="monotone" dataKey="spm" stroke={SYNTH.cardSky} strokeWidth={2.2} dot={{ r: 3, fill: SYNTH.cardSky }} name="spm" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
-
-      {/* Power output */}
-      <Card kicker="Power output" title="Watts per session">
-        <div className="h-[150px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={pwrSlice} margin={{ top: 8, right: 8, bottom: 4, left: -20 }}>
-              <defs>
-                <linearGradient id="coachPwrGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={SYNTH.cardLemon} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={SYNTH.cardLemon} stopOpacity={0.03} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="rgba(255,255,255,0.12)" vertical={false} strokeDasharray="2 4" />
-              <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.55)' }} tickLine={false} axisLine={false} />
-              <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.55)' }} tickLine={false} axisLine={false} domain={[160, 260]} />
-              <Tooltip contentStyle={{ background: SYNTH.canvasInk, border: `1px solid ${SYNTH.glassBorder}`, borderRadius: 12, fontSize: 11, color: SYNTH.inkOnBrand }} labelStyle={{ color: SYNTH.inkOnBrandMuted }} formatter={(v) => [`${v}W`, 'Power']} />
-              <Area type="monotone" dataKey="watts" stroke={SYNTH.cardLemon} strokeWidth={2.2} fill="url(#coachPwrGrad)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
 
       {/* HR zones */}
       <Card kicker="Heart rate zones" title="Time in zone · last session">
@@ -1038,7 +1110,7 @@ function TelemetryTab() {
         </div>
       </Card>
 
-      {/* Generate AI Report */}
+      {/* Generate doc */}
       <div
         className="rounded-3xl p-5"
         style={{
@@ -1046,27 +1118,191 @@ function TelemetryTab() {
           border: `1px solid rgba(16,185,129,0.30)`,
         }}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: SYNTH.accentEmerald, fontFamily: SYNTH.font }}>AI analysis</p>
-            <h3 className="mt-1 text-[15px] font-bold leading-tight" style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}>Generate telemetry report</h3>
-            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
-              synth. will synthesise stroke rate, power, and HR data into a personalised performance breakdown for this athlete.
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider"
-            style={{ background: `${SYNTH.accentAmber}33`, color: SYNTH.accentAmber, fontFamily: SYNTH.font }}>Soon</span>
+        <div className="flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: SYNTH.accentEmerald, fontFamily: SYNTH.font }}>Export</p>
+          <h3 className="mt-1 text-[15px] font-bold leading-tight" style={{ color: SYNTH.inkOnBrand, fontFamily: SYNTH.font }}>Generate doc</h3>
         </div>
         <button
           type="button"
-          onClick={() => toast('AI report generation coming soon — stay tuned!', 'info')}
+          onClick={onGenerateDoc}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold"
           style={{ background: SYNTH.accentEmerald, color: '#FFFFFF', fontFamily: SYNTH.font }}
         >
           <Sparkles size={14} strokeWidth={2.4} />
-          Generate AI Report
+          Generate doc
         </button>
       </div>
+    </div>
+  )
+}
+
+// ─── Generate doc — print-only report ────────────────────────────────────────
+//
+// Standard "print only this element" trick: while `printing` is true this
+// renders into the normal page flow, and a scoped @media print stylesheet
+// hides everything else and lays this section out full-page. window.print()
+// fires a beat later (see TelemetryTab), so the coach's browser print
+// dialog offers "Save as PDF" against just this content, styled like the
+// uploaded Peach export (white page, black ink, multi-stroke loop plots).
+
+function TelemetryPrintReport({
+  athleteName,
+  attachmentName,
+  forceCurves,
+  velocityCurves,
+}: {
+  athleteName: string
+  attachmentName?: string
+  forceCurves: StrokeCurve[]
+  velocityCurves: StrokeCurve[]
+}) {
+  const today = new Date().toISOString().slice(0, 10)
+  return (
+    <div className="telemetry-print-report">
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .telemetry-print-report, .telemetry-print-report * { visibility: visible; }
+          .telemetry-print-report {
+            position: absolute; top: 0; left: 0; width: 100%;
+            background: #FFFFFF; color: #0A0A12; padding: 24px;
+          }
+        }
+        @media screen {
+          .telemetry-print-report { display: none; }
+        }
+      `}</style>
+      <p style={{ fontFamily: SYNTH.font, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#52525B' }}>
+        synth · performance report
+      </p>
+      <h1 style={{ fontFamily: SYNTH.font, fontSize: 20, fontWeight: 700, marginTop: 4 }}>{athleteName}</h1>
+      <p style={{ fontFamily: SYNTH.font, fontSize: 11, color: '#52525B', marginTop: 2 }}>
+        Generated {today}
+        {attachmentName ? ` · source: ${attachmentName}` : ''}
+      </p>
+
+      <h2 style={{ fontFamily: SYNTH.font, fontSize: 12, fontWeight: 700, marginTop: 20 }}>
+        GateForceX (kgf) / GateAngle (°)
+      </h2>
+      <PrintLoopChart curves={forceCurves} yDomain={[-10, 100]} />
+
+      <h2 style={{ fontFamily: SYNTH.font, fontSize: 12, fontWeight: 700, marginTop: 20 }}>
+        GateAngleVel (°/s) / GateAngle (°)
+      </h2>
+      <PrintLoopChart curves={velocityCurves} yDomain={[-180, 180]} />
+    </div>
+  )
+}
+
+function PrintLoopChart({ curves, yDomain }: { curves: StrokeCurve[]; yDomain: [number, number] }) {
+  return (
+    <div style={{ height: 220, marginTop: 6 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+          <CartesianGrid stroke="#E4E4E7" strokeDasharray="2 4" />
+          <XAxis
+            dataKey="angle"
+            type="number"
+            domain={[-65, 48]}
+            unit="°"
+            stroke="#A1A1AA"
+            tick={{ fontSize: 9, fill: '#52525B' }}
+            tickLine={false}
+            axisLine={{ stroke: '#D4D4D8' }}
+          />
+          <YAxis
+            dataKey="value"
+            type="number"
+            domain={yDomain}
+            stroke="#A1A1AA"
+            tick={{ fontSize: 9, fill: '#52525B' }}
+            tickLine={false}
+            axisLine={{ stroke: '#D4D4D8' }}
+            width={40}
+          />
+          {curves.map((curve) => (
+            <Scatter
+              key={curve.stroke}
+              data={curve.points}
+              line={{ stroke: curve.color, strokeWidth: 1.4 }}
+              lineType="joint"
+              shape={() => <g />}
+              isAnimationActive={false}
+            />
+          ))}
+        </ScatterChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function StrokeLoopChart({
+  curves,
+  yLabel,
+  yDomain,
+}: {
+  curves: StrokeCurve[]
+  yLabel: string
+  yDomain: [number, number]
+}) {
+  return (
+    <div className="h-[220px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 8, right: 12, bottom: 4, left: -12 }}>
+          <CartesianGrid stroke="rgba(255,255,255,0.12)" strokeDasharray="2 4" />
+          <XAxis
+            dataKey="angle"
+            type="number"
+            domain={[-65, 48]}
+            unit="°"
+            stroke="rgba(255,255,255,0.5)"
+            tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.55)' }}
+            tickLine={false}
+            axisLine={false}
+            name="Gate angle"
+          />
+          <YAxis
+            dataKey="value"
+            type="number"
+            domain={yDomain}
+            unit={yLabel}
+            stroke="rgba(255,255,255,0.5)"
+            tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.55)' }}
+            tickLine={false}
+            axisLine={false}
+            width={44}
+          />
+          <Tooltip
+            cursor={{ stroke: 'rgba(255,255,255,0.25)' }}
+            contentStyle={{ background: SYNTH.canvasInk, border: `1px solid ${SYNTH.glassBorder}`, borderRadius: 12, fontSize: 11, color: SYNTH.inkOnBrand }}
+            labelStyle={{ color: SYNTH.inkOnBrandMuted }}
+            formatter={(v: number, key: string) => [key === 'value' ? `${(v as number).toFixed(1)} ${yLabel}` : v, key === 'angle' ? 'Angle' : yLabel]}
+          />
+          {curves.map((curve) => (
+            <Scatter
+              key={curve.stroke}
+              data={curve.points}
+              line={{ stroke: curve.color, strokeWidth: 1.6 }}
+              lineType="joint"
+              shape={() => <g />}
+              isAnimationActive={false}
+            />
+          ))}
+        </ScatterChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function StrokeLegend({ curves }: { curves: StrokeCurve[] }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+      {curves.map((c) => (
+        <span key={c.stroke} className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.1em]" style={{ color: SYNTH.inkOnBrandMuted, fontFamily: SYNTH.font }}>
+          <span className="inline-block h-[3px] w-3 rounded-full" style={{ background: c.color }} />
+          Stroke {c.stroke}
+        </span>
+      ))}
     </div>
   )
 }

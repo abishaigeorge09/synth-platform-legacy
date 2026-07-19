@@ -104,7 +104,7 @@ export function MyProfilePage() {
   const [tab, setTab] = useState<TabKey>('overview')
   const { data: athletes } = useAthletes()
 
-  // Use the demo athlete (Star Miller) as self
+  // Use the demo athlete (Sloane Carrow) as self
   const me = APP_MOCK_ATHLETES[0]
   const athlete = useMemo(
     () => athletes.find((a) => a.id === me.id) ?? athletes[0],

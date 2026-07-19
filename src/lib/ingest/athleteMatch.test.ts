@@ -44,7 +44,7 @@ describe('bestMatches', () => {
     { id: 'a1', name: 'Maria Sanchez' },
     { id: 'a2', name: 'Maria Lopez' },
     { id: 'a3', name: 'Bob Smith' },
-    { id: 'a4', name: 'Ella Wheeler' },
+    { id: 'a4', name: 'Marnie Rothmore' },
   ]
 
   it('returns the top candidates in descending score order', () => {

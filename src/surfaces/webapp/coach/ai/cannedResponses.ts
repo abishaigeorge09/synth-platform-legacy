@@ -135,7 +135,7 @@ export function generateCannedReply(
   if (q.includes('gym') || q.includes('log') || q.includes('missed')) {
     return {
       content:
-        'Two athletes are flagged for gym-log gaps: **Pippa Jamieson** (5 days) and one more for 2+ days. Both flagged by the TeamWorks compliance connector.',
+        'Two athletes are flagged for gym-log gaps: **Perry Osgood** (5 days) and one more for 2+ days. Both flagged by the TeamWorks compliance connector.',
       citations: [
         { label: 'alerts', source: SEED_ALERTS.map((a) => a.id).join(', ') },
         { label: 'teamworks', source: 'compliance scan · 14h ago' },

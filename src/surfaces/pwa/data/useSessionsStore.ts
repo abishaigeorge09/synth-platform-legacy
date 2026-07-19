@@ -6,7 +6,7 @@ import type { Boat, RacePreset } from './lineupBuilderStore'
 // Seeded once (when localStorage is empty). Dates are relative to 2026-04-29.
 
 // V8 A — top 8 Pacific Women athletes by 2026 erg performance
-// (Star Miller first as demo self; then Wheeler, Irmler, Abbott, Roth, Cox, Bouman, Crampin)
+// (Sloane Carrow first as demo self; then Wheeler, Irmler, Abbott, Roth, Cox, Bouman, Crampin)
 const V8A: Boat = {
   id: 'seed-boat-v8a',
   name: 'V8 A',
@@ -14,15 +14,15 @@ const V8A: Boat = {
   color: '#BAE6FD', // cardSky
   speed: 1.0,
   seats: [
-    { position: 1, label: 'Stroke',  athleteId: 'a-miller-star'   },
-    { position: 2, label: '7 seat',  athleteId: 'a-wheeler-ella'  },
-    { position: 3, label: '6 seat',  athleteId: 'a-irmler-julia'  },
-    { position: 4, label: '5 seat',  athleteId: 'a-abbott-lily'   },
-    { position: 5, label: '4 seat',  athleteId: 'a-roth-olivia'   },
-    { position: 6, label: '3 seat',  athleteId: 'a-cox-madeline'  },
-    { position: 7, label: '2 seat',  athleteId: 'a-bouman-minou'  },
-    { position: 8, label: 'Bow',     athleteId: 'a-crampin-lola'  },
-    { position: 9, label: 'Cox',     athleteId: 'a-andie-vega'    },
+    { position: 1, label: 'Stroke',  athleteId: 'a-carrow-sloane'   },
+    { position: 2, label: '7 seat',  athleteId: 'a-rothmore-marnie'  },
+    { position: 3, label: '6 seat',  athleteId: 'a-whitcombe-brielle'  },
+    { position: 4, label: '5 seat',  athleteId: 'a-birchwood-freya'   },
+    { position: 5, label: '4 seat',  athleteId: 'a-tremaine-larkin'   },
+    { position: 6, label: '3 seat',  athleteId: 'a-brambleton-delphine'  },
+    { position: 7, label: '2 seat',  athleteId: 'a-oakden-odette'  },
+    { position: 8, label: 'Bow',     athleteId: 'a-ulverton-marisol'  },
+    { position: 9, label: 'Cox',     athleteId: 'a-nadia-quillan'    },
   ],
 }
 
@@ -34,11 +34,11 @@ const V4A: Boat = {
   color: '#BBF7D0', // cardMint
   speed: 0.988,
   seats: [
-    { position: 1, label: 'Stroke', athleteId: 'a-johnson-charly'  },
-    { position: 2, label: '3 seat', athleteId: 'a-bosio-giulia'    },
-    { position: 3, label: '2 seat', athleteId: 'a-osullivan-allegra' },
-    { position: 4, label: 'Bow',    athleteId: 'a-mollee-bonnie'   },
-    { position: 5, label: 'Cox',    athleteId: 'a-pia-roman'       },
+    { position: 1, label: 'Stroke', athleteId: 'a-ashcombe-odile'  },
+    { position: 2, label: '3 seat', athleteId: 'a-stanwick-vesper'    },
+    { position: 3, label: '2 seat', athleteId: 'a-vance-marlowe' },
+    { position: 4, label: 'Bow',    athleteId: 'a-merriweather-briar'   },
+    { position: 5, label: 'Cox',    athleteId: 'a-sable-ashford'       },
   ],
 }
 
@@ -50,15 +50,15 @@ const V8B: Boat = {
   color: '#FBCFE8', // cardPink
   speed: 0.988,
   seats: [
-    { position: 1, label: 'Stroke',  athleteId: 'a-jamieson-pippa'   },
-    { position: 2, label: '7 seat',  athleteId: 'a-frushtick-chloe'  },
-    { position: 3, label: '6 seat',  athleteId: 'a-gallo-alice'      },
-    { position: 4, label: '5 seat',  athleteId: 'a-banks-claire'     },
-    { position: 5, label: '4 seat',  athleteId: 'a-hoadley-zara'     },
-    { position: 6, label: '3 seat',  athleteId: 'a-pember-lily'      },
-    { position: 7, label: '2 seat',  athleteId: 'a-pearson-alex'     },
-    { position: 8, label: 'Bow',     athleteId: 'a-curven-sidney'    },
-    { position: 9, label: 'Cox',     athleteId: 'a-tess-kim'         },
+    { position: 1, label: 'Stroke',  athleteId: 'a-osgood-perry'   },
+    { position: 2, label: '7 seat',  athleteId: 'a-lockhart-piper'  },
+    { position: 3, label: '6 seat',  athleteId: 'a-yardley-fern'      },
+    { position: 4, label: '5 seat',  athleteId: 'a-bellweather-bree'     },
+    { position: 5, label: '4 seat',  athleteId: 'a-coldwell-cove'     },
+    { position: 6, label: '3 seat',  athleteId: 'a-elmsworth-ruby'      },
+    { position: 7, label: '2 seat',  athleteId: 'a-calderwood-skye'     },
+    { position: 8, label: 'Bow',     athleteId: 'a-hartley-wren'    },
+    { position: 9, label: 'Cox',     athleteId: 'a-kestrel-fenwick'         },
   ],
 }
 

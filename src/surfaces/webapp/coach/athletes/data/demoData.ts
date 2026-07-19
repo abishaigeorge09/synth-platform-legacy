@@ -80,7 +80,7 @@ export type DemoAthleteOverview = {
 
 const BASE_OVERVIEW: DemoAthleteOverview = {
   isDemo: true,
-  athlete: { id: 'ath-ella-wheeler', name: 'Ella Wheeler', meta: 'Port · Active · FR' },
+  athlete: { id: 'ath-marnie-rothmore', name: 'Marnie Rothmore', meta: 'Port · Active · FR' },
   sourceStatus: [
     { sourceId: 'google_sheets', syncedLabel: 'synced 1h ago', stale: false, connected: true },
     { sourceId: 'concept2', syncedLabel: 'synced 3h ago', stale: false, connected: true },

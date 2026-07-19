@@ -9,6 +9,7 @@ import {
   COXED,
   totalSeats,
   seatSide,
+  seatSideColor,
   BOAT_SIZE_LABEL,
   useLineupBuilderStore,
 } from '../data/lineupBuilderStore'
@@ -144,11 +145,11 @@ export function BoatConfigSheet({ open, onClose, boatId, defaultSize = '8+' }: P
                 const a = APP_MOCK_ATHLETES.find((x) => x.id === s.athleteId)
                 const side = seatSide(editing.size, s.position)
                 const tint =
-                  side === 'X'
-                    ? SYNTH.accentBlack
-                    : side === 'S'
-                      ? SYNTH.sideStarboard
-                      : SYNTH.sidePort
+                  seatSideColor(editing.size, s.position, s.preferredSide, {
+                    port: SYNTH.sidePort,
+                    starboard: SYNTH.sideStarboard,
+                    scull: SYNTH.sideScull,
+                  }) ?? SYNTH.accentBlack
                 return (
                   <button
                     key={s.position}

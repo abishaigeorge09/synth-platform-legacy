@@ -56,7 +56,7 @@ export const APP_MOCK_SESSIONS: MockSession[] = [
     type: 'Seat race',
     ratedByCoach: 'Coach Mike',
     description:
-      'Seat race for the V8 B stroke seat. Star Miller was 1.4s ahead at the 1000m mark. Decision pending — will rerun on Saturday.',
+      'Seat race for the V8 B stroke seat. Sloane Carrow was 1.4s ahead at the 1000m mark. Decision pending — will rerun on Saturday.',
     boats: [
       {
         id: 'v8b',

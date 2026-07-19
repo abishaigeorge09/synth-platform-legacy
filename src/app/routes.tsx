@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@shared/layout/ErrorBoundary'
 import { PageTitle } from '@shared/components/PageTitle'
 import { NotFoundPage } from '@pages/notFound/NotFoundPage'
 import { COACH_TOOLS } from '@surfaces/webapp/coach/tools/toolRegistry'
+import { featureFlags } from '@lib/featureFlags'
 import { AppShell } from '@surfaces/pwa/AppShell'
 import { AppRoleGate } from '@surfaces/pwa/AppRoleGate'
 import { WelcomePage as AppWelcomePage } from '@surfaces/pwa/onboarding/WelcomePage'
@@ -374,8 +375,21 @@ export const routes: RouteObject[] = [
           { path: 'ai', element: withSuspense(<AppCoachAIPage />, 'Coach AI') },
           { path: 'lineups', element: withSuspense(<AppCoachLineupsPage />, 'Lineups') },
           { path: 'tools', element: withSuspense(<AppCoachToolsPage />, 'Tools') },
-          { path: 'tools/build', element: withSuspense(<AppCoachToolsBuildPage />, 'Build a tool') },
-          { path: 'tools/build/:chatId', element: withSuspense(<AppCoachToolsBuildPage />, 'Build a tool') },
+          // AI build flow is deferred to a future phase (see featureFlags.ts).
+          // Redirect straight to Tools rather than dropping a direct link
+          // into a chat workspace the coach can't reach any other way.
+          {
+            path: 'tools/build',
+            element: featureFlags.aiToolBuild
+              ? withSuspense(<AppCoachToolsBuildPage />, 'Build a tool')
+              : <Navigate to="/app/coach/tools" replace />,
+          },
+          {
+            path: 'tools/build/:chatId',
+            element: featureFlags.aiToolBuild
+              ? withSuspense(<AppCoachToolsBuildPage />, 'Build a tool')
+              : <Navigate to="/app/coach/tools" replace />,
+          },
           { path: 'tools/stopwatch', element: withSuspense(<AppCoachStopwatchPage />, 'Stopwatch') },
           { path: 'tools/:slug', element: withSuspense(<AppCoachToolFullscreenPage />, 'Tool') },
           { path: 'sessions/:id', element: withSuspense(<AppCoachSessionDetailPage />, 'Session') },

@@ -77,7 +77,7 @@ export const APP_MOCK_SCHEDULE: AppScheduleItem[] = [
     iconLetter: 'AB',
     category: 'attendance',
     headline: '2 athletes missed AM practice',
-    detail: 'Lola Crampin (excused) · Charly Johnson (no notice)',
+    detail: 'Marisol Ulverton (excused) · Odile Ashcombe (no notice)',
     provenance: 'TeamWorks · 2h ago',
     severity: 'med',
   },
@@ -173,10 +173,10 @@ function preferredSeatLabel(i: number): 'stroke' | 'bow' | 'middle' | 'any' {
 const SOURCES = ['Concept2', 'WHOOP', 'Apple Health', 'Strava', 'Concept2', 'Garmin', 'Oura', 'Concept2'] as const
 
 // ─── Rowers from real erg data ────────────────────────────────────────────────
-// Star Miller is placed first so she serves as the athlete-view "self" demo.
+// Sloane Carrow is placed first so she serves as the athlete-view "self" demo.
 // All other athletes are ordered by erg performance (best first).
 
-const STAR_IDX = ERG_316_2K.findIndex((r) => r.lastFirst === 'Miller, Star')
+const STAR_IDX = ERG_316_2K.findIndex((r) => r.lastFirst === 'Carrow, Sloane')
 const REORDERED_ERG = [
   ERG_316_2K[STAR_IDX],
   ...ERG_316_2K.slice(0, STAR_IDX),
@@ -209,8 +209,8 @@ const ROWER_ATHLETES: AppMockAthlete[] = REORDERED_ERG.map((r, i) => {
 
 const COX_ATHLETES: AppMockAthlete[] = [
   {
-    id: 'a-andie-vega',
-    name: 'Andie Vega',
+    id: 'a-nadia-quillan',
+    name: 'Nadia Quillan',
     initials: 'AV',
     position: 'V8 — Cox',
     side: 'X',
@@ -224,8 +224,8 @@ const COX_ATHLETES: AppMockAthlete[] = [
     primarySource: 'WHOOP',
   },
   {
-    id: 'a-pia-roman',
-    name: 'Pia Roman',
+    id: 'a-sable-ashford',
+    name: 'Sable Ashford',
     initials: 'PR',
     position: '2V8 — Cox',
     side: 'X',
@@ -239,8 +239,8 @@ const COX_ATHLETES: AppMockAthlete[] = [
     primarySource: 'Apple Health',
   },
   {
-    id: 'a-tess-kim',
-    name: 'Tess Kim',
+    id: 'a-kestrel-fenwick',
+    name: 'Kestrel Fenwick',
     initials: 'TK',
     position: 'Reserve — Cox',
     side: 'X',
@@ -258,7 +258,7 @@ const COX_ATHLETES: AppMockAthlete[] = [
 export const APP_MOCK_ATHLETES: AppMockAthlete[] = [...ROWER_ATHLETES, ...COX_ATHLETES]
 
 // ID of the demo "self" athlete surfaced in the athlete-side views.
-export const DEMO_ATHLETE_ID = ROWER_ATHLETES[0].id // 'a-miller-star'
+export const DEMO_ATHLETE_ID = ROWER_ATHLETES[0].id // 'a-carrow-sloane'
 
 // ─── Attention ────────────────────────────────────────────────────────────────
 
@@ -274,16 +274,16 @@ export type AppAttentionItem = {
 }
 
 // Reference real Pacific Women athletes by their computed IDs.
-// Olivia Roth  (index 4 in reordered list): poor-recovery story
-// Lola Crampin (index 7): volume-spike story
-// Ella Wheeler (index 1): race-ready / streak
-// Andie Vega (cox): race-day ready
+// Larkin Tremaine  (index 4 in reordered list): poor-recovery story
+// Marisol Ulverton (index 7): volume-spike story
+// Marnie Rothmore (index 1): race-ready / streak
+// Nadia Quillan (cox): race-day ready
 
 export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
   {
     id: 'att-1',
-    athleteId: 'a-roth-olivia',
-    athleteName: 'Olivia Roth',
+    athleteId: 'a-tremaine-larkin',
+    athleteName: 'Larkin Tremaine',
     initials: 'OR',
     signal: '2K erg slipped 6.4s vs 4-week avg',
     source: 'Concept2',
@@ -292,8 +292,8 @@ export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
   },
   {
     id: 'att-2',
-    athleteId: 'a-roth-olivia',
-    athleteName: 'Olivia Roth',
+    athleteId: 'a-tremaine-larkin',
+    athleteName: 'Larkin Tremaine',
     initials: 'OR',
     signal: 'Recovery 44 — 3 nights of poor sleep',
     source: 'WHOOP',
@@ -302,8 +302,8 @@ export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
   },
   {
     id: 'att-3',
-    athleteId: 'a-crampin-lola',
-    athleteName: 'Lola Crampin',
+    athleteId: 'a-ulverton-marisol',
+    athleteName: 'Marisol Ulverton',
     initials: 'LC',
     signal: 'Volume up 34% week-over-week',
     source: 'Concept2',
@@ -312,8 +312,8 @@ export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
   },
   {
     id: 'att-4',
-    athleteId: 'a-wheeler-ella',
-    athleteName: 'Ella Wheeler',
+    athleteId: 'a-rothmore-marnie',
+    athleteName: 'Marnie Rothmore',
     initials: 'EW',
     signal: 'Streak hit 24 days — longest on team',
     source: 'synth.',
@@ -322,8 +322,8 @@ export const APP_MOCK_ATTENTION: AppAttentionItem[] = [
   },
   {
     id: 'att-5',
-    athleteId: 'a-andie-vega',
-    athleteName: 'Andie Vega',
+    athleteId: 'a-nadia-quillan',
+    athleteName: 'Nadia Quillan',
     initials: 'AV',
     signal: 'Race-day ready — recovery 84, slept 8.1h',
     source: 'WHOOP',

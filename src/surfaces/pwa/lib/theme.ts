@@ -58,6 +58,11 @@ export const SYNTH = {
   // From the rower's POV (facing stern): starboard = left = green; port = right = red.
   sidePort: '#E64A3C',
   sideStarboard: '#10B981',
+  // Sculling boats (1x/2x/4x) — each rower pulls both oars, so a single
+  // port/starboard color doesn't apply. Blue marks the seat as a scull
+  // seat; sidePreferenceRed/Green are used only for the optional split
+  // marker when a coach flags a stronger/preferred side for a sculler.
+  sideScull: '#3B82F6',
 
   // Provenance — synth's signature element
   provenanceOnBrand: 'rgba(255,255,255,0.55)',

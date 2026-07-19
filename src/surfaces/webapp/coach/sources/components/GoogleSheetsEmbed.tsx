@@ -14,7 +14,7 @@ export type GoogleSheetsEmbedProps = {
 
 type SheetTabId = 'erg-log' | 'yoy-compare' | 'season-prs'
 
-// Convert 'Wheeler, Ella' → 'Ella Wheeler'
+// Convert 'Rothmore, Marnie' → 'Marnie Rothmore'
 function flipName(lastFirst: string): string {
   const [last, first] = lastFirst.split(', ')
   if (!first || !last) return lastFirst

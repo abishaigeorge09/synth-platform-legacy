@@ -3,14 +3,14 @@
  * for all 46 athletes on the roster.
  *
  * Six athletes have intentional gaps to surface "flagged" wellness states:
- *   - Alex Pearson: 0 check-ins in last 5 days
- *   - Alice Gallo: 2 gaps in last week
- *   - Allegra O'Sullivan: only 1 check-in in last 5 days
- *   - Bonnie Mollee: 2–3 missing days scattered
- *   - Charly Johnson: 2–3 missing days scattered
- *   - Chloe Frushtick: 2–3 missing days scattered
+ *   - Skye Calderwood: 0 check-ins in last 5 days
+ *   - Fern Yardley: 2 gaps in last week
+ *   - Marlowe Vance: only 1 check-in in last 5 days
+ *   - Briar Merriweather: 2–3 missing days scattered
+ *   - Odile Ashcombe: 2–3 missing days scattered
+ *   - Piper Lockhart: 2–3 missing days scattered
  *
- * Two athletes (Lola Crampin, Giulia Bosio) trend downward in recovery
+ * Two athletes (Marisol Ulverton, Vesper Stanwick) trend downward in recovery
  * (rising soreness, dropping energy) across the 30-day window.
  */
 import type { WellnessCheckin } from '@shared/data/types'
@@ -50,52 +50,52 @@ function slugify(s: string) {
 
 /** All 46 athletes from ERG_316_2K roster order (lastFirst strings). */
 const ROSTER_LAST_FIRST = [
-  'Wheeler, Ella',
-  'Irmler, Julia',
-  'Abbott, Lily',
-  'Miller, Star',
-  'Roth, Olivia',
-  'Cox, Madeline',
-  'Bouman, Minou',
-  'Crampin, Lola',
-  'Johnson, Charly',
-  'Bosio, Giulia',
-  "O'Sullivan, Allegra",
-  'Mollee, Bonnie',
-  'Jamieson, Pippa',
-  'Frushtick, Chloe',
-  'Gallo, Alice',
-  'Banks, Claire',
-  'Hoadley, Zara',
-  'Pember, Lily',
-  'Pearson, Alex',
-  'Curven, Sidney',
-  'Spitz, Vivi',
-  'Knight, Beatrice',
-  'Pastorelli, Vicky',
-  'Furtaw, Rachel',
-  'Ausfahl, Alexandra',
-  'Brown, Annie',
-  'Landers, Kylie',
-  'Turner, Sophia',
-  'Harrington, Kylee',
-  'Hill, Charlotte',
-  'Bonnem, Lily',
-  'Nixon, Kate',
-  'Hammerer, Francesca',
-  'Barrancotto, Eve',
-  'Cheetham, Harri',
-  'Jennings, Gabby',
-  'Cramer, Frieda',
-  'Molloy, Louisa',
-  'Nelson, Maile',
-  'Furlonger, Amy',
-  'Andrews, Ava',
-  'Campbell, Amalia',
-  'Lovell, Cami',
-  'Laddy, Bella',
-  'Brooks, Ava',
-  'Van Westreenen, Lotta',
+  'Rothmore, Marnie',
+  'Whitcombe, Brielle',
+  'Birchwood, Freya',
+  'Carrow, Sloane',
+  'Tremaine, Larkin',
+  'Brambleton, Delphine',
+  'Oakden, Odette',
+  'Ulverton, Marisol',
+  'Ashcombe, Odile',
+  'Stanwick, Vesper',
+  "Vance, Marlowe",
+  'Merriweather, Briar',
+  'Osgood, Perry',
+  'Lockhart, Piper',
+  'Yardley, Fern',
+  'Bellweather, Bree',
+  'Coldwell, Cove',
+  'Elmsworth, Ruby',
+  'Calderwood, Skye',
+  'Hartley, Wren',
+  'Underhill, Elowen',
+  'Pemberton, Marisa',
+  'Norbury, Rowan',
+  'Kessler, Meret',
+  'Halloway, Harlow',
+  'Ingersoll, Nova',
+  'Isley, Lark',
+  'Ashgrove, Elle',
+  'Jorden, Runa',
+  'Ravensworth, June',
+  'Norwood, Saoirse',
+  'Marchbanks, Wynn',
+  'Sutcliffe, Juniper',
+  'Kingswell, Sage',
+  'Ellery, Ivy',
+  'Farrow, Ines',
+  'Thackery, Elin',
+  'Dunmore, Talia',
+  'Vandermere, Nora',
+  'Larkspur, Aspen',
+  'Prescott, Coral',
+  'Gladwell, Maya',
+  'Danforth, Ceci',
+  'Quarles, Tansy',
+  'Draycott, Poppy',
+  'Wexford, Corin',
 ] as const
 
 const athleteIds = ROSTER_LAST_FIRST.map((lf) => `athlete-${slugify(lf)}`)
@@ -114,16 +114,16 @@ const TOTAL_DAYS = 90 // indices 0..89 → Jan 25..Apr 24
 // ─── Gap / flag configuration ─────────────────────────────────────────────
 
 // Index within ROSTER_LAST_FIRST
-const IDX_PEARSON = 18 // Alex Pearson — 0 check-ins last 5 days
-const IDX_GALLO = 14 // Alice Gallo — 2 gaps in last week
-const IDX_OSULLIVAN = 10 // Allegra O'Sullivan — only 1 check-in last 5 days
-const IDX_MOLLEE = 11 // Bonnie Mollee — 2-3 missing scattered
-const IDX_JOHNSON = 8 // Charly Johnson — 2-3 missing scattered
-const IDX_FRUSHTICK = 13 // Chloe Frushtick — 2-3 missing scattered
+const IDX_PEARSON = 18 // Skye Calderwood — 0 check-ins last 5 days
+const IDX_GALLO = 14 // Fern Yardley — 2 gaps in last week
+const IDX_OSULLIVAN = 10 // Marlowe Vance — only 1 check-in last 5 days
+const IDX_MOLLEE = 11 // Briar Merriweather — 2-3 missing scattered
+const IDX_JOHNSON = 8 // Odile Ashcombe — 2-3 missing scattered
+const IDX_FRUSHTICK = 13 // Piper Lockhart — 2-3 missing scattered
 
 // "Trending down" athletes — soreness rises, energy drops over the 30 days
-const IDX_CRAMPIN = 7 // Lola Crampin
-const IDX_BOSIO = 9 // Giulia Bosio
+const IDX_CRAMPIN = 7 // Marisol Ulverton
+const IDX_BOSIO = 9 // Vesper Stanwick
 
 /** Returns true if the given athlete/day combo should be SKIPPED (no entry). */
 function shouldSkip(athleteIdx: number, dayIdx: number): boolean {

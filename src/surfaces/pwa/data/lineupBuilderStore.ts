@@ -50,6 +50,13 @@ export type Seat = {
   position: number
   label: string
   athleteId: string | null
+  /**
+   * Sculling boats only (see isSculling) — a coach can optionally flag
+   * which side a sculler is stronger/prefers, shown as a small red/green
+   * split marker over the seat's base blue color. Undefined = no
+   * preference set, plain blue.
+   */
+  preferredSide?: 'P' | 'S'
 }
 
 export type Boat = {
@@ -99,13 +106,44 @@ function seatLabel(size: BoatSize, position: number): string {
   return `Seat ${position}`
 }
 
+/** Sculling boats (x-suffix) — each rower holds both oars, so seats
+ *  don't have a fixed port/starboard side the way sweep-boat seats do. */
+export function isSculling(size: BoatSize): boolean {
+  return size.endsWith('x')
+}
+
 /**
  * Alternating rig: position 1 = starboard, 2 = port, 3 = starboard, …
  * The cox seat (position SEAT_COUNT[size] + 1 on coxed boats) returns 'X'.
+ * Only meaningful for sweep boats — see isSculling / seatSideColor for
+ * sculling boats, where port/starboard doesn't apply per seat.
  */
 export function seatSide(size: BoatSize, position: number): 'P' | 'S' | 'X' {
   if (COXED[size] && position === SEAT_COUNT[size] + 1) return 'X'
   return position % 2 === 1 ? 'S' : 'P'
+}
+
+/**
+ * The single color to render for a seat's side indicator (oar bar, seat
+ * chip accent, etc.), boat-class-aware:
+ *  - cox seat            → null (callers already special-case cox, e.g. accentBlack)
+ *  - sweep boat seat      → red (port) / green (starboard)
+ *  - sculling boat seat    → blue, unless a preferred side is flagged
+ */
+export function seatSideColor(
+  size: BoatSize,
+  position: number,
+  preferredSide: 'P' | 'S' | undefined,
+  colors: { port: string; starboard: string; scull: string },
+): string | null {
+  const side = seatSide(size, position)
+  if (side === 'X') return null
+  if (isSculling(size)) {
+    if (preferredSide === 'P') return colors.port
+    if (preferredSide === 'S') return colors.starboard
+    return colors.scull
+  }
+  return side === 'P' ? colors.port : colors.starboard
 }
 
 function makeSeats(size: BoatSize): Seat[] {

@@ -325,7 +325,7 @@ function AppleHealthTab() {
             2,201 records · synced {health ? fmtShort(health.lastSyncAt) : '12m ago'}
           </div>
         </div>
-        <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Star Miller · Apr 24, 2026</div>
+        <div className="text-[11px]" style={{ fontFamily: THEME.fontMono, color: THEME.textMuted }}>Sloane Carrow · Apr 24, 2026</div>
       </div>
 
       {/* Sleep chart */}

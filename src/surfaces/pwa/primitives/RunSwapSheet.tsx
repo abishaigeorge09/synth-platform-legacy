@@ -5,7 +5,7 @@ import { SYNTH } from '../lib/theme'
 import { APP_MOCK_ATHLETES } from '../data/mockTeam'
 import type { Boat } from '../data/lineupBuilderStore'
 import type { RunSwap } from '../data/useSessionsStore'
-import { seatSide } from '../data/lineupBuilderStore'
+import { seatSideColor } from '../data/lineupBuilderStore'
 
 type Props = {
   open: boolean
@@ -129,8 +129,12 @@ export function RunSwapSheet({ open, onClose, boats: initialBoats, onConfirm }: 
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {b.seats.map((s) => {
                 const a = APP_MOCK_ATHLETES.find((x) => x.id === s.athleteId)
-                const side = seatSide(b.size, s.position)
-                const sideColor = side === 'S' ? SYNTH.sideStarboard : SYNTH.sidePort
+                const sideColor =
+                  seatSideColor(b.size, s.position, s.preferredSide, {
+                    port: SYNTH.sidePort,
+                    starboard: SYNTH.sideStarboard,
+                    scull: SYNTH.sideScull,
+                  }) ?? SYNTH.sidePort
                 const isFirst = first?.boatId === b.id && first?.position === s.position
                 return (
                   <button

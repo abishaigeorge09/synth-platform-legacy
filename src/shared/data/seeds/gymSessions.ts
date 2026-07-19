@@ -6,7 +6,7 @@
 import type { GymSession } from '@shared/data/types'
 
 export const SEED_GYM_SESSIONS: GymSession[] = [
-  // ── Ella Wheeler (athlete-wheeler-ella) ──────────────────────────────────
+  // ── Marnie Rothmore (athlete-wheeler-ella) ──────────────────────────────────
   {
     id: 'gym-wheeler-ella-0418',
     athleteId: 'athlete-wheeler-ella',
@@ -38,7 +38,7 @@ export const SEED_GYM_SESSIONS: GymSession[] = [
     totalVolumeLbs: 7500,
   },
 
-  // ── Julia Irmler (athlete-irmler-julia) ──────────────────────────────────
+  // ── Brielle Whitcombe (athlete-irmler-julia) ──────────────────────────────────
   {
     id: 'gym-irmler-julia-0417',
     athleteId: 'athlete-irmler-julia',
@@ -70,7 +70,7 @@ export const SEED_GYM_SESSIONS: GymSession[] = [
     totalVolumeLbs: 6480,
   },
 
-  // ── Lily Abbott (athlete-abbott-lily) ────────────────────────────────────
+  // ── Freya Birchwood (athlete-abbott-lily) ────────────────────────────────────
   {
     id: 'gym-abbott-lily-0418',
     athleteId: 'athlete-abbott-lily',
@@ -102,7 +102,7 @@ export const SEED_GYM_SESSIONS: GymSession[] = [
     totalVolumeLbs: 7540,
   },
 
-  // ── Star Miller (athlete-miller-star) ────────────────────────────────────
+  // ── Sloane Carrow (athlete-miller-star) ────────────────────────────────────
   {
     id: 'gym-miller-star-0416',
     athleteId: 'athlete-miller-star',
@@ -133,7 +133,7 @@ export const SEED_GYM_SESSIONS: GymSession[] = [
     totalVolumeLbs: 6285,
   },
 
-  // ── Olivia Roth (athlete-roth-olivia) ────────────────────────────────────
+  // ── Larkin Tremaine (athlete-roth-olivia) ────────────────────────────────────
   {
     id: 'gym-roth-olivia-0419',
     athleteId: 'athlete-roth-olivia',

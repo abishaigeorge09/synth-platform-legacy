@@ -45,13 +45,13 @@ describe('parseAIText — empty + plain text', () => {
 
 describe('parseAIText — citation chips', () => {
   it('parses a single citation', () => {
-    const out = parseAIText('Olivia is at [c:Concept2|Olivia Roth|2026-04-26] today.')
+    const out = parseAIText('Olivia is at [c:Concept2|Larkin Tremaine|2026-04-26] today.')
     expect(out).toHaveLength(3)
     expect(out[0]).toEqual({ kind: 'text', text: 'Olivia is at ' })
     expect(out[1]).toEqual({
       kind: 'chip',
       source: 'Concept2',
-      subject: 'Olivia Roth',
+      subject: 'Larkin Tremaine',
       date: '2026-04-26',
     })
     expect(out[2]).toEqual({ kind: 'text', text: ' today.' })

@@ -23,6 +23,7 @@ import { BuildChatInput } from '../primitives/BuildChatInput'
 import { SYNTH } from '../lib/theme'
 import { CANVAS_ENTER, INSTALL_PULSE } from '../lib/motion'
 import { toast } from '@shared/store/useToastStore'
+import { featureFlags } from '@lib/featureFlags'
 import {
   useInstalledToolsStore,
   type InstalledToolMeta,
@@ -217,17 +218,20 @@ export function CustomToolsPage() {
   const lastInstalledAt = useInstalledToolsStore((s) => s.lastInstalledAt)
   const clearLastInstalled = useInstalledToolsStore((s) => s.clearLastInstalled)
 
-  // Sprint 10 — published team tools surface in the Catalog tab.
+  // Sprint 10 — published team tools surface in the Catalog tab. These
+  // come from the AI build pipeline, so skip hydration entirely while
+  // that flow is flagged off (deferred feature, see featureFlags.ts).
   // Hydrate once when the coach has a real users-row team_id; demo /
   // anonymous users see the static CATALOG only.
   const coachContext = useCoachContextStore((s) => s.context)
   const hydrateCoachContext = useCoachContextStore((s) => s.hydrate)
   const [publishedTools, setPublishedTools] = useState<PublishedTool[]>([])
   useEffect(() => {
+    if (!featureFlags.aiToolBuild) return
     void hydrateCoachContext()
   }, [hydrateCoachContext])
   useEffect(() => {
-    if (!coachContext) return
+    if (!featureFlags.aiToolBuild || !coachContext) return
     let cancelled = false
     void fetchPublishedTeamTools(coachContext.team_id).then((tools) => {
       if (!cancelled) setPublishedTools(tools)
@@ -299,11 +303,13 @@ export function CustomToolsPage() {
     <motion.div
       className="synth-scroll flex flex-1 flex-col overflow-y-auto"
       style={{
-        // 88px tab-bar clearance + 64px chat-input clearance + safe area.
-        // Replaces pb-safe-tab on this page only — every other Custom
-        // Tools surface still uses the standard tab-bar offset.
-        paddingBottom:
-          'calc(max(env(safe-area-inset-bottom), 16px) + 88px + 64px)',
+        // 88px tab-bar clearance (+ 64px chat-input clearance when the
+        // pinned build prompt is showing) + safe area. Replaces
+        // pb-safe-tab on this page only — every other Custom Tools
+        // surface still uses the standard tab-bar offset.
+        paddingBottom: featureFlags.aiToolBuild
+          ? 'calc(max(env(safe-area-inset-bottom), 16px) + 88px + 64px)'
+          : 'calc(max(env(safe-area-inset-bottom), 16px) + 88px)',
       }}
       {...CANVAS_ENTER}
     >
@@ -320,11 +326,12 @@ export function CustomToolsPage() {
           placeholder="Search the tool catalog"
         />
 
-        {/* Tabs — Build is a navigation, not a panel */}
+        {/* Tabs — Build is a navigation, not a panel. Hidden while the AI
+            build flow is flagged off (deferred feature). */}
         <TabStrip
           tab={tab}
           onChange={setTab}
-          onBuild={() => navigate('/app/coach/tools/build')}
+          onBuild={featureFlags.aiToolBuild ? () => navigate('/app/coach/tools/build') : undefined}
           counts={{
             installed: installedFiltered.length,
             catalog: catalogFiltered.length,
@@ -357,7 +364,11 @@ export function CustomToolsPage() {
                   <EmptyState
                     icon={<LayoutGrid size={20} strokeWidth={2.2} />}
                     title="No installed tools yet"
-                    body="Browse the Catalog or build your own from the Build tab."
+                    body={
+                      featureFlags.aiToolBuild
+                        ? 'Browse the Catalog or build your own from the Build tab.'
+                        : 'Browse the Catalog to install a tool.'
+                    }
                   />
                 )}
               </>
@@ -365,7 +376,7 @@ export function CustomToolsPage() {
 
             {tab === 'catalog' && (
               <>
-                {publishedTools.length > 0 ? (
+                {featureFlags.aiToolBuild && publishedTools.length > 0 ? (
                   <PublishedSection
                     publishedTools={publishedTools}
                     isInstalled={isInstalled}
@@ -409,7 +420,11 @@ export function CustomToolsPage() {
                   <EmptyState
                     icon={<Sparkles size={20} strokeWidth={2.2} />}
                     title="Nothing matches that"
-                    body="Try a different keyword, or jump to Build to describe a new tool."
+                    body={
+                      featureFlags.aiToolBuild
+                        ? 'Try a different keyword, or jump to Build to describe a new tool.'
+                        : 'Try a different keyword, or request a tool that isn’t in the catalog yet.'
+                    }
                   />
                 )}
               </>
@@ -430,15 +445,18 @@ export function CustomToolsPage() {
 
       {/* Sprint 5.9 — pinned build-prompt input. Sits 88 px above the
           viewport bottom so it floats just above the floating tab bar.
-          Sending hands the prompt to /app/coach/tools/build via state. */}
-      <BuildChatInput
-        position="fixed"
-        bottomOffsetPx={88}
-        value={buildPrompt}
-        onChange={setBuildPrompt}
-        onSend={onSendBuildPrompt}
-        placeholder="Describe a tool you want to build…"
-      />
+          Sending hands the prompt to /app/coach/tools/build via state.
+          Hidden while the AI build flow is flagged off. */}
+      {featureFlags.aiToolBuild ? (
+        <BuildChatInput
+          position="fixed"
+          bottomOffsetPx={88}
+          value={buildPrompt}
+          onChange={setBuildPrompt}
+          onSend={onSendBuildPrompt}
+          placeholder="Describe a tool you want to build…"
+        />
+      ) : null}
     </motion.div>
   )
 }
@@ -524,11 +542,12 @@ function TabStrip({
 }: {
   tab: Tab
   onChange: (t: Tab) => void
-  onBuild: () => void
+  /** Omit to hide the Build pill entirely (AI build flow flagged off). */
+  onBuild?: () => void
   counts: { installed: number; catalog: number }
 }) {
   return (
-    <div className="mt-4 grid grid-cols-3 gap-2">
+    <div className={onBuild ? 'mt-4 grid grid-cols-3 gap-2' : 'mt-4 grid grid-cols-2 gap-2'}>
       <PanelPill
         index="01"
         label="Installed"
@@ -536,9 +555,9 @@ function TabStrip({
         active={tab === 'installed'}
         onClick={() => onChange('installed')}
       />
-      <BuildPill index="02" onClick={onBuild} />
+      {onBuild ? <BuildPill index="02" onClick={onBuild} /> : null}
       <PanelPill
-        index="03"
+        index={onBuild ? '03' : '02'}
         label="Catalog"
         count={counts.catalog}
         active={tab === 'catalog'}
@@ -980,8 +999,43 @@ function CatalogStateChip({
     )
   }
 
+  return <RequestChip tool={tool} />
+}
+
+/**
+ * Replaces the old static "Coming soon" badge. Tapping sends a one-time
+ * "request" confirmation toast (no backend persistence — see the Catalog
+ * + Request flow this restores). Flips to a disabled "Requested" state
+ * for the rest of the session so a coach can't double-tap it.
+ */
+function RequestChip({ tool }: { tool: CatalogTool }) {
+  const [requested, setRequested] = useState(false)
+
+  if (requested) {
+    return (
+      <span
+        className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em]"
+        style={{
+          background: 'rgba(255,255,255,0.10)',
+          color: SYNTH.inkOnBrandMuted,
+          fontFamily: SYNTH.font,
+          border: `1px solid ${SYNTH.glassBorder}`,
+        }}
+      >
+        <Check size={10} strokeWidth={2.6} />
+        Requested
+      </span>
+    )
+  }
+
   return (
-    <span
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        setRequested(true)
+        toast(`Request sent — we'll let you know when ${tool.name} ships`, 'success')
+      }}
       className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em]"
       style={{
         background: SYNTH.accentBlack,
@@ -991,8 +1045,8 @@ function CatalogStateChip({
         border: `1px solid ${SYNTH.glassBorder}`,
       }}
     >
-      Coming soon{tool.eta ? ` · ${tool.eta}` : ''}
-    </span>
+      Request{tool.eta ? ` · ${tool.eta}` : ''}
+    </button>
   )
 }
 

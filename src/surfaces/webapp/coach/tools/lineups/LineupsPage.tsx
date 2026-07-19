@@ -69,7 +69,7 @@ export function LineupsPage() {
       athletes.map((a, idx) => {
         const erg = ergScores.find((e) => e.athleteId === a.id)
         const t = erg?.timeSeconds
-        const isCox = a.name === 'Charly Johnson' || a.name === 'Casey Morgan'
+        const isCox = a.name === 'Odile Ashcombe' || a.name === 'Casey Morgan'
         const side: AthleteSide = isCox ? 'cox' : a.side === 'port' ? 'port' : 'starboard'
         const parts = a.name.split(/\s+/).filter(Boolean)
         const initials = ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase()

@@ -51,7 +51,7 @@ import {
 
 const SEED_HISTORY: ChatHistoryEntry[] = [
   { id: 'h-1', title: 'Race plan for Pacific Cup heat', updatedAgo: '3 days ago', pinned: true },
-  { id: 'h-2', title: "Why is Star Miller's split slipping?", updatedAgo: '6h ago' },
+  { id: 'h-2', title: "Why is Sloane Carrow's split slipping?", updatedAgo: '6h ago' },
   { id: 'h-3', title: 'Wednesday lineup analysis', updatedAgo: 'yesterday' },
 ]
 

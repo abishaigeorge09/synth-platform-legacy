@@ -1,6 +1,6 @@
 /**
  * The "current athlete" for the athlete-side demo. In production this comes
- * from the signed-in user. For now we hardcode Star Miller — she's in both
+ * from the signed-in user. For now we hardcode Sloane Carrow — she's in both
  * the 2025 and 2026 erg tests (see SEED_ATHLETE_YOY), so her stats page
  * renders a real progression chart.
  */

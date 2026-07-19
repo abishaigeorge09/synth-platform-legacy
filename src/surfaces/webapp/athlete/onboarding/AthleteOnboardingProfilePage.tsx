@@ -9,7 +9,7 @@ export function AthleteOnboardingProfilePage() {
   const confirmed = useAthleteOnboardingStore((s) => s.confirmed)
   const inviteCode = useAthleteOnboardingStore((s) => s.inviteCode)
   const setProfileName = useAthleteOnboardingStore((s) => s.setProfileName)
-  const [name, setName] = useState('Star Miller')
+  const [name, setName] = useState('Sloane Carrow')
   const [target2k, setTarget2k] = useState('')
   const canContinue = useMemo(() => name.trim().length >= 3, [name])
 

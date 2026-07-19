@@ -3,7 +3,9 @@ import { SYNTH } from '../../lib/theme'
 import { APP_MOCK_ATHLETES, type AppMockAthlete } from '../../data/mockTeam'
 import {
   COXED,
+  isSculling,
   seatSide,
+  seatSideColor,
   type Boat,
   type BoatSize,
 } from '../../data/lineupBuilderStore'
@@ -78,6 +80,7 @@ export function BoatHero({ boat, onSeatTap }: Props) {
                 position={seat.position}
                 boatSize={boat.size}
                 athleteId={seat.athleteId}
+                preferredSide={seat.preferredSide}
                 onTap={() => onSeatTap(seat.position, athleteFor(seat.athleteId))}
               />
             ))}
@@ -96,10 +99,19 @@ export function BoatHero({ boat, onSeatTap }: Props) {
             className="flex items-center gap-1 text-[10px] uppercase tracking-[0.14em]"
             style={{ color: SYNTH.inkOnBrandFaint, fontFamily: SYNTH.font, fontVariantNumeric: 'tabular-nums' }}
           >
-            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: SYNTH.sideStarboard }} />
-            stbd
-            <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full" style={{ background: SYNTH.sidePort }} />
-            port
+            {isSculling(boat.size) ? (
+              <>
+                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: SYNTH.sideScull }} />
+                scull
+              </>
+            ) : (
+              <>
+                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: SYNTH.sideStarboard }} />
+                stbd
+                <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full" style={{ background: SYNTH.sidePort }} />
+                port
+              </>
+            )}
           </span>
         </div>
       </div>
@@ -118,14 +130,27 @@ function SeatRow({
   position,
   boatSize,
   athleteId,
+  preferredSide,
   onTap,
 }: {
   position: number
   boatSize: BoatSize
   athleteId: string | null
+  preferredSide?: 'P' | 'S'
   onTap: () => void
 }) {
   const side = seatSide(boatSize, position)
+  const scull = isSculling(boatSize)
+  // Sweep boats: only the seat's actual side lights up. Sculling boats:
+  // both bars light in blue (both oars, no fixed side) unless the coach
+  // flagged a preferred side, in which case that bar goes red/green and
+  // full-opacity while the other dims — the "split marker".
+  const leftLit = scull ? true : side === 'P'
+  const rightLit = scull ? true : side === 'S'
+  const leftColor = scull ? (preferredSide === 'P' ? SYNTH.sidePort : SYNTH.sideScull) : SYNTH.sidePort
+  const rightColor = scull ? (preferredSide === 'S' ? SYNTH.sideStarboard : SYNTH.sideScull) : SYNTH.sideStarboard
+  const leftOpacity = scull && preferredSide === 'S' ? 0.25 : 0.6
+  const rightOpacity = scull && preferredSide === 'P' ? 0.25 : 0.6
   return (
     <div className="flex items-center gap-2">
       {/* Seat number (stroke / bow / 1..N) */}
@@ -136,12 +161,12 @@ function SeatRow({
         {seatLabelFor(boatSize, position)}
       </span>
 
-      {/* Side oar bar (port = red, stbd = green) — lives only on its side */}
+      {/* Side oar bar (port = red, stbd = green, scull = blue) */}
       <span
         className="h-[3px] flex-1 rounded-full"
         style={{
-          background: side === 'P' ? SYNTH.sidePort : 'transparent',
-          opacity: 0.6,
+          background: leftLit ? leftColor : 'transparent',
+          opacity: leftOpacity,
         }}
       />
 
@@ -149,6 +174,7 @@ function SeatRow({
       <SeatChip
         seat={{ position, athleteId, label: '', isCox: false } as never}
         boatSize={boatSize}
+        preferredSide={preferredSide}
         onTap={onTap}
         variant="rower"
       />
@@ -156,8 +182,8 @@ function SeatRow({
       <span
         className="h-[3px] flex-1 rounded-full"
         style={{
-          background: side === 'S' ? SYNTH.sideStarboard : 'transparent',
-          opacity: 0.6,
+          background: rightLit ? rightColor : 'transparent',
+          opacity: rightOpacity,
         }}
       />
 
@@ -181,22 +207,25 @@ type SeatLike = { position: number; athleteId: string | null }
 function SeatChip({
   seat,
   boatSize,
+  preferredSide,
   onTap,
   variant,
 }: {
   seat: SeatLike
   boatSize: BoatSize
+  preferredSide?: 'P' | 'S'
   onTap: () => void
   variant: 'rower' | 'cox'
 }) {
   const athlete = athleteFor(seat.athleteId)
-  const side = seatSide(boatSize, seat.position)
   const sideColor =
     variant === 'cox'
       ? SYNTH.accentBlack
-      : side === 'P'
-        ? SYNTH.sidePort
-        : SYNTH.sideStarboard
+      : (seatSideColor(boatSize, seat.position, preferredSide, {
+          port: SYNTH.sidePort,
+          starboard: SYNTH.sideStarboard,
+          scull: SYNTH.sideScull,
+        }) ?? SYNTH.accentBlack)
   const filled = !!athlete
   return (
     <motion.button

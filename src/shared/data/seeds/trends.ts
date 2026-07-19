@@ -23,6 +23,6 @@ export const MONTHLY_TRENDS: MonthlyPoint[] = [
   { month: 'Apr', sessions: 21, avg2kSec: 420, compliancePct: 89, loadIndex: 73 },
 ]
 
-export const AI_INSIGHT_MARKDOWN = `**This week**, 7 athletes posted personal-best 2K splits — led by **Wheeler, Ella** at 6:35.6 (–2.8s vs. March). Compliance held at **89%** across 4 connectors; two athletes flagged for a 5-day gym-log gap (see Alerts). Average team split trend remains downward (faster) for the 5th consecutive month.
+export const AI_INSIGHT_MARKDOWN = `**This week**, 7 athletes posted personal-best 2K splits — led by **Rothmore, Marnie** at 6:35.6 (–2.8s vs. March). Compliance held at **89%** across 4 connectors; two athletes flagged for a 5-day gym-log gap (see Alerts). Average team split trend remains downward (faster) for the 5th consecutive month.
 
 Data quality: erg workbooks synced at 18:00 daily; TeamWorks on a 15-minute cadence; wearable hub is live. No stale sources.`

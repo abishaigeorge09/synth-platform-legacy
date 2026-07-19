@@ -21,7 +21,7 @@ type RecentItem = {
 }
 
 const SEED_RECENT: RecentItem[] = [
-  { kind: 'voice', title: '20s memo · Star Miller', detail: '"watch port shoulder on stbd"', minutesAgo: 34 },
+  { kind: 'voice', title: '20s memo · Sloane Carrow', detail: '"watch port shoulder on stbd"', minutesAgo: 34 },
   { kind: 'photo', title: 'Whiteboard · Wednesday plan', detail: '8x500m + 3x10', minutesAgo: 2 * 60 + 12 },
   { kind: 'email', title: 'Forward · TrainingPeaks rec', detail: 'plan from Coach M', minutesAgo: 6 * 60 },
 ]

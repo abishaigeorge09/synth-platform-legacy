@@ -202,7 +202,7 @@ export function buildSystemPrompt({
     'AVAILABLE UI TOKENS (use only where they add real value, not on every message):',
     'These render as interactive UI, not literal text — the user sees graphs, tables, citation chips, and tappable follow-ups, NOT the raw token syntax.',
     '',
-    '  [c:source|subject|date]                      citation chip (e.g. [c:WHOOP|Olivia Roth|2026-05-05])',
+    '  [c:source|subject|date]                      citation chip (e.g. [c:WHOOP|Larkin Tremaine|2026-05-05])',
     '  [chart:title|source|metric|window]           time-series graph (e.g. [chart:Avg recovery, 7d|WHOOP|recovery|7d])',
     '  [table:title|col1,col2,col3|r1a,r1b,r1c|r2a,r2b,r2c]   data table (header row first, then rows)',
     '  [callout:tone|title|text]                    an emphasized note, tone is one of info | warn | success. Reach for this rarely — only when there is a genuinely notable cause or insight worth setting apart from the main sentence, not as a default wrapper for every observation.',

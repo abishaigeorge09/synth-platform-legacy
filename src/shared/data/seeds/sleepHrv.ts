@@ -1,7 +1,7 @@
 /**
  * 14 days of sleep + HRV data (April 11–24, 2026) for the first 10 athletes.
  *
- * Star Miller (athlete-miller-star, index 3) has HRV trending DOWN ~10%
+ * Sloane Carrow (athlete-miller-star, index 3) has HRV trending DOWN ~10%
  * over the two-week window — a pattern the dashboard should flag.
  * Most other athletes are stable or slightly improving.
  */
@@ -39,7 +39,7 @@ const PROFILES: AthleteProfile[] = [
   { baseHrv: 62, hrvTrend: 'stable',    baseRestHR: 52, baseSleep: 7.5, baseSleepQuality: 7 },
   { baseHrv: 58, hrvTrend: 'improving', baseRestHR: 54, baseSleep: 7.8, baseSleepQuality: 8 },
   { baseHrv: 65, hrvTrend: 'stable',    baseRestHR: 50, baseSleep: 8.0, baseSleepQuality: 8 },
-  { baseHrv: 60, hrvTrend: 'declining', baseRestHR: 55, baseSleep: 7.0, baseSleepQuality: 6 }, // Star Miller
+  { baseHrv: 60, hrvTrend: 'declining', baseRestHR: 55, baseSleep: 7.0, baseSleepQuality: 6 }, // Sloane Carrow
   { baseHrv: 55, hrvTrend: 'stable',    baseRestHR: 56, baseSleep: 7.2, baseSleepQuality: 7 },
   { baseHrv: 63, hrvTrend: 'improving', baseRestHR: 51, baseSleep: 7.6, baseSleepQuality: 7 },
   { baseHrv: 57, hrvTrend: 'stable',    baseRestHR: 58, baseSleep: 7.4, baseSleepQuality: 7 },

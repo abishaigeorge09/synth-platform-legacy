@@ -83,18 +83,29 @@ export function SignUpPage() {
 
 function LiveCountLine({ total }: { total: number }) {
   return (
-    <div className="mb-5 flex items-center gap-2 text-[12px]" style={{ color: T.MUTED, fontFamily: T.BODY }}>
-      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: T.GREEN }} />
+    <div
+      className="mb-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5"
+      style={{ background: T.GREEN_WASH, border: `1px solid ${T.GREEN}` }}
+    >
+      <motion.span
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ background: T.GREEN }}
+      />
       <motion.span
         key={total}
-        initial={{ opacity: 0.5 }}
-        animate={{ opacity: 1 }}
-        className="font-semibold tabular-nums"
-        style={{ color: T.INK }}
+        initial={{ scale: 0.9, opacity: 0.6 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="text-[14px] font-bold tabular-nums"
+        style={{ color: T.GREEN_DEEP }}
       >
         {total.toLocaleString()}
       </motion.span>
-      already on the waitlist
+      <span className="text-[12px] font-medium" style={{ color: T.MUTED }}>
+        already on the waitlist
+      </span>
     </div>
   )
 }

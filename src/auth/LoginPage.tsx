@@ -87,8 +87,8 @@ export function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
-            className="w-full rounded-lg px-3.5 py-3 text-[15px] outline-none"
-            style={{ background: T.SUNK, border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
+            className="w-full rounded-lg px-3.5 py-3 text-[15px] outline-none transition-shadow focus:[box-shadow:0_0_0_3px_rgba(16,185,129,0.14)] focus:[border-color:#059669]"
+            style={{ background: '#FFFFFF', border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
           />
         </label>
 

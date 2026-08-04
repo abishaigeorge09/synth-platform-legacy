@@ -15,6 +15,21 @@ export type WaitlistEntry = {
   joinedAt: number
 }
 
+/** The full survey payload written alongside the email. Every field optional
+ *  so a bare email still joins; keys map 1:1 to public.waitlist columns. */
+export type WaitlistInput = {
+  email: string
+  name?: string
+  sport?: string
+  role?: string
+  university?: string
+  wearable?: string
+  tools?: string[]
+  trackWants?: string[]
+  dimensionality?: string
+  userAgent?: string
+}
+
 export function loadStoredEntry(): WaitlistEntry | null {
   try {
     const raw = localStorage.getItem(ENTRY_STORAGE_KEY)
@@ -56,27 +71,43 @@ export type JoinResult =
  *  (== current total after insert). Idempotent on the email: if the
  *  email already exists we surface that gracefully and look up the
  *  current count so they still get a confirmation screen. */
-export async function joinWaitlist(input: {
-  email: string
-  name?: string
-  sport?: string
-}): Promise<JoinResult> {
+export async function joinWaitlist(input: WaitlistInput): Promise<JoinResult> {
   const email = input.email.trim().toLowerCase()
   const name = (input.name ?? '').trim()
   const sport = (input.sport ?? '').trim()
 
   if (!supabase) {
-    // No DB — fall back to local-only entry so the UI still works in
-    // env-less previews.
+    // In production a null client means the build is missing
+    // VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. Fail LOUDLY rather than
+    // faking success and silently dropping the signup (the historic bug).
+    if (import.meta.env.PROD) {
+      console.error(
+        '[waitlist] Supabase client is null in production. VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are missing from the build — the signup was NOT recorded. Set them in the Vercel project env.',
+      )
+      return { ok: false, error: 'Waitlist is temporarily unavailable. Please try again shortly.' }
+    }
+    // Dev only: local-only entry so env-less previews still demo the flow.
     const position = WAITLIST_BASE + 1
     const entry: WaitlistEntry = { email, name, sport, position, joinedAt: Date.now() }
     persistEntry(entry)
     return { ok: true, entry, alreadyOnList: false }
   }
 
-  const { error } = await supabase
-    .from('waitlist')
-    .insert({ email, name: name || null, sport: sport || null })
+  const tools = (input.tools ?? []).filter(Boolean)
+  const trackWants = (input.trackWants ?? []).filter(Boolean)
+
+  const { error } = await supabase.from('waitlist').insert({
+    email,
+    name: name || null,
+    sport: sport || null,
+    role: input.role || null,
+    university: input.university || null,
+    wearable: input.wearable || null,
+    tools: tools.length ? tools : null,
+    track_wants: trackWants.length ? trackWants : null,
+    dimensionality: input.dimensionality || null,
+    user_agent: input.userAgent || null,
+  })
 
   // 23505 = unique_violation — they're already on the list. Treat as success.
   let alreadyOnList = false

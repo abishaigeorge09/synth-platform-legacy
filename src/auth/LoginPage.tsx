@@ -3,21 +3,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import { posthog } from '@shared/analytics/posthog'
 import { supabase } from '@lib/supabaseClient'
 import { AuthLayout } from './AuthLayout'
-import {
-  FieldLabel, TextInput,
-  PrimaryAuthButton,
-} from './authShared'
-import { AUTH_TOKENS } from './authTokens'
+import { AUTH_LIGHT } from './authTokens'
 
-const { GREEN, MONO, MUTED, DIM, HAIR, FAINT, FG } = AUTH_TOKENS
+const T = AUTH_LIGHT
 
 // Real auth path. When Supabase is configured this page does:
-//   - "Continue with Google" → supabase.auth.signInWithOAuth (redirect)
-//   - email+password form     → supabase.auth.signInWithPassword
-// On success the app navigates to /coach/dashboard. The legacy demo
-// shortcut (typing star@synth.app to land on athlete) is preserved for
-// the demo build (no env vars) — that path runs without ever calling
-// Supabase.
+//   - email+password form → supabase.auth.signInWithPassword
+// On success the app navigates to /coach/dashboard. The legacy demo shortcut
+// (typing star@synth.app to land on athlete) is preserved for the demo build
+// (no env vars) — that path runs without ever calling Supabase.
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -26,7 +20,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // If a Supabase session already exists, bounce straight to the dashboard.
+
   useEffect(() => {
     if (!supabase) return
     let cancelled = false
@@ -43,7 +37,6 @@ export function LoginPage() {
     e.preventDefault()
     setError(null)
     if (!supabase) {
-      // Demo build (no env vars) — legacy email shortcut.
       const role = email.trim() === 'star@synth.app' ? 'athlete' : 'coach'
       posthog.identify(email.trim(), { email: email.trim(), role })
       posthog.capture('signed_in', { email: email.trim(), role, mode: 'demo' })
@@ -73,103 +66,97 @@ export function LoginPage() {
     }
   }
 
-  // Google OAuth is intentionally disabled until the provider is
-  // configured in the Supabase dashboard (Auth → Providers → Google).
-  // When ready, restore the handler + the Continue-with-Google button.
-
   return (
     <AuthLayout tab="login">
+      <div className="mb-6">
+        <h2 className="text-[26px] leading-[1.15] tracking-[-0.01em]" style={{ color: T.INK, fontFamily: T.SERIF, fontWeight: 600 }}>
+          Welcome back
+        </h2>
+        <p className="mt-2 text-[14px]" style={{ color: T.MUTED, fontFamily: T.BODY }}>
+          Sign in to your synth account.
+        </p>
+      </div>
 
       <form className="flex flex-col gap-4" onSubmit={handleEmailLogin}>
-        <div>
-          <FieldLabel>Email</FieldLabel>
-          <TextInput
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[12px] font-semibold" style={{ color: T.INK, fontFamily: T.BODY }}>Email</span>
+          <input
             type="email"
             name="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
+            className="w-full rounded-lg px-3.5 py-3 text-[15px] outline-none"
+            style={{ background: T.SUNK, border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
           />
-        </div>
+        </label>
 
-        <div>
-          <FieldLabel
-            hint={
-              <a
-                href="mailto:supportsynth@gmail.com?subject=Password%20reset%20request"
-                className="text-[10px] uppercase tracking-[0.28em] transition-colors hover:text-white"
-                style={{ color: GREEN, fontFamily: MONO }}
-              >
-                Forgot?
-              </a>
-            }
-          >
-            Password
-          </FieldLabel>
+        <label className="flex flex-col gap-1.5">
+          <span className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold" style={{ color: T.INK, fontFamily: T.BODY }}>Password</span>
+            <a
+              href="mailto:supportsynth@gmail.com?subject=Password%20reset%20request"
+              className="text-[12px] font-medium transition-colors hover:opacity-70"
+              style={{ color: T.GREEN_DEEP, fontFamily: T.BODY }}
+            >
+              Forgot?
+            </a>
+          </span>
           <div className="relative">
-            <TextInput
+            <input
               type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Your password"
               autoComplete="current-password"
+              className="w-full rounded-lg px-3.5 py-3 pr-16 text-[15px] outline-none"
+              style={{ background: T.SUNK, border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
             />
             <button
               type="button"
-              onClick={() => setShowPassword(s => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 px-2 text-[10px] uppercase tracking-[0.22em] transition-colors hover:text-white"
-              style={{ fontFamily: MONO, color: DIM }}
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium transition-colors hover:opacity-70"
+              style={{ color: T.MUTED, fontFamily: T.BODY }}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
-        </div>
+        </label>
 
         {error && (
           <div
             role="alert"
-            className="rounded-md px-3 py-2.5 text-[12px]"
-            style={{
-              background: 'rgba(239,68,68,0.08)',
-              border: '1px solid rgba(239,68,68,0.3)',
-              color: '#fca5a5',
-              fontFamily: MONO,
-            }}
+            className="rounded-lg px-3.5 py-2.5 text-[13px]"
+            style={{ background: T.DANGER_WASH, border: `1px solid ${T.DANGER}`, color: T.DANGER, fontFamily: T.BODY }}
           >
             {error}
           </div>
         )}
 
-        <PrimaryAuthButton type="submit" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in →'}
-        </PrimaryAuthButton>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex w-full items-center justify-center rounded-lg py-3.5 text-[15px] font-semibold transition-opacity disabled:opacity-40"
+          style={{ background: T.INK, color: '#fff', fontFamily: T.BODY }}
+        >
+          {submitting ? 'Signing in…' : 'Sign in'}
+        </button>
       </form>
 
-      {/* Subtle demo entry — for stakeholders / press / first-look users
-       *  who don't have credentials yet. Routes into the seeded demo. */}
-      <div className="mt-5 flex items-center justify-center gap-2 text-[11px]" style={{ fontFamily: MONO, color: MUTED }}>
-        <span style={{ color: DIM }}>No account?</span>
-        <Link
-          to="/coach/dashboard"
-          className="inline-flex items-center gap-1 transition-colors hover:opacity-80"
-          style={{ color: GREEN }}
-        >
-          View the demo
-          <span aria-hidden>→</span>
+      <div className="mt-5 flex items-center justify-center gap-2 text-[13px]" style={{ fontFamily: T.BODY, color: T.MUTED }}>
+        <span style={{ color: T.DIM }}>No account?</span>
+        <Link to="/coach/dashboard" className="font-semibold transition-colors hover:opacity-70" style={{ color: T.GREEN_DEEP }}>
+          View the demo →
         </Link>
       </div>
 
-      <div className="mt-6 flex items-center justify-center gap-3 text-[10px] uppercase tracking-[0.32em]" style={{ color: DIM, fontFamily: MONO }}>
-        <a href="/legal/terms" className="transition-colors hover:text-white">Terms</a>
-        <span style={{ color: HAIR }}>·</span>
-        <a href="/legal/privacy" className="transition-colors hover:text-white">Privacy</a>
+      <div className="mt-6 flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.24em]" style={{ color: T.DIM, fontFamily: T.MONO }}>
+        <a href="/legal/terms" className="transition-colors hover:opacity-70">Terms</a>
+        <span style={{ color: T.HAIR }}>·</span>
+        <a href="/legal/privacy" className="transition-colors hover:opacity-70">Privacy</a>
       </div>
-
-      {/* unused token guard */}
-      <span aria-hidden style={{ display: 'none', color: FG, borderColor: FAINT }} />
     </AuthLayout>
   )
 }
-

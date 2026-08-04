@@ -132,6 +132,10 @@ const SignUpPage = lazyNamed(
   () => import('@auth/SignUpPage'),
   'SignUpPage',
 )
+const ResponsesPage = lazyNamed(
+  () => import('@pages/responses/ResponsesPage'),
+  'ResponsesPage',
+)
 
 const ProductDemoPage = lazyNamed(
   () => import('@pages/productDemo/ProductDemoPage'),
@@ -246,6 +250,7 @@ export const routes: RouteObject[] = [
   { path: '/login', element: withSuspense(<LoginPage />, 'Sign in') },
   { path: '/signup', element: withSuspense(<SignUpPage />, 'Sign up') },
   { path: '/join/:code', element: withSuspense(<JoinWithInvitePage />, 'Join team') },
+  { path: '/responses', element: withSuspense(<ResponsesPage />, 'Responses') },
 
   /* ─── Marketing surface ──────────────────────────────────────────────── */
   { path: '/platform',                          element: withSuspense(<PlatformHubPage />,                  'Platform') },

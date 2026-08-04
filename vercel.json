@@ -14,6 +14,11 @@
       "has": [{ "type": "host", "value": "synthplatform.vercel.app" }],
       "destination": "https://synthsports.co/$1",
       "permanent": false
+    },
+    {
+      "source": "/wispr",
+      "destination": "https://wisprflow.ai/r?WISPR819846",
+      "permanent": false
     }
   ],
   "rewrites": [

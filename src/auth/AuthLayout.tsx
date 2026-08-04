@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
-import { AUTH_TOKENS } from './authTokens'
+import { motion, useReducedMotion } from 'framer-motion'
+import { AUTH_LIGHT } from './authTokens'
 
-const { GREEN, MUTED, HAIR, FAINT, MONO, BODY, FG, BG } = AUTH_TOKENS
+const T = AUTH_LIGHT
 
 type AuthTab = 'login' | 'signup'
 
+/**
+ * The professional auth shell: a light form panel on the left, a slow image-grid
+ * carousel on the right (Framer-style). Both /login and /signup render through
+ * here. The right panel is hidden below `lg`, where the form takes the full width.
+ */
 export function AuthLayout({
   tab,
   children,
@@ -15,212 +19,169 @@ export function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-dvh w-full" style={{ background: BG, color: FG, fontFamily: BODY }}>
-      {/* LEFT — full-bleed image slideshow, top-to-bottom.
-       *  `isolate` is critical: it forces the aside to start its own
-       *  stacking context so the slideshow's absolute layer can paint
-       *  at z-0 without escaping behind the page-root black. */}
-      <aside
-        className="relative isolate hidden flex-col justify-between overflow-hidden px-10 py-10 lg:flex"
-        style={{ width: '50%', minWidth: 480, borderRight: `1px solid ${HAIR}` }}
-      >
-        <SlideshowBackdrop />
-
-        {/* Top — logo */}
-        <Link
-          to="/"
-          className="relative z-10 inline-flex items-center text-[20px] font-semibold leading-none"
-          style={{ fontFamily: MONO, color: FG, textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
-        >
-          synth<span style={{ color: GREEN }}>.</span>
-        </Link>
-
-        {/* Bottom-left — trust line, sits on top of the slide */}
-        <div className="relative z-10 flex items-center gap-2 text-[10px] uppercase tracking-[0.32em]" style={{ fontFamily: MONO, color: 'rgba(255,255,255,0.65)', textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
-          <motion.span
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            className="inline-block h-1.5 w-1.5 rounded-full"
-            style={{ background: GREEN }}
-          />
-          <span>Berkeley SkyDeck · Pad-13</span>
-        </div>
-      </aside>
-
-      {/* RIGHT — form column */}
-      <main className="relative flex flex-1 flex-col" style={{ background: BG }}>
-        <div className="flex items-center justify-between px-5 py-5 lg:hidden" style={{ borderBottom: `1px solid ${HAIR}` }}>
-          <Link to="/" className="text-[18px] font-semibold" style={{ fontFamily: MONO, color: FG }}>
-            synth<span style={{ color: GREEN }}>.</span>
+    <div className="flex min-h-dvh w-full" style={{ background: T.BG, color: T.INK, fontFamily: T.BODY }}>
+      {/* LEFT — form panel */}
+      <main className="relative flex w-full flex-col lg:w-[52%] lg:min-w-[520px]">
+        {/* Top bar — logo + back */}
+        <div className="flex items-center justify-between px-6 py-6 sm:px-10">
+          <Link to="/" className="inline-flex items-center" aria-label="synth home">
+            <img src="/logos/synth-logos/synth-logo-dark.svg" alt="synth" className="h-6 w-auto" />
           </Link>
-          <Link to="/" className="text-[11px] uppercase tracking-[0.28em]" style={{ fontFamily: MONO, color: MUTED }}>
-            ← back
+          <Link
+            to="/"
+            className="text-[12px] font-medium transition-colors hover:opacity-70"
+            style={{ color: T.MUTED, fontFamily: T.BODY }}
+          >
+            ← Back to site
           </Link>
         </div>
 
-        <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10">
-          <div className="w-full max-w-[420px]">
+        <div className="flex flex-1 items-center justify-center px-6 pb-16 pt-4 sm:px-10">
+          <div className="w-full max-w-[440px]">
             <TabSwitcher tab={tab} />
             {children}
           </div>
         </div>
+
+        {/* Bottom trust line */}
+        <div
+          className="flex items-center gap-2 px-6 py-5 text-[11px] uppercase tracking-[0.24em] sm:px-10"
+          style={{ color: T.DIM, fontFamily: T.MONO }}
+        >
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: T.GREEN }} />
+          Backed by Berkeley SkyDeck · Pad-13
+        </div>
       </main>
+
+      {/* RIGHT — image-grid carousel */}
+      <aside
+        className="relative hidden overflow-hidden lg:block lg:flex-1"
+        style={{ background: '#0A0C1B', borderLeft: `1px solid ${T.HAIR}` }}
+        aria-hidden
+      >
+        <ImageGridCarousel />
+      </aside>
     </div>
   )
 }
 
-/* ─── Slideshow — 4 full-bleed images, cross-fading on a 5s interval ──
- *  Drop your images at /public/auth-slides/slide-{1..4}.jpg (or .webp).
- *  Recommended size: 1600 × 2400 portrait, JPEG quality 80–85, < 500 KB
- *  each. Falls back to a labeled gradient placeholder if a file is
- *  missing so the slideshow still rotates while you prep assets. */
+/* ─── Image-grid carousel ─────────────────────────────────────────────────── */
 
-const SLIDES = [
-  { src: '/auth-slides/slide-1.png', placeholder: '#0a1410' }, // trail runner — dawn ridge
-  { src: '/auth-slides/slide-2.png', placeholder: '#100a14' }, // cyclist — mountain road
-  { src: '/auth-slides/slide-3.png', placeholder: '#0a0f14' }, // open-water swimmer
-  { src: '/auth-slides/slide-4.png', placeholder: '#0a140d' }, // team — football line of scrimmage
-] as const
+const COLUMNS: string[][] = [
+  [
+    '/auth-slides/slide-1.png',
+    '/solution-mockups/synth-team-overview.png',
+    '/coach_tools_images/image_erg_screen.PNG',
+    '/team/star-rose.png',
+  ],
+  [
+    '/auth-slides/slide-2.png',
+    '/coach_tools_images/google-sheets-rowing-erg-intervals.png',
+    '/solution-mockups/rowiq-lineup.png',
+    '/team/matthew-waddell.png',
+  ],
+  [
+    '/auth-slides/slide-3.png',
+    '/coach_tools_images/team_works_calaender.PNG',
+    '/auth-slides/slide-4.png',
+    '/team/lily-pember.png',
+  ],
+]
 
-const SLIDE_DURATION_MS = 9000
-
-function SlideshowBackdrop() {
-  const [i, setI] = useState(0)
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setI(v => (v + 1) % SLIDES.length)
-    }, SLIDE_DURATION_MS)
-    return () => window.clearInterval(id)
-  }, [])
-
-  const slide = SLIDES[i]
-
+function ImageGridCarousel() {
+  const reduce = useReducedMotion()
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={slide.src}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.0, ease: 'easeInOut' }}
-          className="absolute inset-0"
-        >
-          <SlideMedia src={slide.src} placeholder={slide.placeholder} index={i} />
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Dark wash so logo + trust line stay readable */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 35%, rgba(0,0,0,0.65) 100%)',
-        }}
-      />
-
-      {/* Subtle green tint */}
-      <div
-        className="absolute inset-0 mix-blend-overlay"
-        style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(16,185,129,0.10) 0%, transparent 65%)' }}
-      />
-
-      {/* Bottom-center indicators */}
-      <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2">
-        {SLIDES.map((_, idx) => (
-          <span
+    <div className="absolute inset-0">
+      <div className="flex h-full gap-4 p-4">
+        {COLUMNS.map((imgs, idx) => (
+          <MarqueeColumn
             key={idx}
-            className="transition-all"
-            style={{
-              width: idx === i ? 22 : 6,
-              height: 6,
-              borderRadius: 999,
-              background: idx === i ? GREEN : 'rgba(255,255,255,0.25)',
-            }}
+            images={imgs}
+            // Alternate direction per column; vary duration so it never locksteps.
+            direction={idx % 2 === 0 ? 'up' : 'down'}
+            durationSec={reduce ? 0 : 46 + idx * 7}
           />
         ))}
       </div>
+
+      {/* Top + bottom fades so tiles enter/leave softly. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-28"
+        style={{ background: 'linear-gradient(180deg, #0A0C1B 0%, rgba(10,12,27,0) 100%)' }}
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-28"
+        style={{ background: 'linear-gradient(0deg, #0A0C1B 0%, rgba(10,12,27,0) 100%)' }}
+      />
+      {/* Subtle brand tint. */}
+      <div
+        className="pointer-events-none absolute inset-0 mix-blend-soft-light"
+        style={{ background: 'radial-gradient(ellipse at 60% 40%, rgba(16,185,129,0.18) 0%, transparent 60%)' }}
+      />
     </div>
   )
 }
 
-/* SlideMedia — shows the image; if the file 404s, shows a dark
- *  gradient placeholder with a tiny "// slide-N" label so the asset
- *  slot is obvious until images land. */
-function SlideMedia({ src, placeholder, index }: { src: string; placeholder: string; index: number }) {
-  const [loaded, setLoaded] = useState(false)
-  const [errored, setErrored] = useState(false)
+function MarqueeColumn({
+  images,
+  direction,
+  durationSec,
+}: {
+  images: string[]
+  direction: 'up' | 'down'
+  durationSec: number
+}) {
+  // Two copies stacked so the -50% loop is seamless.
+  const doubled = [...images, ...images]
+  const animate =
+    durationSec > 0
+      ? { y: direction === 'up' ? ['0%', '-50%'] : ['-50%', '0%'] }
+      : undefined
 
   return (
-    <div className="absolute inset-0">
-      {/* Placeholder painted underneath — shows through if the image hasn't loaded yet */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 30% 30%, rgba(16,185,129,0.12) 0%, transparent 55%), linear-gradient(180deg, ${placeholder} 0%, #050505 100%)`,
-        }}
-      />
-
-      {!errored && (
-        <img
-          src={src}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover transition-opacity"
-          style={{ opacity: loaded ? 1 : 0 }}
-          onLoad={() => setLoaded(true)}
-          onError={() => setErrored(true)}
-        />
-      )}
-
-      {/* If image missing, surface a tiny slot label so it's obvious where to drop assets */}
-      {errored && (
-        <div
-          className="absolute left-6 top-24 inline-flex items-center gap-2 border px-3 py-1.5 text-[9px] uppercase tracking-[0.32em]"
-          style={{
-            borderColor: 'rgba(16,185,129,0.4)',
-            background: 'rgba(0,0,0,0.55)',
-            color: GREEN,
-            fontFamily: MONO,
-          }}
-        >
-          <span>// slide-{index + 1}</span>
-          <span style={{ color: 'rgba(255,255,255,0.4)' }}>· drop image here</span>
-        </div>
-      )}
+    <div className="relative h-full flex-1 overflow-hidden">
+      <motion.div
+        className="flex flex-col gap-4"
+        animate={animate}
+        transition={durationSec > 0 ? { duration: durationSec, ease: 'linear', repeat: Infinity } : undefined}
+      >
+        {doubled.map((src, i) => (
+          <div
+            key={`${src}-${i}`}
+            className="overflow-hidden rounded-2xl"
+            style={{ border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.35)' }}
+          >
+            <img src={src} alt="" loading="lazy" className="block w-full object-cover" style={{ aspectRatio: '3 / 4' }} />
+          </div>
+        ))}
+      </motion.div>
     </div>
   )
 }
 
-/* ─── Tab switcher ────────────────────────────────────────────────── */
+/* ─── Tab switcher ────────────────────────────────────────────────────────── */
 
 function TabSwitcher({ tab }: { tab: AuthTab }) {
+  const item = (to: string, label: string, active: boolean) => (
+    <Link
+      to={to}
+      className="flex items-center justify-center rounded-md py-2.5 text-[13px] font-semibold transition-all"
+      style={{
+        background: active ? T.INK : 'transparent',
+        color: active ? '#fff' : T.MUTED,
+        fontFamily: T.BODY,
+      }}
+    >
+      {label}
+    </Link>
+  )
   return (
     <div
-      className="mb-7 grid grid-cols-2 overflow-hidden rounded-md"
-      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${FAINT}`, fontFamily: MONO }}
+      className="mb-8 grid grid-cols-2 gap-1 rounded-lg p-1"
+      style={{ background: T.SUNK, border: `1px solid ${T.HAIR}` }}
     >
-      <Link
-        to="/signup"
-        className="flex items-center justify-center py-2.5 text-[12px] transition-colors"
-        style={{
-          background: tab === 'signup' ? GREEN : 'transparent',
-          color: tab === 'signup' ? '#000' : MUTED,
-          fontWeight: tab === 'signup' ? 600 : 400,
-        }}
-      >
-        Join waitlist
-      </Link>
-      <Link
-        to="/login"
-        className="flex items-center justify-center py-2.5 text-[12px] transition-colors"
-        style={{
-          background: tab === 'login' ? GREEN : 'transparent',
-          color: tab === 'login' ? '#000' : MUTED,
-          fontWeight: tab === 'login' ? 600 : 400,
-        }}
-      >
-        Log in
-      </Link>
+      {item('/signup', 'Join waitlist', tab === 'signup')}
+      {item('/login', 'Log in', tab === 'login')}
     </div>
   )
 }

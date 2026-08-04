@@ -136,7 +136,7 @@ export const SYNTH_SURVEY: SurveyStep[] = [
       "Coach's spreadsheet",
       'Strava',
       'TrainingPeaks',
-      'Concept2 / erg logbook',
+      'A wearable app',
       'Notes app',
       'Nothing yet',
     ],
@@ -162,11 +162,12 @@ export const SYNTH_SURVEY: SurveyStep[] = [
   {
     type: 'single',
     key: 'dimensionality',
-    title: 'How much in one place?',
+    title: 'How much should synth bring together?',
+    sub: 'From a couple of key numbers to every signal in one view.',
     options: [
-      'Just my key numbers',
-      'A few connected signals',
-      'Everything, fully synthesized',
+      'Just my main numbers',
+      'A few things that connect',
+      'Everything, in one place',
     ],
   },
   {

@@ -92,23 +92,41 @@ function Hero() {
         athletes and coaches alike.
       </p>
 
-      <div className="mt-12">
+      <div className="mt-12 max-w-[440px]">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: T.MONO }}>
           Backed by
         </p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-7 gap-y-4">
-          {BACKERS.map((b) => (
-            <img
-              key={b.src}
-              src={b.src}
-              alt={b.alt}
-              // Black source logos → invert to white and mute for a dark "backed by" row.
-              style={{ height: b.h, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0.62 }}
-              className="object-contain"
-            />
-          ))}
-        </div>
+        <BackerMarquee />
       </div>
+    </div>
+  )
+}
+
+/* Backer logos as a scrolling carousel. Each logo sits on its own white chip so
+ * it reads on the dark surface regardless of the source colour (no invert
+ * filter, which turned the colour PNGs into white blocks). */
+function BackerMarquee() {
+  const loop = [...BACKERS, ...BACKERS]
+  return (
+    <div
+      className="mt-4 overflow-hidden"
+      style={{ maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)', WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)' }}
+    >
+      <motion.div
+        className="flex w-max items-center gap-3"
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ duration: 22, ease: 'linear', repeat: Infinity }}
+      >
+        {loop.map((b, i) => (
+          <div
+            key={`${b.src}-${i}`}
+            className="flex h-11 shrink-0 items-center rounded-xl px-3.5"
+            style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)' }}
+          >
+            <img src={b.src} alt={b.alt} style={{ height: b.h, width: 'auto' }} className="object-contain" />
+          </div>
+        ))}
+      </motion.div>
     </div>
   )
 }
@@ -143,8 +161,10 @@ function PhotoBackdrop() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Heavy black scrim — keeps the whole surface dark and text legible. */}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,6,0.82) 0%, rgba(5,5,6,0.72) 40%, rgba(5,5,6,0.90) 100%)' }} />
+      {/* Dark scrim — still dark, but light enough that the photos read. Left
+          side stays darker so the hero text stays legible. */}
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,6,0.52) 0%, rgba(5,5,6,0.42) 42%, rgba(5,5,6,0.78) 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(5,5,6,0.86) 0%, rgba(5,5,6,0.34) 54%, rgba(5,5,6,0.5) 100%)' }} />
       <div className="absolute inset-0" style={{ background: 'radial-gradient(70% 60% at 20% 30%, rgba(16,185,129,0.10) 0%, transparent 70%)' }} />
     </div>
   )

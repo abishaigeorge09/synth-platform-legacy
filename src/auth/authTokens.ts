@@ -42,3 +42,30 @@ export const AUTH_LIGHT = {
   MONO,
   BODY,
 } as const
+
+/**
+ * Dark auth surface — the current direction: near-black canvas with the sport
+ * photos behind a heavy dark scrim, and the form in a floating glass card.
+ * Mirrors AUTH_LIGHT's keys so the auth components can swap by changing one
+ * import.
+ */
+export const AUTH_DARK = {
+  /** Card / canvas base. */
+  BG: '#0A0A0C',
+  /** Input / inset surface on dark. */
+  SUNK: 'rgba(255,255,255,0.05)',
+  INK: '#FAFAFA',
+  MUTED: '#A1A1AA',
+  DIM: '#71717A',
+  HAIR: 'rgba(255,255,255,0.12)',
+  FAINT: 'rgba(255,255,255,0.06)',
+  GREEN: '#10B981',
+  /** Accent for text on dark (lighter for contrast). */
+  GREEN_DEEP: '#34D399',
+  GREEN_WASH: 'rgba(16,185,129,0.16)',
+  DANGER: '#F87171',
+  DANGER_WASH: 'rgba(248,113,113,0.12)',
+  SERIF,
+  MONO,
+  BODY,
+} as const

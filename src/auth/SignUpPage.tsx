@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import { posthog } from '@shared/analytics/posthog'
 import { AuthLayout } from './AuthLayout'
-import { AUTH_LIGHT } from './authTokens'
+import { AUTH_DARK } from './authTokens'
 import { SurveyWizard, type SurveyAnswers, type SubmitResult } from './survey/surveyEngine'
 import { SYNTH_SURVEY } from './survey/synthSurveySteps'
 import {
@@ -13,7 +13,7 @@ import {
   type WaitlistEntry,
 } from './waitlist'
 
-const T = AUTH_LIGHT
+const T = AUTH_DARK
 const WEEKLY_ADMITS = 50 // ETA math
 const WISPR_HREF = '/wispr'
 
@@ -146,7 +146,7 @@ function QueueConfirmation({ entry, liveTotal }: { entry: WaitlistEntry; liveTot
         </div>
 
         <div className="mt-5">
-          <div className="relative h-1.5 overflow-hidden rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }}>
+          <div className="relative h-1.5 overflow-hidden rounded-full" style={{ background: T.FAINT }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${Math.max(8, 100 - (entry.position / Math.max(entry.position, liveTotal)) * 100)}%` }}
@@ -168,7 +168,7 @@ function QueueConfirmation({ entry, liveTotal }: { entry: WaitlistEntry; liveTot
         target="_blank"
         rel="noopener noreferrer"
         className="mt-4 flex items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-semibold transition-opacity hover:opacity-90"
-        style={{ background: T.INK, color: '#fff', fontFamily: T.BODY }}
+        style={{ background: T.INK, color: '#0A0A0C', fontFamily: T.BODY }}
       >
         <Sparkles size={16} strokeWidth={2.2} />
         Claim your free Wispr Pro

@@ -1,16 +1,17 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { AUTH_LIGHT } from './authTokens'
+import { AnimatePresence, motion } from 'framer-motion'
+import { AUTH_DARK } from './authTokens'
 
-const T = AUTH_LIGHT
+const T = AUTH_DARK
 
 type AuthTab = 'login' | 'signup'
 
 /**
- * Auth shell modelled on the reference: one full-bleed light scene behind
- * everything, a brand hero on the left, and the form as a floating white card
- * on the right. Fully light — no dark panel. Below `lg` the hero drops away and
- * the card centers with the logo above it.
+ * Dark auth shell: the sport photos cross-fade full-bleed behind a heavy black
+ * scrim, a brand hero sits on the left, and the form floats in a glass card on
+ * the right. The card is height-capped and scrolls internally, so a long survey
+ * step never grows the page (only the card body scrolls).
  */
 export function AuthLayout({
   tab,
@@ -20,13 +21,13 @@ export function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="relative min-h-dvh w-full overflow-hidden" style={{ color: T.INK, fontFamily: T.BODY }}>
-      <SceneBackground />
+    <div className="relative min-h-dvh w-full overflow-hidden" style={{ background: '#050506', color: T.INK, fontFamily: T.BODY }}>
+      <PhotoBackdrop />
 
-      <div className="relative z-10 mx-auto flex min-h-dvh max-w-[1140px] flex-col justify-center px-6 py-10 sm:px-10">
-        {/* Mobile logo (hero is hidden below lg) */}
-        <Link to="/" className="mb-8 flex justify-center lg:hidden" aria-label="synth home">
-          <img src="/logos/synth-logos/synth-logo-dark.svg" alt="synth" className="h-6 w-auto" />
+      <div className="relative z-10 mx-auto flex min-h-dvh max-w-[1140px] flex-col justify-center px-6 py-8 sm:px-10">
+        {/* Mobile logo (hero hidden below lg) */}
+        <Link to="/" className="mb-6 flex justify-center lg:hidden" aria-label="synth home">
+          <img src="/logos/synth-logos/synth-logo-white.svg" alt="synth" className="h-6 w-auto" />
         </Link>
 
         <div className="grid items-center gap-14 lg:grid-cols-[1fr_460px]">
@@ -37,21 +38,24 @@ export function AuthLayout({
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full max-w-[460px] rounded-[28px] p-6 sm:p-8"
+              className="flex w-full max-w-[460px] flex-col rounded-[28px] p-6 sm:p-8"
               style={{
-                background: '#FFFFFF',
+                // Height-capped glass card; body scrolls, page does not.
+                maxHeight: 'calc(100dvh - 48px)',
+                background: 'rgba(16,16,20,0.72)',
+                backdropFilter: 'blur(20px) saturate(130%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(130%)',
                 border: `1px solid ${T.HAIR}`,
-                boxShadow: '0 24px 70px rgba(20,40,80,0.12), 0 2px 10px rgba(20,40,80,0.05)',
+                boxShadow: '0 30px 80px rgba(0,0,0,0.55)',
               }}
             >
               <TabSwitcher tab={tab} />
-              {children}
+              {/* Scrollable body — the fix for the box extending the page. */}
+              <div className="synth-scroll -mr-2 overflow-y-auto pr-2" style={{ minHeight: 0, flex: '1 1 auto' }}>
+                {children}
+              </div>
             </motion.div>
           </div>
-        </div>
-
-        <div className="mt-8 flex justify-center lg:hidden">
-          <Link to="/" className="text-[12px] font-medium" style={{ color: T.MUTED }}>← Back to site</Link>
         </div>
       </div>
     </div>
@@ -72,7 +76,7 @@ function Hero() {
   return (
     <div className="hidden lg:block">
       <Link to="/" aria-label="synth home">
-        <img src="/logos/synth-logos/synth-logo-dark.svg" alt="synth" className="h-7 w-auto" />
+        <img src="/logos/synth-logos/synth-logo-white.svg" alt="synth" className="h-7 w-auto" />
       </Link>
 
       <h1
@@ -83,13 +87,13 @@ function Hero() {
         <br />
         One platform<span style={{ color: T.GREEN_DEEP }}>.</span>
       </h1>
-      <p className="mt-5 max-w-[420px] text-[16px] leading-[1.55]" style={{ color: T.MUTED }}>
+      <p className="mt-5 max-w-[420px] text-[16px] leading-[1.55]" style={{ color: 'rgba(255,255,255,0.72)' }}>
         Connect the tools you already use. synth synthesizes the rest into one readable picture, for
         athletes and coaches alike.
       </p>
 
       <div className="mt-12">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: T.DIM, fontFamily: T.MONO }}>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: T.MONO }}>
           Backed by
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-x-7 gap-y-4">
@@ -98,7 +102,8 @@ function Hero() {
               key={b.src}
               src={b.src}
               alt={b.alt}
-              style={{ height: b.h, width: 'auto', filter: 'grayscale(1)', opacity: 0.5 }}
+              // Black source logos → invert to white and mute for a dark "backed by" row.
+              style={{ height: b.h, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0.62 }}
               className="object-contain"
             />
           ))}
@@ -108,49 +113,39 @@ function Hero() {
   )
 }
 
-/* ─── Full-bleed scene ────────────────────────────────────────────────────────
- *  A light gradient wash with faint flowing lines converging from the left,
- *  echoing the reference. Pure CSS/SVG — no external image, crisp at any size. */
+/* ─── Full-bleed photo backdrop (dark) ────────────────────────────────────────
+ *  The original scene set — 4 sport photos cross-fading behind a heavy black
+ *  scrim so the surface reads dark while the imagery still shows through. Drop
+ *  replacements at /public/auth-slides/slide-{1..4}.png. */
 
-function SceneBackground() {
+const SLIDES = ['/auth-slides/slide-1.png', '/auth-slides/slide-2.png', '/auth-slides/slide-3.png', '/auth-slides/slide-4.png'] as const
+const SLIDE_MS = 6000
+
+function PhotoBackdrop() {
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => setI((v) => (v + 1) % SLIDES.length), SLIDE_MS)
+    return () => window.clearInterval(id)
+  }, [])
+
   return (
     <div className="absolute inset-0" aria-hidden>
-      <div
-        className="absolute inset-0"
-        style={{ background: 'linear-gradient(135deg, #EEF4FF 0%, #F6FAFF 46%, #EFFBF4 100%)' }}
-      />
-      <svg
-        className="absolute inset-0 h-full w-full"
-        viewBox="0 0 1440 900"
-        preserveAspectRatio="xMidYMid slice"
-        fill="none"
-      >
-        <g stroke="rgba(16,185,129,0.20)" strokeWidth="1.4">
-          <path d="M-120,470 C 60,470 150,452 250,450" />
-          <path d="M-120,360 C 60,392 150,444 250,450" />
-          <path d="M250,450 C 520,450 720,170 1560,130" />
-          <path d="M250,450 C 540,450 740,320 1560,300" />
-        </g>
-        <g stroke="rgba(59,130,246,0.16)" strokeWidth="1.4">
-          <path d="M250,450 C 540,450 740,470 1560,485" />
-          <path d="M250,450 C 520,450 720,610 1560,650" />
-          <path d="M250,450 C 500,450 700,770 1560,830" />
-        </g>
-        <g fill="#10B981">
-          <circle cx="250" cy="450" r="4.5" opacity="0.55" />
-          <circle cx="560" cy="336" r="3.5" opacity="0.4" />
-          <circle cx="620" cy="606" r="3.5" opacity="0.35" />
-        </g>
-      </svg>
-      {/* Soft glows for depth. */}
-      <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(60% 50% at 12% 30%, rgba(16,185,129,0.10) 0%, transparent 70%)' }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(50% 45% at 90% 80%, rgba(59,130,246,0.08) 0%, transparent 70%)' }}
-      />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={SLIDES[i]}
+          initial={{ opacity: 0, scale: 1.04 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2, ease: 'easeInOut' }}
+          className="absolute inset-0"
+        >
+          <img src={SLIDES[i]} alt="" className="h-full w-full object-cover" />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Heavy black scrim — keeps the whole surface dark and text legible. */}
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,6,0.82) 0%, rgba(5,5,6,0.72) 40%, rgba(5,5,6,0.90) 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(70% 60% at 20% 30%, rgba(16,185,129,0.10) 0%, transparent 70%)' }} />
     </div>
   )
 }
@@ -162,13 +157,13 @@ function TabSwitcher({ tab }: { tab: AuthTab }) {
     <Link
       to={to}
       className="flex items-center justify-center rounded-md py-2.5 text-[13px] font-semibold transition-all"
-      style={{ background: active ? T.INK : 'transparent', color: active ? '#fff' : T.MUTED, fontFamily: T.BODY }}
+      style={{ background: active ? T.INK : 'transparent', color: active ? '#0A0A0C' : T.MUTED, fontFamily: T.BODY }}
     >
       {label}
     </Link>
   )
   return (
-    <div className="mb-7 grid grid-cols-2 gap-1 rounded-lg p-1" style={{ background: T.SUNK, border: `1px solid ${T.HAIR}` }}>
+    <div className="mb-7 grid shrink-0 grid-cols-2 gap-1 rounded-lg p-1" style={{ background: T.FAINT, border: `1px solid ${T.HAIR}` }}>
       {item('/signup', 'Join waitlist', tab === 'signup')}
       {item('/login', 'Log in', tab === 'login')}
     </div>

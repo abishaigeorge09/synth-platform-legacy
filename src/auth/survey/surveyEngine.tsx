@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Check, Search } from 'lucide-react'
-import { AUTH_LIGHT } from '../authTokens'
+import { AUTH_DARK } from '../authTokens'
 import type { SurveyStep } from './synthSurveySteps'
 
-const T = AUTH_LIGHT
+const T = AUTH_DARK
 
 export type SurveyAnswers = Record<string, string | string[]>
 
@@ -233,7 +233,7 @@ function SingleStep({
                 }}
                 placeholder="Type your sport"
                 className="flex-1 rounded-lg px-3.5 py-3 text-[15px] outline-none transition-shadow focus:[box-shadow:0_0_0_3px_rgba(16,185,129,0.14)] focus:[border-color:#059669]"
-                style={{ background: '#FFFFFF', border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
+                style={{ background: T.SUNK, border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
               />
               <button
                 type="button"
@@ -324,7 +324,7 @@ function DropdownStep({
       <Title title={step.title} sub={step.sub} />
       <div
         className="flex items-center gap-2 rounded-lg px-3.5 py-3 transition-shadow focus-within:[box-shadow:0_0_0_3px_rgba(16,185,129,0.14)] focus-within:[border-color:#059669]"
-        style={{ background: '#FFFFFF', border: `1px solid ${T.HAIR}` }}
+        style={{ background: T.SUNK, border: `1px solid ${T.HAIR}` }}
       >
         <Search size={16} color={T.DIM} />
         <input
@@ -401,7 +401,7 @@ function EmailStep({
         placeholder={step.placeholder ?? 'you@example.com'}
         autoComplete="email"
         className="w-full rounded-lg px-3.5 py-3.5 text-[15px] outline-none transition-shadow focus:[box-shadow:0_0_0_3px_rgba(16,185,129,0.14)] focus:[border-color:#059669]"
-        style={{ background: '#FFFFFF', border: `1px solid ${valid || !value ? T.HAIR : T.DANGER}`, color: T.INK, fontFamily: T.BODY }}
+        style={{ background: T.SUNK, border: `1px solid ${valid || !value ? T.HAIR : T.DANGER}`, color: T.INK, fontFamily: T.BODY }}
       />
       <PrimaryButton className="mt-4" type="submit" disabled={!valid || submitting}>
         {submitting ? 'Locking your spot…' : 'Get early access'}
@@ -432,7 +432,7 @@ function OptionRow({
       className="group flex w-full items-center gap-3 rounded-lg text-left transition-colors"
       style={{
         padding: compact ? '10px 14px' : '13px 15px',
-        background: selected ? T.GREEN_WASH : T.BG,
+        background: selected ? T.GREEN_WASH : T.FAINT,
         border: `1px solid ${selected ? T.GREEN : T.HAIR}`,
         color: T.INK,
         fontFamily: T.BODY,
@@ -472,7 +472,7 @@ function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       className={`flex w-full items-center justify-center gap-2 rounded-lg py-3.5 text-[15px] font-semibold transition-opacity disabled:opacity-40 ${className ?? ''}`}
-      style={{ background: T.INK, color: '#fff', fontFamily: T.BODY }}
+      style={{ background: T.INK, color: '#0A0A0C', fontFamily: T.BODY }}
     >
       {children}
     </button>

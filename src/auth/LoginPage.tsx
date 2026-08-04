@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { posthog } from '@shared/analytics/posthog'
 import { supabase } from '@lib/supabaseClient'
 import { AuthLayout } from './AuthLayout'
-import { AUTH_LIGHT } from './authTokens'
+import { AUTH_DARK } from './authTokens'
 
-const T = AUTH_LIGHT
+const T = AUTH_DARK
 
 // Real auth path. When Supabase is configured this page does:
 //   - email+password form → supabase.auth.signInWithPassword
@@ -88,7 +88,7 @@ export function LoginPage() {
             placeholder="you@example.com"
             autoComplete="email"
             className="w-full rounded-lg px-3.5 py-3 text-[15px] outline-none transition-shadow focus:[box-shadow:0_0_0_3px_rgba(16,185,129,0.14)] focus:[border-color:#059669]"
-            style={{ background: '#FFFFFF', border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
+            style={{ background: T.SUNK, border: `1px solid ${T.HAIR}`, color: T.INK, fontFamily: T.BODY }}
           />
         </label>
 
@@ -139,7 +139,7 @@ export function LoginPage() {
           type="submit"
           disabled={submitting}
           className="flex w-full items-center justify-center rounded-lg py-3.5 text-[15px] font-semibold transition-opacity disabled:opacity-40"
-          style={{ background: T.INK, color: '#fff', fontFamily: T.BODY }}
+          style={{ background: T.INK, color: '#0A0A0C', fontFamily: T.BODY }}
         >
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>

@@ -163,8 +163,8 @@ function PhotoBackdrop() {
 
       {/* Dark scrim — still dark, but light enough that the photos read. Left
           side stays darker so the hero text stays legible. */}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,6,0.52) 0%, rgba(5,5,6,0.42) 42%, rgba(5,5,6,0.78) 100%)' }} />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(5,5,6,0.86) 0%, rgba(5,5,6,0.34) 54%, rgba(5,5,6,0.5) 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,6,0.34) 0%, rgba(5,5,6,0.28) 45%, rgba(5,5,6,0.72) 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(5,5,6,0.80) 0%, rgba(5,5,6,0.22) 50%, rgba(5,5,6,0.42) 100%)' }} />
       <div className="absolute inset-0" style={{ background: 'radial-gradient(70% 60% at 20% 30%, rgba(16,185,129,0.10) 0%, transparent 70%)' }} />
     </div>
   )

@@ -39,9 +39,11 @@ export function SignUpPage() {
 
   const onSubmit = async (answers: SurveyAnswers): Promise<SubmitResult> => {
     const email = (str(answers.email) ?? '').trim()
+    // Sport is multi-select — join the picks into the single text column.
+    const sport = Array.isArray(answers.sport) ? answers.sport.join(', ') : str(answers.sport)
     const result = await joinWaitlist({
       email,
-      sport: str(answers.sport),
+      sport,
       role: str(answers.role),
       university: str(answers.university),
       wearable: str(answers.wearable),

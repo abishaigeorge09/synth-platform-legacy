@@ -58,7 +58,7 @@ export function SurveyWizard({
   return (
     <div className="flex flex-col">
       {/* Progress */}
-      <div className="mb-8 flex items-center gap-3">
+      <div className="mb-5 flex items-center gap-3">
         <div className="flex flex-1 items-center gap-1.5">
           {steps.map((_, idx) => (
             <span
@@ -124,7 +124,7 @@ export function SurveyWizard({
 
 function Title({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div className="mb-6">
+    <div className="mb-4">
       <h2
         className="text-[26px] leading-[1.15] tracking-[-0.01em]"
         style={{ color: T.INK, fontFamily: T.SERIF, fontWeight: 600, textWrap: 'balance' as const }}
@@ -217,9 +217,9 @@ function SingleStep({
   return (
     <div>
       <Title title={step.title} sub={step.sub} />
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {step.options.map((opt) => (
-          <OptionRow key={opt} label={opt} selected={value === opt} onClick={() => pick(opt)} />
+          <OptionRow key={opt} label={opt} selected={value === opt} compact onClick={() => pick(opt)} />
         ))}
         {step.other ? (
           otherOpen ? (
@@ -280,9 +280,9 @@ function MultiStep({
   return (
     <div>
       <Title title={step.title} sub={step.sub} />
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {step.options.map((opt) => (
-          <OptionRow key={opt} label={opt} selected={value.includes(opt)} checkbox onClick={() => toggle(opt)} />
+          <OptionRow key={opt} label={opt} selected={value.includes(opt)} checkbox compact onClick={() => toggle(opt)} />
         ))}
       </div>
       <PrimaryButton className="mt-5" disabled={!canAdvance} onClick={onNext}>

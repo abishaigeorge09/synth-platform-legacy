@@ -59,6 +59,7 @@ export const SPORTS = [
   'Cycling',
   'Track & Field',
   'Tennis',
+  'Badminton',
   'Field Hockey',
   'Volleyball',
 ] as const
@@ -98,11 +99,12 @@ export const SYNTH_SURVEY: SurveyStep[] = [
     button: 'Start',
   },
   {
-    type: 'single',
+    type: 'multi',
     key: 'sport',
-    title: 'Which sport is yours?',
+    title: 'Which sport(s) are yours?',
+    sub: 'Pick all that apply.',
     options: [...SPORTS],
-    other: true,
+    min: 1,
   },
   {
     type: 'single',

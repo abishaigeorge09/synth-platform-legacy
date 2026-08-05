@@ -20,14 +20,26 @@ export function AuthLayout({
   tab: AuthTab
   children: React.ReactNode
 }) {
+  // Paint the <body> dark for the auth route so mobile overscroll shows dark,
+  // not the app's white frame. Restored on unmount.
+  useEffect(() => {
+    document.body.dataset.auth = 'dark'
+    return () => { delete document.body.dataset.auth }
+  }, [])
+
   return (
     <div className="relative min-h-dvh w-full overflow-hidden" style={{ background: '#050506', color: T.INK, fontFamily: T.BODY }}>
       <PhotoBackdrop />
 
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-[1140px] flex-col justify-center px-6 py-8 sm:px-10">
-        {/* Mobile logo (hero hidden below lg) */}
-        <Link to="/" className="mb-6 flex justify-center lg:hidden" aria-label="synth home">
-          <img src="/logos/synth-logos/synth-logo-white.svg" alt="synth" className="h-6 w-auto" />
+        {/* Mobile logo (hero hidden below lg) — same wordmark as the home nav. */}
+        <Link
+          to="/"
+          className="mb-6 flex justify-center text-[20px] font-semibold leading-none lg:hidden"
+          style={{ fontFamily: T.MONO, color: T.INK }}
+          aria-label="synth home"
+        >
+          synth<span style={{ color: T.GREEN }}>.</span>
         </Link>
 
         <div className="grid items-center gap-14 lg:grid-cols-[1fr_460px]">
@@ -75,8 +87,13 @@ const BACKERS = [
 function Hero() {
   return (
     <div className="hidden lg:block">
-      <Link to="/" aria-label="synth home">
-        <img src="/logos/synth-logos/synth-logo-white.svg" alt="synth" className="h-7 w-auto" />
+      <Link
+        to="/"
+        className="text-[22px] font-semibold leading-none"
+        style={{ fontFamily: T.MONO, color: T.INK }}
+        aria-label="synth home"
+      >
+        synth<span style={{ color: T.GREEN }}>.</span>
       </Link>
 
       <h1
@@ -163,8 +180,8 @@ function PhotoBackdrop() {
 
       {/* Dark scrim — still dark, but light enough that the photos read. Left
           side stays darker so the hero text stays legible. */}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,6,0.34) 0%, rgba(5,5,6,0.28) 45%, rgba(5,5,6,0.72) 100%)' }} />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(5,5,6,0.80) 0%, rgba(5,5,6,0.22) 50%, rgba(5,5,6,0.42) 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,6,0.26) 0%, rgba(5,5,6,0.20) 45%, rgba(5,5,6,0.64) 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(5,5,6,0.74) 0%, rgba(5,5,6,0.14) 52%, rgba(5,5,6,0.36) 100%)' }} />
       <div className="absolute inset-0" style={{ background: 'radial-gradient(70% 60% at 20% 30%, rgba(16,185,129,0.10) 0%, transparent 70%)' }} />
     </div>
   )

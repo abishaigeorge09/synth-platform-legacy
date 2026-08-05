@@ -106,6 +106,13 @@ body,
   background: #fafaf9;
 }
 
+/* Auth pages paint the body itself dark so mobile rubber-band overscroll (and
+   any area past the container) shows the dark surface, not the white app frame
+   underneath. Set via document.body.dataset.auth in AuthLayout. */
+body[data-auth='dark'] {
+  background: #050506;
+}
+
 /* Cobalt-canvas surfaces (post-auth coach + athlete shells). Paint the
    surround, the phone-frame, and the body itself so any rubber-band
    overscroll exposes cobalt instead of the white frame underneath. */

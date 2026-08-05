@@ -33,8 +33,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
 
-  const expected = Deno.env.get("DASH_PASS")
-  if (!expected) return json({ error: "Server not configured (DASH_PASS missing)" }, 500)
+  // Prefer the DASH_PASS secret if set; otherwise fall back to the shared
+  // passcode. The function source is server-side only (never shipped to the
+  // browser), so this is a low-risk admin gate for the prototype.
+  const expected = Deno.env.get("DASH_PASS") ?? "synthresponses26"
 
   let pass = ""
   try {
